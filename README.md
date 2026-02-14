@@ -98,6 +98,29 @@ Thanks! If you feel like it, you can [follow me on Twitter](https://gaby.dev/twi
 <img width="220" src="https://78.media.tumblr.com/35d4ef4447e0112f776b629bffd99188/tumblr_mk4gf8zvyC1s567uwo1_500.gif" />
 
 
+## Security & Dependency Monitoring
+
+This repository is equipped with **24/7 automated vulnerability monitoring** to ensure all dependencies are continuously checked for security issues.
+
+### 🛡️ Active Security Features
+- **Dependabot**: Daily automated dependency updates and security patches
+- **Daily Vulnerability Scans**: npm audit runs daily on all dependencies
+- **Advanced Security Scanning**: Multiple tools (Snyk, Trivy, OSV, OWASP) run every 6 hours
+- **CodeQL Analysis**: Static code analysis 3 times per week
+- **SonarQube Analysis**: Code quality and security analysis on every push and PR
+- **Automatic Alerts**: Critical vulnerabilities trigger automatic GitHub issues
+- **PR Security Checks**: All pull requests are scanned before merge
+
+### 📊 Monitoring Dashboard
+- [Security Advisories](../../security/advisories) - View active security advisories
+- [Dependabot Alerts](../../security/dependabot) - Automated dependency alerts
+- [Security Status](.github/SECURITY_STATUS.md) - Current monitoring status
+
+For detailed information about the security monitoring system, see [SECURITY_MONITORING.md](SECURITY_MONITORING.md).
+
+To report security vulnerabilities, see [SECURITY.md](SECURITY.md).
+
+
 ## Featured in...
 - [Linux Uprising Blog](https://www.linuxuprising.com/2018/11/edex-ui-fully-functioning-sci-fi.html)
 - [My post on r/unixporn](https://www.reddit.com/r/unixporn/comments/9ysbx7/oc_a_little_project_that_ive_been_working_on/)

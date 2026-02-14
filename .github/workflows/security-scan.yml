@@ -1,0 +1,194 @@
+name: Advanced Security Scanning
+
+on:
+  schedule:
+    # Run every 6 hours for comprehensive 24/7 coverage
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  snyk-scan:
+    name: Snyk Vulnerability Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Run Snyk to check for vulnerabilities (Root)
+        uses: snyk/actions/node@9adf32b1121593767fc3c057af55b55db032dc04
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --all-projects
+
+      - name: Install src dependencies
+        run: cd src && npm ci
+
+      - name: Run Snyk to check for vulnerabilities (Src)
+        uses: snyk/actions/node@9adf32b1121593767fc3c057af55b55db032dc04
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --file=src/package.json
+
+  trivy-scan:
+    name: Trivy Security Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Run Trivy vulnerability scanner in repo mode
+        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@f5c2471be782132e47a6e6f9c725e56730d6e9a3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  osv-scanner:
+    name: OSV Scanner
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Run OSV Scanner
+        uses: google/osv-scanner-action@c5996e0193a3df57d695c1b8a1dec2a4c62e8730
+        continue-on-error: true
+        with:
+          scan-args: |-
+            --recursive
+            --json
+            --output=osv-results.json
+            ./
+
+      - name: Upload OSV results
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: osv-scan-results
+          path: osv-results.json
+          retention-days: 30
+
+  dependency-check:
+    name: OWASP Dependency Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd src && npm ci
+
+      - name: Run OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@1e54355a8b4c8abaa8cc7d0b70aa655a3bb15a6c
+        with:
+          project: 'edex-ui'
+          path: '.'
+          format: 'HTML,JSON'
+          args: >
+            --enableRetired
+            --enableExperimental
+            --scan ./package-lock.json
+            --scan ./src/package-lock.json
+            --nodePackageSkipDevDependencies false
+
+      - name: Upload Dependency-Check results
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: dependency-check-report
+          path: reports/
+          retention-days: 30
+
+  license-check:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      ALLOWED_LICENSES: "MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;CC0-1.0;GPL-3.0;GPL-3.0-or-later;Unlicense;WTFPL"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check licenses
+        run: |
+          npx license-checker --summary --production --onlyAllow "${{ env.ALLOWED_LICENSES }}" || true
+
+      - name: Check src licenses
+        run: |
+          cd src
+          npm ci
+          npx license-checker --summary --production --onlyAllow "${{ env.ALLOWED_LICENSES }}" || true
+
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: [snyk-scan, trivy-scan, osv-scanner, dependency-check]
+    if: always()
+    steps:
+      - name: Generate security summary
+        run: |
+          echo "# Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Snyk Scan: ${{ needs.snyk-scan.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Trivy Scan: ${{ needs.trivy-scan.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- OSV Scanner: ${{ needs.osv-scanner.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- OWASP Dependency Check: ${{ needs.dependency-check.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Scan completed at: $(date -u)" >> $GITHUB_STEP_SUMMARY
