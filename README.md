@@ -107,6 +107,7 @@ This repository is equipped with **24/7 automated vulnerability monitoring** to 
 - **Daily Vulnerability Scans**: npm audit runs daily on all dependencies
 - **Advanced Security Scanning**: Multiple tools (Snyk, Trivy, OSV, OWASP) run every 6 hours
 - **CodeQL Analysis**: Static code analysis 3 times per week
+- **SonarQube Analysis**: Code quality and security analysis on every push and PR
 - **Automatic Alerts**: Critical vulnerabilities trigger automatic GitHub issues
 - **PR Security Checks**: All pull requests are scanned before merge
 

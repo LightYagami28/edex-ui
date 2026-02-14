@@ -70,6 +70,22 @@ The security monitoring system consists of multiple layers of automated checks:
 - Integrated with GitHub Security tab
 - Detects common security patterns and anti-patterns
 
+### 5. SonarQube Code Quality Analysis (`.github/workflows/sonarqube.yml`)
+**Runs:** On push to master and on pull requests
+
+**Features:**
+- **Multi-Platform Analysis**: Runs on Ubuntu, Windows, and macOS for comprehensive coverage
+- **Code Quality Metrics**: Analyzes code quality, bugs, vulnerabilities, and code smells
+- **Technical Debt**: Tracks technical debt and maintainability
+- **Pull Request Decoration**: Shows quality gate status directly on PRs
+- **SonarCloud Integration**: Results visible on SonarCloud dashboard
+- **Note**: Requires `SONAR_TOKEN` secret to be configured
+
+**Configuration:**
+- Project configuration: `sonar-project.properties`
+- Project key: `LightYagami28_edex-ui`
+- Organization: `lightyagami28`
+
 ## Coverage Schedule
 
 The monitoring system provides true 24/7 coverage:
@@ -82,8 +98,8 @@ The monitoring system provides true 24/7 coverage:
 | 04:00 Monday | Dependabot (actions) | dependabot.yml |
 | Every 6 hours | Advanced security scan | security-scan.yml |
 | Mon/Wed/Fri | CodeQL analysis | codeql-analysis.yml |
-| On every push | All applicable workflows | All |
-| On every PR | All applicable workflows | All |
+| On every push | All applicable workflows (including SonarQube) | All |
+| On every PR | All applicable workflows (including SonarQube) | All |
 
 ## Notifications
 
@@ -107,6 +123,16 @@ To enable all features, configure these secrets in repository settings:
    - Sign up at https://snyk.io/
    - Get your token from Account Settings
    - Add as repository secret
+
+2. **SONAR_TOKEN**: For SonarQube/SonarCloud analysis
+   - Sign up at https://sonarcloud.io/
+   - Get your token from https://sonarcloud.io/account/security
+   - Add as repository secret
+
+3. **SONAR_HOST_URL** (Optional): For self-hosted SonarQube
+   - Default is https://sonarcloud.io (not needed for SonarCloud)
+   - Only required if using a self-hosted SonarQube instance
+   - Add as repository secret if needed
 
 ### Permissions
 Ensure GitHub Actions has these permissions (usually default):
@@ -174,6 +200,26 @@ If you need to temporarily disable a specific scan:
 - [Trivy Documentation](https://aquasecurity.github.io/trivy/)
 - [OWASP Dependency-Check](https://owasp.org/www-project-dependency-check/)
 - [CodeQL Documentation](https://codeql.github.com/docs/)
+- [SonarQube Documentation](https://docs.sonarqube.org/)
+- [SonarCloud Documentation](https://docs.sonarcloud.io/)
+
+## Security Best Practices
+
+### GitHub Actions Security
+All workflows in this repository follow GitHub Actions security best practices:
+
+1. **Full Commit SHA Hashes**: All third-party actions use full commit SHA hashes instead of branch references or tags for:
+   - Reproducible builds
+   - Protection against malicious updates
+   - Better security posture
+   - Example: `uses: snyk/actions/node@9adf32b1121593767fc3c057af55b55db032dc04`
+
+2. **Explicit Permissions**: Every job has explicit permissions defined (principle of least privilege)
+   - `contents: read` for checkout operations
+   - `security-events: write` only for SARIF uploads
+   - `issues: write` only for issue creation
+
+3. **No Shallow Clones**: Analysis workflows use `fetch-depth: 0` for better relevancy
 
 ## Support
 
