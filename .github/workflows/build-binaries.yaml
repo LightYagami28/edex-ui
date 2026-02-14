@@ -130,14 +130,11 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Get npm cache directory
-      id: npm-cache
-      run: |
-        echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
-    - uses: actions/cache@v4
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
       with:
-        path: ${{ steps.npm-cache.outputs.dir }}
-        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        node-version: 18
+        cache: 'npm'
     - name: Cache Electron binaries
       uses: actions/cache@v4
       env:
@@ -147,10 +144,6 @@ jobs:
         # https://github.com/electron/get#how-it-works
         path: ~/AppData/Local/electron/Cache
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 18
     - name: Setup npm
       run: npm i -g npm@10
     - name: npm install
