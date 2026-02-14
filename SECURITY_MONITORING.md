@@ -140,6 +140,15 @@ Ensure GitHub Actions has these permissions (usually default):
 - `contents: read`
 - `security-events: write`
 
+### Repository Settings
+To enable all security features, configure these repository settings:
+
+1. **Dependency graph** (Required for Dependency Review action)
+   - Go to: https://github.com/LightYagami28/edex-ui/settings/security_analysis
+   - Enable "Dependency graph"
+   - This allows GitHub to track and review dependencies in pull requests
+   - Note: If not enabled, the Dependency Review action will be skipped (continue-on-error)
+
 ## Manual Vulnerability Checks
 
 You can manually check for vulnerabilities at any time:
@@ -183,6 +192,17 @@ When vulnerabilities are detected:
 - Review outdated dependencies report
 - Update major version dependencies if needed
 - Review and close resolved security issues
+
+### Package Lock File Maintenance
+When dependencies are updated, ensure package-lock.json files are kept in sync:
+```bash
+# Update root package-lock.json
+npm install --package-lock-only
+
+# Update src package-lock.json
+cd src && npm install --package-lock-only
+```
+Commit the updated lock files to avoid CI failures with `npm ci` commands.
 
 ## Disabling Specific Scans
 
