@@ -118,9 +118,5 @@
   },
   "optionalDependencies": {
     "cson-parser": "4.0.9"
-  },
-  "devDependencies": {
-    "eslint": "^10.0.0",
-    "prettier": "^3.8.1"
   }
 }
