@@ -133,6 +133,8 @@ jobs:
   license-check:
     name: License Compliance Check
     runs-on: ubuntu-latest
+    env:
+      ALLOWED_LICENSES: "MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;CC0-1.0;GPL-3.0;GPL-3.0-or-later;Unlicense;WTFPL"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -147,13 +149,13 @@ jobs:
 
       - name: Check licenses
         run: |
-          npx license-checker --summary --production --onlyAllow "MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;CC0-1.0;GPL-3.0;GPL-3.0-or-later;Unlicense;WTFPL" || true
+          npx license-checker --summary --production --onlyAllow "${{ env.ALLOWED_LICENSES }}" || true
 
       - name: Check src licenses
         run: |
           cd src
           npm ci
-          npx license-checker --summary --production --onlyAllow "MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;CC0-1.0;GPL-3.0;GPL-3.0-or-later;Unlicense;WTFPL" || true
+          npx license-checker --summary --production --onlyAllow "${{ env.ALLOWED_LICENSES }}" || true
 
   security-summary:
     name: Security Summary
