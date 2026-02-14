@@ -1,5 +1,13 @@
 # Security Policy
 
+## Automated Vulnerability Monitoring
+
+This repository uses **automated 24/7 vulnerability monitoring** to continuously check all dependencies for security issues. See [SECURITY_MONITORING.md](SECURITY_MONITORING.md) for complete details about:
+- Daily dependency scans with Dependabot
+- Multiple security scanning tools (Snyk, Trivy, OSV, OWASP)
+- Automated vulnerability reporting
+- Coverage schedule and notifications
+
 ## Supported Versions
 
 We support the [latest released version](https://github.com/GitSquared/edex-ui/releases/latest), and the current development version (`master` branch).
