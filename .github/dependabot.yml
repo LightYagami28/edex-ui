@@ -15,7 +15,7 @@ updates:
       prefix: "chore"
       prefix-development: "chore"
       include: "scope"
-    # Auto-merge security patches
+    # Reviewer assignment - update username as needed
     reviewers:
       - "LightYagami28"
     # Group non-security updates
@@ -46,6 +46,7 @@ updates:
       prefix: "chore"
       prefix-development: "chore"
       include: "scope"
+    # Reviewer assignment - update username as needed
     reviewers:
       - "LightYagami28"
     groups:
