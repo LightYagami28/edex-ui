@@ -49,6 +49,6 @@
     "@xterm/addon-webgl": "^0.18.0"
   },
   "optionalDependencies": {
-    "osx-temperature-sensor": "1.0.7"
+    "osx-temperature-sensor": "1.0.8"
   }
 }
