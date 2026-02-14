@@ -105,15 +105,15 @@
   "dependencies": {
     "@electron/rebuild": "^4.0.3",
     "clean-css": "^5.3.3",
-    "electron": "^35.7.5",
+    "electron": "^40.4.1",
     "electron-builder": "^26.8.0",
     "mime-types": "^2.1.35",
-    "node-abi": "^3.71.0",
+    "node-abi": "^4.26.0",
     "node-json-minify": "^3.0.0",
     "terser": "^5.37.0"
   },
   "devDependencies": {
-    "eslint": "^9.18.0",
+    "eslint": "^10.0.0",
     "prettier": "^3.4.2"
   },
   "optionalDependencies": {
