@@ -14,6 +14,10 @@
   "main": "src/_boot.js",
   "scripts": {
     "start": "electron src --nointro",
+    "lint": "eslint src/**/*.js *.js --max-warnings=0",
+    "lint:fix": "eslint src/**/*.js *.js --fix",
+    "format": "prettier --write \"src/**/*.{js,json,css}\" \"*.{js,json}\"",
+    "format:check": "prettier --check \"src/**/*.{js,json,css}\" \"*.{js,json}\"",
     "install-linux": "npm install && cd src && npm install && ./../node_modules/.bin/electron-rebuild -f -w node-pty && cd ..",
     "preinstall-windows": "npm install --global --production windows-build-tools && npm install --global node-gyp && setx PYTHON \"%USERPROFILE%\\.windows-build-tools\\python27\\python.exe\"",
     "install-windows": "npm install && cd src && npm install && ..\\node_modules\\.bin\\electron-rebuild -f -w node-pty && cd ..",
@@ -99,16 +103,24 @@
     }
   },
   "dependencies": {
+    "@electron/rebuild": "^4.0.3",
     "clean-css": "^5.3.3",
     "electron": "^35.7.5",
     "electron-builder": "^26.8.0",
-    "@electron/rebuild": "^4.0.3",
     "mime-types": "^2.1.35",
     "node-abi": "^3.71.0",
     "node-json-minify": "^3.0.0",
     "terser": "^5.37.0"
   },
+  "devDependencies": {
+    "eslint": "^9.18.0",
+    "prettier": "^3.4.2"
+  },
   "optionalDependencies": {
     "cson-parser": "4.0.9"
+  },
+  "devDependencies": {
+    "eslint": "^10.0.0",
+    "prettier": "^3.8.1"
   }
 }
