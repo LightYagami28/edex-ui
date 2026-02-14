@@ -42,3 +42,10 @@ jspm_packages
 dist
 prebuild-src
 src/node_modules
+ 
+# VS Code SonarLint
+.sonarlint/
+.vscode/
+# Snyk
+.snyk
+.github/instructions

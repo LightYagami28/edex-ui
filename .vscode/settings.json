@@ -1,0 +1,8 @@
+{
+    "snyk.advanced.organization": "98cff717-5be7-4680-9185-4d15c7e11bb9",
+    "snyk.advanced.autoSelectOrganization": true,
+    "sonarlint.connectedMode.project": {
+        "connectionId": "lightyagami28",
+        "projectKey": "LightYagami28_edex-ui"
+    }
+}
