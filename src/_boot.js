@@ -192,7 +192,6 @@ function createWindow(settings) {
         backgroundColor: '#000000',
         webPreferences: {
             devTools: true,
-	    enableRemoteModule: true,
             contextIsolation: false,
             backgroundThrottling: false,
             webSecurity: true,
@@ -202,6 +201,8 @@ function createWindow(settings) {
             experimentalFeatures: settings.experimentalFeatures || false
         }
     });
+
+    require('@electron/remote/main').enable(win.webContents);
 
     win.loadURL(url.format({
         pathname: path.join(__dirname, 'ui.html'),
