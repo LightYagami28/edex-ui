@@ -14,21 +14,21 @@
   "main": "_boot.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/GitSquared/edex-ui.git"
+    "url": "git+https://github.com/lightyagami28/edex-ui.git"
   },
   "author": "Gabriel 'Squared' SAILLARD <gabriel@saillard.dev> (https://gaby.dev)",
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/GitSquared/edex-ui/issues"
+    "url": "https://github.com/lightyagami28/edex-ui/issues"
   },
-  "homepage": "https://github.com/GitSquared/edex-ui#readme",
+  "homepage": "https://github.com/lightyagami28/edex-ui#readme",
   "dependencies": {
     "@electron/remote": "^2.1.2",
     "augmented-ui": "^2.0.0",
     "color": "^4.2.3",
     "geolite2-redist": "^3.1.3",
     "howler": "^2.2.4",
-    "maxmind": "^4.3.23",
+    "maxmind": "^5.0.5",
     "mime-types": "^2.1.35",
     "nanoid": "^3.3.8",
     "node-pty": "^1.1.0",
@@ -37,15 +37,15 @@
     "shell-env": "^4.0.3",
     "signale": "^1.4.0",
     "smoothie": "^1.36.1",
-    "systeminformation": "^5.23.18",
+    "systeminformation": "^5.31.0",
     "tail": "^2.2.6",
     "username": "^7.0.0",
     "which": "^6.0.1",
     "ws": "^8.18.0",
     "@xterm/xterm": "^6.0.0",
-    "@xterm/addon-attach": "^0.11.0",
-    "@xterm/addon-fit": "^0.10.0",
-    "@xterm/addon-ligatures": "^0.9.0",
+    "@xterm/addon-attach": "^0.12.0",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/addon-ligatures": "^0.10.0",
     "@xterm/addon-webgl": "^0.19.0"
   },
   "optionalDependencies": {
