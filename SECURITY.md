@@ -10,7 +10,7 @@ This repository uses **automated 24/7 vulnerability monitoring** to continuously
 
 ## Supported Versions
 
-We support the [latest released version](https://github.com/GitSquared/edex-ui/releases/latest), and the current development version (`master` branch).
+We support the [latest released version](https://github.com/lightyagami28/edex-ui/releases/latest), and the current development version (`master` branch).
 
 ## Reporting a Vulnerability
 

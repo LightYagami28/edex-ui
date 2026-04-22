@@ -2,19 +2,15 @@
   <br>
   <img alt="Logo" src="media/logo.png">
   <br><br>
-  <a href="https://lgtm.com/projects/g/GitSquared/edex-ui/context:javascript"><img alt="undefined" src="https://img.shields.io/lgtm/grade/javascript/g/GitSquared/edex-ui.svg?logo=lgtm&logoWidth=18"/></a>
+  <a href="https://github.com/lightyagami28/edex-ui/releases/latest"><img alt="undefined" src="https://img.shields.io/github/release/lightyagami28/edex-ui.svg?style=popout"></a>
+  <a href="#featured-in"><img alt="undefined" src="https://img.shields.io/github/downloads/lightyagami28/edex-ui/total.svg?style=popout"></a>
+  <a href="https://github.com/lightyagami28/edex-ui/blob/master/LICENSE"><img alt="undefined" src="https://img.shields.io/github/license/lightyagami28/edex-ui.svg?style=popout"></a>
   <br>
-  <a href="https://github.com/GitSquared/edex-ui/releases/latest"><img alt="undefined" src="https://img.shields.io/github/release/GitSquared/edex-ui.svg?style=popout"></a>
-  <a href="#featured-in"><img alt="undefined" src="https://img.shields.io/github/downloads/GitSquared/edex-ui/total.svg?style=popout"></a>
-  <a href="https://github.com/GitSquared/edex-ui/blob/master/LICENSE"><img alt="undefined" src="https://img.shields.io/github/license/GitSquared/edex-ui.svg?style=popout"></a>
-  <br>
-  <a href="https://github.com/GitSquared/edex-ui/releases/download/v2.2.8/eDEX-UI-Windows.exe" target="_blank"><img alt="undefined" src="https://badgen.net/badge/Download/Windows/?color=blue&icon=windows&label"></a>
-  <a href="https://github.com/GitSquared/edex-ui/releases/download/v2.2.8/eDEX-UI-macOS.dmg" target="_blank"><img alt="undefined" src="https://badgen.net/badge/Download/macOS/?color=grey&icon=apple&label"></a>
-  <a href="https://github.com/GitSquared/edex-ui/releases/download/v2.2.8/eDEX-UI-Linux-x86_64.AppImage" target="_blank"><img alt="undefined" src="https://badgen.net/badge/Download/Linux64/?color=orange&icon=terminal&label"></a>
-  <a href="https://github.com/GitSquared/edex-ui/releases/download/v2.2.8/eDEX-UI-Linux-arm64-AppImage" target="_blank"><img alt="undefined" src="https://badgen.net/badge/Download/LinuxArm64/?color=orange&icon=terminal&label"></a>
+  <a href="https://github.com/lightyagami28/edex-ui/releases/download/v2.2.8/eDEX-UI-Windows.exe" target="_blank"><img alt="undefined" src="https://badgen.net/badge/Download/Windows/?color=blue&icon=windows&label"></a>
+  <a href="https://github.com/lightyagami28/edex-ui/releases/download/v2.2.8/eDEX-UI-macOS.dmg" target="_blank"><img alt="undefined" src="https://badgen.net/badge/Download/macOS/?color=grey&icon=apple&label"></a>
+  <a href="https://github.com/lightyagami28/edex-ui/releases/download/v2.2.8/eDEX-UI-Linux-x86_64.AppImage" target="_blank"><img alt="undefined" src="https://badgen.net/badge/Download/Linux64/?color=orange&icon=terminal&label"></a>
+  <a href="https://github.com/lightyagami28/edex-ui/releases/download/v2.2.8/eDEX-UI-Linux-arm64-AppImage" target="_blank"><img alt="undefined" src="https://badgen.net/badge/Download/LinuxArm64/?color=orange&icon=terminal&label"></a>
   <a href="https://aur.archlinux.org/packages/edex-ui" target="_blank"><img alt="undefined" src="https://badgen.net/badge/AUR/Package/cyan"></a>
-  <br>
-  <a href="https://github.com/GitSquared/edex-ui/releases/tag/v2.2.8"><strong><i>(Project archived oct. 18th 2021)</i></strong></a>
   <br><br><br>
 </p>
 
@@ -76,11 +72,11 @@ _Editing eDEX-UI source code with `nvim` on eDEX-UI 2.2 with the custom [`horizo
 
 ## Q&A
 #### How do I get it?
-Click on the little badges under the eDEX logo at the top of this page, or go to the [Releases](https://github.com/GitSquared/edex-ui/releases) tab, or download it through [one of the available repositories](https://repology.org/project/edex-ui/versions) (Homebrew, AUR...).
+Click on the little badges under the eDEX logo at the top of this page, or go to the [Releases](https://github.com/lightyagami28/edex-ui/releases) tab, or download it through [one of the available repositories](https://repology.org/project/edex-ui/versions) (Homebrew, AUR...).
 
 Public release binaries are unsigned ([why](https://gaby.dev/posts/code-signing)). On Linux, you will need to `chmod +x` the AppImage file in order to run it.
 #### I have a problem!
-Search through the [Issues](https://github.com/GitSquared/edex-ui/issues) to see if yours has already been reported. If you're confident it hasn't been reported yet, feel free to open up a new one. If you see your issue and it's been closed, it probably means that the fix for it will ship in the next version, and you'll have to wait a bit.
+Search through the [Issues](https://github.com/lightyagami28/edex-ui/issues) to see if yours has already been reported. If you're confident it hasn't been reported yet, feel free to open up a new one. If you see your issue and it's been closed, it probably means that the fix for it will ship in the next version, and you'll have to wait a bit.
 #### Can you disable the keyboard/the filesystem display?
 You can't disable them (yet) but you can hide them. See the `tron-notype` theme.
 #### Why is the file browser saying that "Tracking Failed"? (Windows only)
@@ -166,7 +162,7 @@ Note: Due to native modules, you can only build targets for the host OS you are 
 The script will minify the source code, recompile native dependencies and create distributable assets in the `dist` folder.
 
 #### Getting the bleeding edge
-If you're interested in running the latest in-development version but don't want to compile source code yourself, you can can get pre-built nightly binaries on [GitHub Actions](https://github.com/GitSquared/edex-ui/actions): click the latest commits, and download the artifacts bundle for your OS.
+If you're interested in running the latest in-development version but don't want to compile source code yourself, you can can get pre-built nightly binaries on [GitHub Actions](https://github.com/lightyagami28/edex-ui/actions): click the latest commits, and download the artifacts bundle for your OS.
 
 ## Credits
 eDEX-UI's source code was primarily written by me, [Squared](https://github.com/GitSquared). If you want to get in touch with me or find other projects I'm involved in, check out [my website](https://gaby.dev).
@@ -178,7 +174,7 @@ eDEX-UI's source code was primarily written by me, [Squared](https://github.com/
 ## Thanks
 Of course, eDEX would never have existed if I hadn't stumbled upon the amazing work of [Seena](https://github.com/seenaburns) on [r/unixporn](https://reddit.com/r/unixporn).
 
-This project uses a bunch of open-source libraries, frameworks and tools, see [the full dependency graph](https://github.com/GitSquared/edex-ui/network/dependencies).
+This project uses a bunch of open-source libraries, frameworks and tools, see [the full dependency graph](https://github.com/lightyagami28/edex-ui/network/dependencies).
 
 I want to namely thank the developers behind [xterm.js](https://github.com/xtermjs/xterm.js), [systeminformation](https://github.com/sebhildebrandt/systeminformation) and [SmoothieCharts](https://github.com/joewalnes/smoothie).
 
@@ -186,4 +182,4 @@ Huge thanks to [Rob "Arscan" Scanlon](https://github.com/arscan) for making the 
 
 ## Licensing
 
-Licensed under the [GPLv3.0](https://github.com/GitSquared/edex-ui/blob/master/LICENSE).
+Licensed under the [GPLv3.0](https://github.com/lightyagami28/edex-ui/blob/master/LICENSE).
