@@ -103,14 +103,14 @@
     }
   },
   "dependencies": {
-    "@electron/rebuild": "^4.0.3",
+    "@electron/rebuild": "^4.0.4",
     "clean-css": "^5.3.3",
     "electron": "^40.4.1",
-    "electron-builder": "^26.8.0",
+    "electron-builder": "^26.8.1",
     "mime-types": "^2.1.35",
     "node-abi": "^4.26.0",
     "node-json-minify": "^3.0.0",
-    "terser": "^5.37.0"
+    "terser": "^5.46.1"
   },
   "devDependencies": {
     "eslint": "^10.0.0",
