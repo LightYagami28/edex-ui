@@ -461,7 +461,9 @@ class Terminal {
                     this.ondisconnected(code, reason);
                 });
                 ws.on("message", msg => {
-                    this.tty.write(msg);
+                    const safeInput = this._sanitizeTerminalInput(msg);
+                    if (!safeInput) return;
+                    this.tty.write(safeInput);
                 });
                 this.tty.onData(data => {
                     this._nextTickUpdateTtyCWD = true;
@@ -481,6 +483,24 @@ class Terminal {
         } else {
             throw "Unknown purpose";
         }
+    }
+
+    _sanitizeTerminalInput(input) {
+        const MAX_INPUT_LENGTH = 8192;
+
+        if (Buffer.isBuffer(input)) {
+            input = input.toString("utf8");
+        } else if (typeof input !== "string") {
+            return "";
+        }
+
+        if (input.length > MAX_INPUT_LENGTH) {
+            input = input.slice(0, MAX_INPUT_LENGTH);
+        }
+
+        // Keep common terminal input characters and ESC sequences support,
+        // while dropping other control characters.
+        return input.replace(/[^\x1B\x09\x0A\x0D\x20-\x7E]/g, "");
     }
 }
 
