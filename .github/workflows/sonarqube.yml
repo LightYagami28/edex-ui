@@ -12,6 +12,7 @@ jobs:
   sonarqube-ubuntu:
     name: SonarQube (Ubuntu)
     runs-on: ubuntu-latest
+    if: ${{ secrets.SONAR_TOKEN != '' }}
     permissions:
       contents: read
     steps:
@@ -29,6 +30,7 @@ jobs:
   sonarqube-windows:
     name: SonarQube (Windows)
     runs-on: windows-latest
+    if: ${{ secrets.SONAR_TOKEN != '' }}
     permissions:
       contents: read
     steps:
@@ -46,6 +48,7 @@ jobs:
   sonarqube-macos:
     name: SonarQube (macOS)
     runs-on: macos-latest
+    if: ${{ secrets.SONAR_TOKEN != '' }}
     permissions:
       contents: read
     steps:
