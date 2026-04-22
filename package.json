@@ -113,8 +113,8 @@
     "terser": "^5.46.1"
   },
   "devDependencies": {
-    "eslint": "^10.0.0",
-    "prettier": "^3.4.2"
+    "eslint": "^10.2.0",
+    "prettier": "^3.8.2"
   },
   "optionalDependencies": {
     "cson-parser": "4.0.9"
