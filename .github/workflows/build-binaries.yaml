@@ -11,7 +11,7 @@ jobs:
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
     - name: Cache node modules
-      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       env:
         cache-name: cache-node-modules
       with:
@@ -19,7 +19,7 @@ jobs:
         path: ~/.npm
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
     - name: Cache Electron binaries
-      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       env:
         cache-name: cache-electron-bins
       with:
@@ -61,7 +61,7 @@ jobs:
       with:
         platforms: arm
     - name: Cache node modules
-      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       env:
         cache-name: cache-node-modules
       with:
@@ -69,7 +69,7 @@ jobs:
         path: ~/.npm
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
     - name: Cache Electron binaries
-      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       env:
         cache-name: cache-electron-bins
       with:
@@ -100,7 +100,7 @@ jobs:
       with:
         platforms: arm64
     - name: Cache node modules
-      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       env:
         cache-name: cache-node-modules
       with:
@@ -108,7 +108,7 @@ jobs:
         path: ~/.npm
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
     - name: Cache Electron binaries
-      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       env:
         cache-name: cache-electron-bins
       with:
@@ -140,7 +140,7 @@ jobs:
         node-version: 18
         cache: 'npm'
     - name: Cache Electron binaries
-      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       env:
         cache-name: cache-electron-bins
       with:
@@ -167,7 +167,7 @@ jobs:
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
     - name: Cache node modules
-      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       env:
         cache-name: cache-node-modules
       with:
@@ -175,7 +175,7 @@ jobs:
         path: ~/.npm
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
     - name: Cache Electron binaries
-      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       env:
         cache-name: cache-electron-bins
       with:
