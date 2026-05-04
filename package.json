@@ -105,7 +105,7 @@
   "dependencies": {
     "@electron/rebuild": "^4.0.4",
     "clean-css": "^5.3.3",
-    "electron": "^41.3.0",
+    "electron": "^41.5.0",
     "electron-builder": "^26.8.1",
     "mime-types": "^2.1.35",
     "node-abi": "^4.28.0",
