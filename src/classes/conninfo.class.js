@@ -27,10 +27,10 @@ class Conninfo {
             limitFPS: 40,
             responsive: true,
             millisPerPixel: 70,
-            interpolation: 'linear',
+            interpolation: "linear",
             grid:{
                 millisPerLine: 5000,
-                fillStyle:'transparent',
+                fillStyle:"transparent",
                 strokeStyle:`rgba(${window.theme.r},${window.theme.g},${window.theme.b},0.4)`,
                 verticalSections:3,
                 borderVisible:false

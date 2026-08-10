@@ -50,14 +50,14 @@ class Netstat {
         // "geolite2-redist" is ESM-only, so it can't be require()'d from this CJS renderer.
         import("geolite2-redist").then(geolite2 => {
             return geolite2.downloadDbs({path: geoIPcachePath}).then(() => {
-                return geolite2.open('GeoLite2-City', path => {
+                return geolite2.open("GeoLite2-City", path => {
                     return maxmind.open(path);
                 }, geoIPcachePath);
             });
         }).then(lookup => {
             this.geoLookup = lookup;
             this.lastconn.finished = true;
-        }).catch(e => {throw e});
+        }).catch(e => {throw e;});
     }
     updateInfo() {
         window.si.networkInterfaces().then(async data => {
@@ -104,6 +104,7 @@ class Netstat {
             this.internalIPv4 = net.ip4;
             document.getElementById("mod_netstat_iname").innerText = "Interface: "+net.iface;
 
+            let p;
             if (net.ip4 === "127.0.0.1") {
                 offline = true;
             } else {
@@ -135,24 +136,24 @@ class Netstat {
                                 electron.ipcRenderer.send("log", "debug", `Error: ${e}`);
                             }
                         });
-                    }).on("error", e => {
+                    }).on("error", () => {
                         // Drop it
                     });
                 } else if (this.runsBeforeGeoIPUpdate !== 0) {
                     this.runsBeforeGeoIPUpdate = this.runsBeforeGeoIPUpdate - 1;
                 }
 
-                let p = await this.ping(window.settings.pingAddr || "1.1.1.1", 80, net.ip4).catch(() => { offline = true });
+                p = await this.ping(window.settings.pingAddr || "1.1.1.1", 80, net.ip4).catch(() => { offline = true; });
+            }
 
-                this.offline = offline;
-                if (offline) {
-                    document.querySelector("#mod_netstat_innercontainer > div:first-child > h2").innerHTML = "OFFLINE";
-                    document.querySelector("#mod_netstat_innercontainer > div:nth-child(2) > h2").innerHTML = "--.--.--.--";
-                    document.querySelector("#mod_netstat_innercontainer > div:nth-child(3) > h2").innerHTML = "--ms";
-                } else {
-                    document.querySelector("#mod_netstat_innercontainer > div:first-child > h2").innerHTML = "ONLINE";
-                    document.querySelector("#mod_netstat_innercontainer > div:nth-child(3) > h2").innerHTML = Math.round(p)+"ms";
-                }
+            this.offline = offline;
+            if (offline) {
+                document.querySelector("#mod_netstat_innercontainer > div:first-child > h2").innerHTML = "OFFLINE";
+                document.querySelector("#mod_netstat_innercontainer > div:nth-child(2) > h2").innerHTML = "--.--.--.--";
+                document.querySelector("#mod_netstat_innercontainer > div:nth-child(3) > h2").innerHTML = "--ms";
+            } else {
+                document.querySelector("#mod_netstat_innercontainer > div:first-child > h2").innerHTML = "ONLINE";
+                document.querySelector("#mod_netstat_innercontainer > div:nth-child(3) > h2").innerHTML = Math.round(p)+"ms";
             }
         });
     }
@@ -172,7 +173,7 @@ class Netstat {
                 resolve(time);
                 s.destroy();
             });
-            s.on('error', e => {
+            s.on("error", e => {
                 s.destroy();
                 reject(e);
             });

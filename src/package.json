@@ -20,6 +20,9 @@
     "url": "git+https://github.com/lightyagami28/edex-ui.git"
   },
   "author": "Gabriel 'Squared' SAILLARD <gabriel@saillard.dev> (https://gaby.dev)",
+  "contributors": [
+    "LightYagami28 (https://github.com/LightYagami28) - fork maintainer"
+  ],
   "license": "GPL-3.0",
   "bugs": {
     "url": "https://github.com/lightyagami28/edex-ui/issues"

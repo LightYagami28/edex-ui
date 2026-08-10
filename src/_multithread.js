@@ -67,7 +67,7 @@ if (cluster.isPrimary) {
                 queue[msg.id].send("systeminformation-reply-"+msg.id, msg.res);
                 delete queue[msg.id];
             }
-        } catch(e) {
+        } catch {
             // Window has been closed, ignore.
         }
     });
