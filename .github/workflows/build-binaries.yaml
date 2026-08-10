@@ -36,9 +36,15 @@ jobs:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
     - name: Setup npm
-      run: sudo npm i -g npm@latest
+      run: sudo npm i --ignore-scripts -g npm@12.0.2
+    # npm ci (not npm install) locks the install to the committed lockfile.
+    # --ignore-scripts is deliberately omitted here: this job actually builds
+    # the app, and needs postinstall/rebuild scripts to run (electron's
+    # postinstall downloads the real binary, node-pty rebuilds its native
+    # module) - see commit 697e7f2 for the equivalent reasoning applied to
+    # the scan-only workflows, which don't need those side effects.
     - name: Install build deps
-      run: npm install
+      run: npm ci
     - name: Run prebuild script
       run: npm run prebuild-linux
     # NOTE: Linux ia32 (32-bit x86) dropped: electron 43.x publishes no
@@ -86,8 +92,12 @@ jobs:
         # https://github.com/electron/get#how-it-works
         path: ~/.cache/electron
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+    # npm ci (not npm install) locks the install to the committed lockfile.
+    # --ignore-scripts is deliberately omitted: this job builds the app and
+    # needs postinstall/rebuild scripts to run - see the "Install build deps"
+    # step above for the full reasoning.
     - name: Run prebuild outside of QEMU emulator
-      run: sudo npm i -g npm@latest && npm install && rsync -a --info=progress2 src/ prebuild-src --exclude node_modules && node prebuild-minify.js && rm -rf node_modules
+      run: sudo npm i --ignore-scripts -g npm@12.0.2 && npm ci && rsync -a --info=progress2 src/ prebuild-src --exclude node_modules && node prebuild-minify.js && rm -rf node_modules
     - name: Build for arm64 (aka arm64v8)
       # `uses: docker://...` doesn't support --platform, and the arm64v8/node
       # image has no linux/amd64 manifest for Docker to fall back to on this
@@ -98,7 +108,7 @@ jobs:
           -w "${{ github.workspace }}" \
           -e GH_TOKEN \
           arm64v8/node:26-bookworm \
-          bash -c "npm i -g npm@latest && npm install && ./node_modules/.bin/electron-builder build -l --arm64 --publish never"
+          bash -c "npm i --ignore-scripts -g npm@12.0.2 && npm ci && ./node_modules/.bin/electron-builder build -l --arm64 --publish never"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -126,9 +136,13 @@ jobs:
         path: ~/AppData/Local/electron/Cache
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
     - name: Setup npm
-      run: npm i -g npm@latest
+      run: npm i --ignore-scripts -g npm@12.0.2
+    # npm ci (not npm install) locks the install to the committed lockfile.
+    # --ignore-scripts is deliberately omitted here: this job builds the app
+    # and needs postinstall/rebuild scripts to run - see build-linux's
+    # "Install build deps" step for the full reasoning.
     - name: npm install
-      run: npm install
+      run: npm ci
     - name: npm build
       run: npm run build-windows
       env:
@@ -168,9 +182,13 @@ jobs:
       # No sudo here: running npm's global self-update as root on the
       # macos-latest runner leaves root-owned files under ~/.npm, which
       # then makes the next (non-root) `npm install` fail with EACCES.
-      run: npm i -g npm@latest
+      run: npm i --ignore-scripts -g npm@12.0.2
+    # npm ci (not npm install) locks the install to the committed lockfile.
+    # --ignore-scripts is deliberately omitted here: this job builds the app
+    # and needs postinstall/rebuild scripts to run - see build-linux's
+    # "Install build deps" step for the full reasoning.
     - name: npm install
-      run: npm install
+      run: npm ci
     - name: npm build
       run: npm run build-darwin
       env:
