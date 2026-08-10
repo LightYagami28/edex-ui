@@ -3,7 +3,6 @@ class FilesystemDisplay {
         if (!opts.parentId) throw new Error("Missing options");
 
         const eDEX = window.eDEX;
-        const path = eDEX.path;
         this.cwd = [];
         this.cwd_path = null;
         this.iconcolor = `rgb(${window.theme.r}, ${window.theme.g}, ${window.theme.b})`;
@@ -141,59 +140,6 @@ class FilesystemDisplay {
                 container.classList.add("list-view");
                 window.settings.fsListView = true;
             }
-        };
-
-        // Builds the {name, path, type, category, hidden, ...} entry for one
-        // file/dir in the current directory listing. Extracted out of readFS()
-        // to keep its cognitive complexity down.
-        this._classifyEntry = async (file, tcwd, reject) => {
-            let fstat = await eDEX.fs.lstat(path.join(tcwd, file)).catch((e) => {
-                if (!e.message.includes("EPERM") && !e.message.includes("EBUSY")) {
-                    reject(e);
-                }
-            });
-
-            let e = {
-                name: window._escapeHtml(file),
-                path: path.resolve(tcwd, file),
-                type: "other",
-                category: "other",
-                hidden: false,
-            };
-
-            if (fstat !== undefined) {
-                e.lastAccessed = fstat.mtimeMs;
-
-                if (fstat.isDirectory) {
-                    e.category = "dir";
-                    e.type = "dir";
-                }
-                if (e.category === "dir" && tcwd === settingsDir && file === "themes") e.type = "edex-themesDir";
-                if (e.category === "dir" && tcwd === settingsDir && file === "keyboards") e.type = "edex-kblayoutsDir";
-
-                if (fstat.isSymbolicLink) {
-                    e.category = "symlink";
-                    e.type = "symlink";
-                }
-
-                if (fstat.isFile) {
-                    e.category = "file";
-                    e.type = "file";
-                    e.size = fstat.size;
-                }
-            } else {
-                e.type = "system";
-                e.hidden = true;
-            }
-
-            if (e.category === "file" && tcwd === themesDir && file.endsWith(".json")) e.type = "edex-theme";
-            if (e.category === "file" && tcwd === keyboardsDir && file.endsWith(".json")) e.type = "edex-kblayout";
-            if (e.category === "file" && tcwd === settingsDir && file === "settings.json") e.type = "edex-settings";
-            if (e.category === "file" && tcwd === settingsDir && file === "shortcuts.json") e.type = "edex-shortcuts";
-
-            if (file.startsWith(".")) e.hidden = true;
-
-            return e;
         };
 
         this.readFS = async (dir) => {
@@ -741,6 +687,69 @@ class FilesystemDisplay {
                 new MediaPlayer({ modalId: newModal.id, path: block.path, type: block.type }); // NOSONAR
             }
         };
+    }
+
+    // Overrides e.type for eDEX's own special directories/files (themes,
+    // keyboards, settings.json, shortcuts.json) so the file manager can
+    // render them with a distinct icon/label. Extracted out of
+    // _classifyEntry() to keep its cognitive complexity down.
+    _classifyEdexSpecialType(e, tcwd, file) {
+        if (e.category === "dir" && tcwd === settingsDir && file === "themes") return "edex-themesDir";
+        if (e.category === "dir" && tcwd === settingsDir && file === "keyboards") return "edex-kblayoutsDir";
+        if (e.category === "file" && tcwd === themesDir && file.endsWith(".json")) return "edex-theme";
+        if (e.category === "file" && tcwd === keyboardsDir && file.endsWith(".json")) return "edex-kblayout";
+        if (e.category === "file" && tcwd === settingsDir && file === "settings.json") return "edex-settings";
+        if (e.category === "file" && tcwd === settingsDir && file === "shortcuts.json") return "edex-shortcuts";
+        return null;
+    }
+
+    // Builds the {name, path, type, category, hidden, ...} entry for one
+    // file/dir in the current directory listing. Extracted out of readFS()
+    // (and, unlike readFS() itself, made a real method rather than a
+    // constructor-closure arrow function) to keep its cognitive complexity
+    // down - every extra level of function nesting multiplies the complexity
+    // of the branches inside it.
+    async _classifyEntry(file, tcwd, reject) {
+        const eDEX = window.eDEX;
+        let fstat = await eDEX.fs.lstat(eDEX.path.join(tcwd, file)).catch((e) => {
+            if (!e.message.includes("EPERM") && !e.message.includes("EBUSY")) {
+                reject(e);
+            }
+        });
+
+        let e = {
+            name: window._escapeHtml(file),
+            path: eDEX.path.resolve(tcwd, file),
+            type: "other",
+            category: "other",
+            hidden: file.startsWith("."),
+        };
+
+        if (fstat === undefined) {
+            e.type = "system";
+            e.hidden = true;
+            return e;
+        }
+
+        e.lastAccessed = fstat.mtimeMs;
+        if (fstat.isDirectory) {
+            e.category = "dir";
+            e.type = "dir";
+        }
+        if (fstat.isSymbolicLink) {
+            e.category = "symlink";
+            e.type = "symlink";
+        }
+        if (fstat.isFile) {
+            e.category = "file";
+            e.type = "file";
+            e.size = fstat.size;
+        }
+
+        const specialType = this._classifyEdexSpecialType(e, tcwd, file);
+        if (specialType) e.type = specialType;
+
+        return e;
     }
 
     // Automatically start indexing supposed beginning CWD (see #365), except
