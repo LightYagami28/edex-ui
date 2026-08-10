@@ -2,10 +2,10 @@ class LocationGlobe {
     constructor(parentId) {
         if (!parentId) throw "Missing parameters";
 
-        const path = require("path");
-
-        this._geodata = require(path.join(__dirname, "assets/misc/grid.json"));
-        require(path.join(__dirname, "assets/vendor/encom-globe.js"));
+        // encom-globe.js is loaded as a classic <script> in ui.html (it's a
+        // self-contained browserify bundle, sets window.ENCOM itself); grid.json
+        // is fetched as a static asset since it can no longer be require()'d.
+        this._geodataReady = fetch("assets/misc/grid.json").then((r) => r.json());
         this.ENCOM = window.ENCOM;
 
         // Create DOM and include lib
@@ -22,7 +22,9 @@ class LocationGlobe {
         this.lastgeo = {};
         this.conns = [];
 
-        setTimeout(() => {
+        setTimeout(async () => {
+            this._geodata = await this._geodataReady;
+
             let container = document.getElementById("mod_globe_innercontainer");
             let placeholder = document.getElementById("mod_globe_canvas_placeholder");
 
@@ -82,14 +84,14 @@ class LocationGlobe {
 
             // Connections
             this.conns = [];
-            this.addConn = (ip) => {
+            this.addConn = async (ip) => {
                 let data = null;
                 try {
-                    data = window.mods.netstat.geoLookup.get(ip);
+                    data = await window.mods.netstat.geoLookup.get(ip);
                 } catch {
                     // do nothing
                 }
-                let geo = data !== null ? data.location : {};
+                let geo = data !== null && typeof data !== "undefined" ? data.location : {};
                 if (geo.latitude && geo.longitude) {
                     const lat = Number(geo.latitude);
                     const lon = Number(geo.longitude);
@@ -140,9 +142,9 @@ class LocationGlobe {
         this.globe.addMarker(randomLat, randomLong, "");
         this.globe.addMarker(randomLat - 20, randomLong + 150, "", true);
     }
-    addTemporaryConnectedMarker(ip) {
-        let data = window.mods.netstat.geoLookup.get(ip);
-        let geo = data !== null ? data.location : {};
+    async addTemporaryConnectedMarker(ip) {
+        let data = await window.mods.netstat.geoLookup.get(ip);
+        let geo = data !== null && typeof data !== "undefined" ? data.location : {};
         if (geo.latitude && geo.longitude) {
             const lat = Number(geo.latitude);
             const lon = Number(geo.longitude);
