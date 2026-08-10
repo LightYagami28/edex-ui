@@ -152,6 +152,15 @@ jobs:
         # passing "false" after it was never doing anything - omitting the
         # flag entirely keeps devDependencies included, which is what we
         # want for a security scan anyway.
+        #
+        # --disableMixAudit: the CLI exits 14 ("one or more non-fatal
+        # exceptions occurred") whenever ANY analyzer throws, even ones
+        # unrelated to what's actually being scanned - the Elixir Mix Audit
+        # Analyzer errors out because its `mix_audit` binary isn't in this
+        # image, which has nothing to do with a pure Node.js project. All 8
+        # report files were being written successfully despite this; the
+        # exit code was the only problem. Verified locally: exit code goes
+        # from 14 to 0 with this flag added, reports unaffected either way.
         run: |
           mkdir -p reports
           docker run --rm \
@@ -163,7 +172,8 @@ jobs:
             --out /src/reports \
             --noupdate \
             --enableRetired \
-            --enableExperimental
+            --enableExperimental \
+            --disableMixAudit
 
       - name: Upload Dependency-Check results
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
