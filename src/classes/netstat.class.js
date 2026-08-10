@@ -45,47 +45,10 @@ class Netstat {
         }, 2000);
     }
     updateInfo() {
-        const eDEX = window.eDEX;
         window.si.networkInterfaces().then(async (data) => {
-            let offline = false;
-
-            let net = data[0];
-            let netID = 0;
-
-            if (typeof window.settings.iface === "string") {
-                while (net.iface !== window.settings.iface) {
-                    netID++;
-                    if (data[netID]) {
-                        net = data[netID];
-                    } else {
-                        // No detected interface has the custom iface name, fallback to automatic detection on next loop
-                        window.settings.iface = false;
-                        return false;
-                    }
-                }
-            } else {
-                // Find the first external, IPv4 connected networkInterface that has a MAC address set
-
-                while (net.operstate !== "up" || net.internal === true || net.ip4 === "" || net.mac === "") {
-                    netID++;
-                    if (data[netID]) {
-                        net = data[netID];
-                    } else {
-                        // No external connection!
-                        this.iface = null;
-                        document.getElementById("mod_netstat_iname").innerText = "Interface: (offline)";
-
-                        this.offline = true;
-                        document.querySelector("#mod_netstat_innercontainer > div:first-child > h2").innerHTML =
-                            "OFFLINE";
-                        document.querySelector("#mod_netstat_innercontainer > div:nth-child(2) > h2").innerHTML =
-                            "--.--.--.--";
-                        document.querySelector("#mod_netstat_innercontainer > div:nth-child(3) > h2").innerHTML =
-                            "--ms";
-                        break;
-                    }
-                }
-            }
+            const found = this._findInterface(data);
+            if (found.abort) return;
+            const net = found.net;
 
             if (net.ip4 !== this.internalIPv4) this.runsBeforeGeoIPUpdate = 0;
 
@@ -93,37 +56,12 @@ class Netstat {
             this.internalIPv4 = net.ip4;
             document.getElementById("mod_netstat_iname").innerText = "Interface: " + net.iface;
 
+            let offline = false;
             let p;
             if (net.ip4 === "127.0.0.1") {
                 offline = true;
             } else {
-                if (this.runsBeforeGeoIPUpdate === 0 && !this._extIpLookupPending) {
-                    this._extIpLookupPending = true;
-                    eDEX.net
-                        .getExternalIp(net.ip4)
-                        .then(async (ip) => {
-                            let geo = await eDEX.geoip.lookup(ip);
-                            this.ipinfo = { ip, geo: geo?.location };
-
-                            document.querySelector("#mod_netstat_innercontainer > div:nth-child(2) > h2").innerHTML =
-                                window._escapeHtml(ip);
-
-                            this.runsBeforeGeoIPUpdate = 10;
-                        })
-                        .catch((e) => {
-                            this.failedAttempts[e] = (this.failedAttempts[e] || 0) + 1;
-                            if (this.failedAttempts[e] > 2) return;
-                            console.warn(e);
-                            eDEX.ipc.send("log", "note", "NetStat: Error fetching data from myexternalip.com");
-                            eDEX.ipc.send("log", "debug", `Error: ${e}`);
-                        })
-                        .finally(() => {
-                            this._extIpLookupPending = false;
-                        });
-                } else if (this.runsBeforeGeoIPUpdate !== 0) {
-                    this.runsBeforeGeoIPUpdate = this.runsBeforeGeoIPUpdate - 1;
-                }
-
+                this._maybeUpdateExternalIp(net);
                 p = await this.ping(window.settings.pingAddr || "1.1.1.1", 80, net.ip4).catch(() => {
                     offline = true;
                 });
@@ -131,15 +69,87 @@ class Netstat {
 
             this.offline = offline;
             if (offline) {
-                document.querySelector("#mod_netstat_innercontainer > div:first-child > h2").innerHTML = "OFFLINE";
-                document.querySelector("#mod_netstat_innercontainer > div:nth-child(2) > h2").innerHTML = "--.--.--.--";
-                document.querySelector("#mod_netstat_innercontainer > div:nth-child(3) > h2").innerHTML = "--ms";
+                this._setOfflineUI();
             } else {
                 document.querySelector("#mod_netstat_innercontainer > div:first-child > h2").innerHTML = "ONLINE";
                 document.querySelector("#mod_netstat_innercontainer > div:nth-child(3) > h2").innerHTML =
                     Math.round(p) + "ms";
             }
         });
+    }
+    // Finds the networkInterfaces() entry to use: either the user's configured
+    // window.settings.iface, or (by default) the first external, IPv4
+    // connected interface that has a MAC address set. Extracted out of
+    // updateInfo() to keep its cognitive complexity down.
+    _findInterface(data) {
+        let net = data[0];
+        let netID = 0;
+
+        if (typeof window.settings.iface === "string") {
+            while (net.iface !== window.settings.iface) {
+                netID++;
+                if (data[netID]) {
+                    net = data[netID];
+                } else {
+                    // No detected interface has the custom iface name, fallback to automatic detection on next loop
+                    window.settings.iface = false;
+                    return { abort: true };
+                }
+            }
+        } else {
+            while (net.operstate !== "up" || net.internal === true || net.ip4 === "" || net.mac === "") {
+                netID++;
+                if (data[netID]) {
+                    net = data[netID];
+                } else {
+                    // No external connection!
+                    this.iface = null;
+                    document.getElementById("mod_netstat_iname").innerText = "Interface: (offline)";
+                    this.offline = true;
+                    this._setOfflineUI();
+                    break;
+                }
+            }
+        }
+
+        return { abort: false, net };
+    }
+    _setOfflineUI() {
+        document.querySelector("#mod_netstat_innercontainer > div:first-child > h2").innerHTML = "OFFLINE";
+        document.querySelector("#mod_netstat_innercontainer > div:nth-child(2) > h2").innerHTML = "--.--.--.--";
+        document.querySelector("#mod_netstat_innercontainer > div:nth-child(3) > h2").innerHTML = "--ms";
+    }
+    // Kicks off (at most one at a time) the external-IP/geoIP lookup used to
+    // populate the IPv4 display, throttled by runsBeforeGeoIPUpdate. Extracted
+    // out of updateInfo() to keep its cognitive complexity down.
+    _maybeUpdateExternalIp(net) {
+        const eDEX = window.eDEX;
+        if (this.runsBeforeGeoIPUpdate === 0 && !this._extIpLookupPending) {
+            this._extIpLookupPending = true;
+            eDEX.net
+                .getExternalIp(net.ip4)
+                .then(async (ip) => {
+                    let geo = await eDEX.geoip.lookup(ip);
+                    this.ipinfo = { ip, geo: geo?.location };
+
+                    document.querySelector("#mod_netstat_innercontainer > div:nth-child(2) > h2").innerHTML =
+                        window._escapeHtml(ip);
+
+                    this.runsBeforeGeoIPUpdate = 10;
+                })
+                .catch((e) => {
+                    this.failedAttempts[e] = (this.failedAttempts[e] || 0) + 1;
+                    if (this.failedAttempts[e] > 2) return;
+                    console.warn(e);
+                    eDEX.ipc.send("log", "note", "NetStat: Error fetching data from myexternalip.com");
+                    eDEX.ipc.send("log", "debug", `Error: ${e}`);
+                })
+                .finally(() => {
+                    this._extIpLookupPending = false;
+                });
+        } else if (this.runsBeforeGeoIPUpdate !== 0) {
+            this.runsBeforeGeoIPUpdate = this.runsBeforeGeoIPUpdate - 1;
+        }
     }
     ping(target, port, local) {
         return window.eDEX.net.ping(target, port, local);
