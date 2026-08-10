@@ -7,7 +7,14 @@ class FilesystemDisplay {
         this.cwd = [];
         this.cwd_path = null;
         this.iconcolor = `rgb(${window.theme.r}, ${window.theme.g}, ${window.theme.b})`;
-        this._formatBytes = (a,b) => {if(0==a)return"0 Bytes";var c=1024,d=b||2,e=["Bytes","KB","MB","GB","TB","PB","EB","ZB","YB"],f=Math.floor(Math.log(a)/Math.log(c));return parseFloat((a/Math.pow(c,f)).toFixed(d))+" "+e[f]};
+        this._formatBytes = (bytes, decimals) => {
+            if (bytes === 0) return "0 Bytes";
+            const base = 1024;
+            const precision = decimals || 2;
+            const units = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+            const magnitude = Math.floor(Math.log(bytes) / Math.log(base));
+            return parseFloat((bytes / Math.pow(base, magnitude)).toFixed(precision)) + " " + units[magnitude];
+        };
         this.fileIconsMatcher = require("./assets/misc/file-icons-match.js");
         this.icons = require("./assets/icons/file-icons.json");
         this.edexIcons = {
@@ -124,7 +131,7 @@ class FilesystemDisplay {
                 this._fsWatcher.close();
             }
             this._fsWatcher = fs.watch(dir, (eventType, filename) => {
-                if (eventType != "change") { // #758 - Don't refresh file view if only file contents have changed.
+                if (eventType !== "change") { // #758 - Don't refresh file view if only file contents have changed.
                     this._runNextTick = true;
                 }
             });
@@ -308,10 +315,10 @@ class FilesystemDisplay {
             blockList.forEach((e, blockIndex) => {
                 let hidden = e.hidden ? " hidden" : "";
 
-                let cmdPrefix = `if (window.keyboard.container.dataset.isCtrlOn == "true") {
+                let cmdPrefix = `if (window.keyboard.container.dataset.isCtrlOn === "true") {
                                 electron.shell.openPath(fsDisp.cwd[${blockIndex}].path);
                                 electronWin.minimize();
-                            } else if (window.keyboard.container.dataset.isShiftOn == "true") {
+                            } else if (window.keyboard.container.dataset.isShiftOn === "true") {
                                 window.term[window.currentTerm].write("\\""+fsDisp.cwd[${blockIndex}].path+"\\"");
                             } else {
                           `.replace(/\n+ */g, ''); // Minify

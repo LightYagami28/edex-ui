@@ -42,7 +42,7 @@ ipc.on("log", (e, type, content) => {
     signale[type](content);
 });
 
-var win, tty, extraTtys;
+let win, tty, extraTtys;
 const settingsFile = path.join(electron.app.getPath("userData"), "settings.json");
 const shortcutsFile = path.join(electron.app.getPath("userData"), "shortcuts.json");
 const lastWindowStateFile = path.join(electron.app.getPath("userData"), "lastWindowState.json");
@@ -154,8 +154,8 @@ fs.readdirSync(innerFontsDir).forEach(e => {
 
 // Version history logging
 const versionHistoryPath = path.join(electron.app.getPath("userData"), "versions_log.json");
-var versionHistory = fs.existsSync(versionHistoryPath) ? require(versionHistoryPath) : {};
-var version = app.getVersion();
+let versionHistory = fs.existsSync(versionHistoryPath) ? require(versionHistoryPath) : {};
+let version = app.getVersion();
 if (typeof versionHistory[version] === "undefined") {
 	versionHistory[version] = {
 		firstSeen: Date.now(),
@@ -232,7 +232,8 @@ app.on('ready', async () => {
     if (!require("fs").existsSync(settings.cwd)) throw new Error("Configured cwd path does not exist.");
 
     // See #366
-    let cleanEnv = await require("shell-env")(settings.shell).catch(e => { throw e; });
+    // "shell-env" is ESM-only, so it can't be require()'d from this CJS main process.
+    let cleanEnv = await (await import("shell-env")).shellEnv(settings.shell).catch(e => { throw e; });
 
     Object.assign(cleanEnv, {
         TERM: "xterm-256color",
