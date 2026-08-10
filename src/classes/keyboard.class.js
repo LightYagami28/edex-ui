@@ -135,90 +135,11 @@ class Keyboard {
 
         this.container.childNodes.forEach((row) => {
             row.childNodes.forEach((key) => {
-                let enterElements = document.querySelectorAll(".keyboard_enter");
-
                 if (key.attributes["class"].value.endsWith("keyboard_enter")) {
                     // The enter key is divided in two dom elements, so we bind their animations here
-
-                    key.onmousedown = (e) => {
-                        this.pressKey(key);
-                        key.holdTimeout = setTimeout(() => {
-                            key.holdInterval = setInterval(() => {
-                                this.pressKey(key);
-                            }, 70);
-                        }, 400);
-
-                        enterElements.forEach((key) => {
-                            key.setAttribute("class", "keyboard_key active keyboard_enter");
-                        });
-
-                        // Keep focus on the terminal
-                        if (window.keyboard.linkedToTerm) window.term[window.currentTerm].term.focus();
-                        if (this.container.dataset.passwordMode === "false") window.audioManager.granted.play();
-                        e.preventDefault();
-                    };
-                    key.onmouseup = () => {
-                        clearTimeout(key.holdTimeout);
-                        clearInterval(key.holdInterval);
-
-                        enterElements.forEach((key) => {
-                            key.setAttribute("class", "keyboard_key blink keyboard_enter");
-                        });
-                        setTimeout(() => {
-                            enterElements.forEach((key) => {
-                                key.setAttribute("class", "keyboard_key keyboard_enter");
-                            });
-                        }, 100);
-                    };
+                    this._bindEnterKeyEvents(key, document.querySelectorAll(".keyboard_enter"));
                 } else {
-                    key.onmousedown = (e) => {
-                        if (/^ESCAPED\|-- (CTRL|SHIFT|ALT).*/.test(key.dataset.cmd)) {
-                            let cmd = key.dataset.cmd.substr(11);
-                            if (cmd.startsWith("CTRL")) {
-                                this.container.dataset.isCtrlOn = "true";
-                            }
-                            if (cmd.startsWith("SHIFT")) {
-                                this.container.dataset.isShiftOn = "true";
-                            }
-                            if (cmd.startsWith("ALT")) {
-                                this.container.dataset.isAltOn = "true";
-                            }
-                        } else {
-                            key.holdTimeout = setTimeout(() => {
-                                key.holdInterval = setInterval(() => {
-                                    this.pressKey(key);
-                                }, 70);
-                            }, 400);
-                            this.pressKey(key);
-                        }
-
-                        // Keep focus on the terminal
-                        if (window.keyboard.linkedToTerm) window.term[window.currentTerm].term.focus();
-                        if (this.container.dataset.passwordMode === "false") window.audioManager.stdin.play();
-                        e.preventDefault();
-                    };
-                    key.onmouseup = () => {
-                        if (/^ESCAPED\|-- (CTRL|SHIFT|ALT).*/.test(key.dataset.cmd)) {
-                            let cmd = key.dataset.cmd.substr(11);
-                            if (cmd.startsWith("CTRL")) {
-                                this.container.dataset.isCtrlOn = "false";
-                            }
-                            if (cmd.startsWith("SHIFT")) {
-                                this.container.dataset.isShiftOn = "false";
-                            }
-                            if (cmd.startsWith("ALT")) {
-                                this.container.dataset.isAltOn = "false";
-                            }
-                        } else {
-                            clearTimeout(key.holdTimeout);
-                            clearInterval(key.holdInterval);
-                        }
-
-                        key.setAttribute("class", "keyboard_key blink");
-                        setTimeout(() => {
-                            key.setAttribute("class", "keyboard_key");
-                        }, 100);
-                    };
+                    this._bindRegularKeyEvents(key);
                 }
 
                 // See #229
@@ -284,6 +205,25 @@ class Keyboard {
         this.container.addEventListener("touchcancel", dropKeyTouchHandler);
 
         // Bind actual keyboard actions to on-screen animations (for use without a touchscreen)
+        // Maps e.code to the selector for its keyboard_key element, for keys
+        // that have no matching data-cmd/data-shift_cmd (shift, control, arrows,
+        // etc). Used by findKey() below.
+        const SPECIAL_KEY_SELECTOR_BY_CODE = {
+            ShiftLeft: 'div.keyboard_key[data-cmd="ESCAPED|-- SHIFT: LEFT"]',
+            ShiftRight: 'div.keyboard_key[data-cmd="ESCAPED|-- SHIFT: RIGHT"]',
+            ControlLeft: 'div.keyboard_key[data-cmd="ESCAPED|-- CTRL: LEFT"]',
+            ControlRight: 'div.keyboard_key[data-cmd="ESCAPED|-- CTRL: RIGHT"]',
+            AltLeft: 'div.keyboard_key[data-cmd="ESCAPED|-- FN: ON"]',
+            AltRight: 'div.keyboard_key[data-cmd="ESCAPED|-- ALT: RIGHT"]',
+            CapsLock: 'div.keyboard_key[data-cmd="ESCAPED|-- CAPSLCK: ON"]',
+            Escape: 'div.keyboard_key[data-cmd=""]',
+            Backspace: 'div.keyboard_key[data-cmd=""]',
+            ArrowUp: 'div.keyboard_key[data-cmd="OA"]',
+            ArrowLeft: 'div.keyboard_key[data-cmd="OD"]',
+            ArrowDown: 'div.keyboard_key[data-cmd="OB"]',
+            ArrowRight: 'div.keyboard_key[data-cmd="OC"]',
+        };
+
         let findKey = (e) => {
             // Fix incorrect querySelector error
             let physkey = e.key === '"' ? String.raw`\"` : e.key;
@@ -293,28 +233,11 @@ class Keyboard {
             if (key === null) key = document.querySelector('div.keyboard_key[data-shift_cmd="' + physkey + '"]');
 
             // Find special keys (shift, control, arrows, etc.)
-            if (key === null && e.code === "ShiftLeft")
-                key = document.querySelector('div.keyboard_key[data-cmd="ESCAPED|-- SHIFT: LEFT"]');
-            if (key === null && e.code === "ShiftRight")
-                key = document.querySelector('div.keyboard_key[data-cmd="ESCAPED|-- SHIFT: RIGHT"]');
-            if (key === null && e.code === "ControlLeft")
-                key = document.querySelector('div.keyboard_key[data-cmd="ESCAPED|-- CTRL: LEFT"]');
-            if (key === null && e.code === "ControlRight")
-                key = document.querySelector('div.keyboard_key[data-cmd="ESCAPED|-- CTRL: RIGHT"]');
-            if (key === null && e.code === "AltLeft")
-                key = document.querySelector('div.keyboard_key[data-cmd="ESCAPED|-- FN: ON"]');
-            if (key === null && e.code === "AltRight")
-                key = document.querySelector('div.keyboard_key[data-cmd="ESCAPED|-- ALT: RIGHT"]');
-            if (key === null && e.code === "CapsLock")
-                key = document.querySelector('div.keyboard_key[data-cmd="ESCAPED|-- CAPSLCK: ON"]');
-            if (key === null && e.code === "Escape") key = document.querySelector('div.keyboard_key[data-cmd=""]');
-            if (key === null && e.code === "Backspace") key = document.querySelector('div.keyboard_key[data-cmd=""]');
-            if (key === null && e.code === "ArrowUp") key = document.querySelector('div.keyboard_key[data-cmd="OA"]');
-            if (key === null && e.code === "ArrowLeft") key = document.querySelector('div.keyboard_key[data-cmd="OD"]');
-            if (key === null && e.code === "ArrowDown") key = document.querySelector('div.keyboard_key[data-cmd="OB"]');
-            if (key === null && e.code === "ArrowRight")
-                key = document.querySelector('div.keyboard_key[data-cmd="OC"]');
-            if (key === null && e.code === "Enter") key = document.querySelectorAll("div.keyboard_key.keyboard_enter");
+            if (key === null && e.code === "Enter") {
+                key = document.querySelectorAll("div.keyboard_key.keyboard_enter");
+            } else if (key === null && SPECIAL_KEY_SELECTOR_BY_CODE[e.code]) {
+                key = document.querySelector(SPECIAL_KEY_SELECTOR_BY_CODE[e.code]);
+            }
 
             // Find "rare" keys (ctrl and alt symbols)
             if (key === null) key = document.querySelector('div.keyboard_key[data-ctrl_cmd="' + e.key + '"]');
@@ -331,14 +254,7 @@ class Keyboard {
                     .setAttribute("class", "keyboard_key");
             }
 
-            // See #440
-            if (e.code === "ControlLeft" || e.code === "ControlRight") this.container.dataset.isCtrlOn = true;
-            if (e.code === "ShiftLeft" || e.code === "ShiftRight") this.container.dataset.isShiftOn = true;
-            if (e.code === "AltLeft" || e.code === "AltRight") this.container.dataset.isAltOn = true;
-            if (e.code === "CapsLock" && this.container.dataset.isCapsLckOn !== "true")
-                this.container.dataset.isCapsLckOn = true;
-            if (e.code === "CapsLock" && this.container.dataset.isCapsLckOn === "true")
-                this.container.dataset.isCapsLckOn = false;
+            this._updateModifiersOnKeydown(e);
 
             let key = findKey(e);
             if (key === null) return;
@@ -351,15 +267,8 @@ class Keyboard {
             }
 
             // See #516
-            if (
-                e.repeat === false ||
-                (e.repeat === true &&
-                    !e.code.startsWith("Shift") &&
-                    !e.code.startsWith("Alt") &&
-                    !e.code.startsWith("Control") &&
-                    !e.code.startsWith("Caps"))
-            ) {
-                if (this.container.dataset.passwordMode === "false") window.audioManager.stdin.play();
+            if (this._isRepeatableKeydown(e) && this.container.dataset.passwordMode === "false") {
+                window.audioManager.stdin.play();
             }
         };
 
@@ -407,47 +316,216 @@ class Keyboard {
             });
         });
     }
+    // Binds the press/hold/release animation and repeat-fire behavior for the
+    // (two-DOM-element) enter key. Extracted out of _init() so its own
+    // onmousedown/onmouseup/setTimeout/setInterval chain doesn't add to
+    // _init()'s function-nesting depth.
+    _bindEnterKeyEvents(key, enterElements) {
+        key.onmousedown = (e) => {
+            this.pressKey(key);
+            key.holdTimeout = setTimeout(() => {
+                key.holdInterval = setInterval(() => {
+                    this.pressKey(key);
+                }, 70);
+            }, 400);
+
+            enterElements.forEach((key) => {
+                key.setAttribute("class", "keyboard_key active keyboard_enter");
+            });
+
+            // Keep focus on the terminal
+            if (window.keyboard.linkedToTerm) window.term[window.currentTerm].term.focus();
+            if (this.container.dataset.passwordMode === "false") window.audioManager.granted.play();
+            e.preventDefault();
+        };
+        key.onmouseup = () => {
+            clearTimeout(key.holdTimeout);
+            clearInterval(key.holdInterval);
+
+            enterElements.forEach((key) => {
+                key.setAttribute("class", "keyboard_key blink keyboard_enter");
+            });
+            setTimeout(() => {
+                enterElements.forEach((key) => {
+                    key.setAttribute("class", "keyboard_key keyboard_enter");
+                });
+            }, 100);
+        };
+    }
+    // Binds the press/hold/release animation and repeat-fire behavior for a
+    // regular (non-enter) key. Extracted out of _init() for the same reason
+    // as _bindEnterKeyEvents().
+    _bindRegularKeyEvents(key) {
+        key.onmousedown = (e) => {
+            if (/^ESCAPED\|-- (CTRL|SHIFT|ALT).*/.test(key.dataset.cmd)) {
+                let cmd = key.dataset.cmd.substr(11);
+                if (cmd.startsWith("CTRL")) {
+                    this.container.dataset.isCtrlOn = "true";
+                }
+                if (cmd.startsWith("SHIFT")) {
+                    this.container.dataset.isShiftOn = "true";
+                }
+                if (cmd.startsWith("ALT")) {
+                    this.container.dataset.isAltOn = "true";
+                }
+            } else {
+                key.holdTimeout = setTimeout(() => {
+                    key.holdInterval = setInterval(() => {
+                        this.pressKey(key);
+                    }, 70);
+                }, 400);
+                this.pressKey(key);
+            }
+
+            // Keep focus on the terminal
+            if (window.keyboard.linkedToTerm) window.term[window.currentTerm].term.focus();
+            if (this.container.dataset.passwordMode === "false") window.audioManager.stdin.play();
+            e.preventDefault();
+        };
+        key.onmouseup = () => {
+            if (/^ESCAPED\|-- (CTRL|SHIFT|ALT).*/.test(key.dataset.cmd)) {
+                let cmd = key.dataset.cmd.substr(11);
+                if (cmd.startsWith("CTRL")) {
+                    this.container.dataset.isCtrlOn = "false";
+                }
+                if (cmd.startsWith("SHIFT")) {
+                    this.container.dataset.isShiftOn = "false";
+                }
+                if (cmd.startsWith("ALT")) {
+                    this.container.dataset.isAltOn = "false";
+                }
+            } else {
+                clearTimeout(key.holdTimeout);
+                clearInterval(key.holdInterval);
+            }
+
+            key.setAttribute("class", "keyboard_key blink");
+            setTimeout(() => {
+                key.setAttribute("class", "keyboard_key");
+            }, 100);
+        };
+    }
+    // See #440. Extracted out of keydownHandler to keep its cognitive
+    // complexity down.
+    _updateModifiersOnKeydown(e) {
+        if (e.code === "ControlLeft" || e.code === "ControlRight") this.container.dataset.isCtrlOn = true;
+        if (e.code === "ShiftLeft" || e.code === "ShiftRight") this.container.dataset.isShiftOn = true;
+        if (e.code === "AltLeft" || e.code === "AltRight") this.container.dataset.isAltOn = true;
+        if (e.code === "CapsLock" && this.container.dataset.isCapsLckOn !== "true")
+            this.container.dataset.isCapsLckOn = true;
+        if (e.code === "CapsLock" && this.container.dataset.isCapsLckOn === "true")
+            this.container.dataset.isCapsLckOn = false;
+    }
+    // See #516: whether a keydown should play the stdin sound - true for any
+    // non-repeat keypress, and for repeats of keys other than the pure
+    // modifier keys (which fire a flood of "repeat" events while held).
+    // Extracted out of keydownHandler to keep its cognitive complexity down.
+    _isRepeatableKeydown(e) {
+        return (
+            e.repeat === false ||
+            (e.repeat === true &&
+                !e.code.startsWith("Shift") &&
+                !e.code.startsWith("Alt") &&
+                !e.code.startsWith("Control") &&
+                !e.code.startsWith("Caps"))
+        );
+    }
     pressKey(key) {
         let cmd = key.dataset.cmd || "";
 
-        // Keyboard shortcuts
+        if (this._tryTriggerShortcut(cmd)) return;
+
+        cmd = this._applyKeyModifiers(cmd, key);
+        cmd = this._applyAccentModifiers(cmd);
+
+        // Escaped commands
+        const escaped = this._handleEscapedCommand(cmd);
+        if (escaped.handled) return true;
+        cmd = escaped.cmd;
+
+        if (cmd === "\n") {
+            if (window.keyboard.linkedToTerm) {
+                window.term[window.currentTerm].writelr("");
+            } else {
+                document.activeElement.dispatchEvent(new CustomEvent("change", { detail: "enter" }));
+            }
+            return true;
+        }
+
+        if (window.keyboard.linkedToTerm) {
+            window.term[window.currentTerm].write(cmd);
+        } else {
+            let isDelete = false;
+            if (document.activeElement.value !== undefined) {
+                switch (cmd) {
+                    case "":
+                        document.activeElement.value = document.activeElement.value.slice(0, -1);
+                        isDelete = true;
+                        break;
+                    case "OD":
+                        document.activeElement.selectionStart--;
+                        document.activeElement.selectionEnd = document.activeElement.selectionStart;
+                        break;
+                    case "OC":
+                        document.activeElement.selectionEnd++;
+                        document.activeElement.selectionStart = document.activeElement.selectionEnd;
+                        break;
+                    default:
+                        if (this.ctrlseq.includes(cmd.slice(0, 1))) {
+                            // Prevent trying to write other control sequences
+                        } else {
+                            document.activeElement.value = document.activeElement.value + cmd;
+                        }
+                }
+            }
+            // Emulate oninput events
+            document.activeElement.dispatchEvent(new CustomEvent("input", { detail: isDelete ? "delete" : "insert" }));
+            document.activeElement.focus();
+        }
+    }
+    // Checks the current keyboard-shortcuts category (Ctrl/Alt/Shift combo)
+    // for a matching, enabled shortcut and triggers it. Extracted out of
+    // pressKey() to keep its cognitive complexity down.
+    _tryTriggerShortcut(cmd) {
         let shortcutsCat = "";
         if (this.container.dataset.isCtrlOn === "true") shortcutsCat += "Ctrl";
         if (this.container.dataset.isAltOn === "true") shortcutsCat += "Alt";
         if (this.container.dataset.isShiftOn === "true") shortcutsCat += "Shift";
 
+        if (shortcutsCat.length <= 1) return false;
+
         let shortcutsTriggered = false;
+        this._shortcuts[shortcutsCat].forEach((cut) => {
+            if (!cut.enabled) return;
 
-        if (shortcutsCat.length > 1) {
-            this._shortcuts[shortcutsCat].forEach((cut) => {
-                if (!cut.enabled) return;
+            let trig = cut.trigger
+                .toLowerCase()
+                .replace("plus", "+")
+                .replace("space", " ")
+                .replace("tab", "\t")
+                .replace(/backspace|delete/, "\b")
+                .replace(/esc|escape/, this.ctrlseq[1])
+                .replace(/return|enter/, "\r");
 
-                let trig = cut.trigger
-                    .toLowerCase()
-                    .replace("plus", "+")
-                    .replace("space", " ")
-                    .replace("tab", "\t")
-                    .replace(/backspace|delete/, "\b")
-                    .replace(/esc|escape/, this.ctrlseq[1])
-                    .replace(/return|enter/, "\r");
+            if (cmd !== trig) return;
 
-                if (cmd !== trig) return;
+            if (cut.type === "app") {
+                window.useAppShortcut(cut.action);
+                shortcutsTriggered = true;
+            } else if (cut.type === "shell") {
+                let fn = cut.linebreak ? "writelr" : "write";
+                window.term[window.currentTerm][fn](cut.action);
+            } else {
+                console.warn(`${cut.trigger} has unknown type`);
+            }
+        });
 
-                if (cut.type === "app") {
-                    window.useAppShortcut(cut.action);
-                    shortcutsTriggered = true;
-                } else if (cut.type === "shell") {
-                    let fn = cut.linebreak ? "writelr" : "write";
-                    window.term[window.currentTerm][fn](cut.action);
-                } else {
-                    console.warn(`${cut.trigger} has unknown type`);
-                }
-            });
-        }
-
-        if (shortcutsTriggered) return;
-
-        // Modifiers
+        return shortcutsTriggered;
+    }
+    // Applies the active modifier key (shift/capslock/ctrl/alt/altshift/fn)'s
+    // data-*_cmd override, if any, to cmd. Extracted out of pressKey() to keep
+    // its cognitive complexity down.
+    _applyKeyModifiers(cmd, key) {
         if (
             (this.container.dataset.isShiftOn === "true" && key.dataset.shift_cmd) ||
             (this.container.dataset.isCapsLckOn === "true" && key.dataset.shift_cmd)
@@ -463,6 +541,13 @@ class Keyboard {
         )
             cmd = key.dataset.altshift_cmd;
         if (this.container.dataset.isFnOn === "true" && key.dataset.fn_cmd) cmd = key.dataset.fn_cmd;
+        return cmd;
+    }
+    // Applies any pending diacritic modifier (circumflex, acute, etc, each
+    // primed by a previous ESCAPED command) to cmd, resetting the flag that
+    // primed it. Extracted out of pressKey() to keep its cognitive complexity
+    // down.
+    _applyAccentModifiers(cmd) {
         if (this.container.dataset.isNextCircum === "true") {
             cmd = this.addCircum(cmd);
             this.container.dataset.isNextCircum = "false";
@@ -515,105 +600,75 @@ class Keyboard {
             cmd = this.addIotasub(cmd);
             this.container.dataset.isNextIotasub = "false";
         }
-
-        // Escaped commands
-        if (cmd.startsWith("ESCAPED|-- ")) {
-            cmd = cmd.substr(11);
-            switch (cmd) {
-                case "CAPSLCK: ON":
-                    this.container.dataset.isCapsLckOn = "true";
-                    return true;
-                case "CAPSLCK: OFF":
-                    this.container.dataset.isCapsLckOn = "false";
-                    return true;
-                case "FN: ON":
-                    this.container.dataset.isFnOn = "true";
-                    return true;
-                case "FN: OFF":
-                    this.container.dataset.isFnOn = "false";
-                    return true;
-                case "CIRCUM":
-                    this.container.dataset.isNextCircum = "true";
-                    return true;
-                case "TREMA":
-                    this.container.dataset.isNextTrema = "true";
-                    return true;
-                case "ACUTE":
-                    this.container.dataset.isNextAcute = "true";
-                    return true;
-                case "GRAVE":
-                    this.container.dataset.isNextGrave = "true";
-                    return true;
-                case "CARON":
-                    this.container.dataset.isNextCaron = "true";
-                    return true;
-                case "BAR":
-                    this.container.dataset.isNextBar = "true";
-                    return true;
-                case "BREVE":
-                    this.container.dataset.isNextBreve = "true";
-                    return true;
-                case "TILDE":
-                    this.container.dataset.isNextTilde = "true";
-                    return true;
-                case "MACRON":
-                    this.container.dataset.isNextMacron = "true";
-                    return true;
-                case "CEDILLA":
-                    this.container.dataset.isNextCedilla = "true";
-                    return true;
-                case "OVERRING":
-                    this.container.dataset.isNextOverring = "true";
-                    return true;
-                case "GREEK":
-                    this.container.dataset.isNextGreek = "true";
-                    return true;
-                case "IOTASUB":
-                    this.container.dataset.isNextIotasub = "true";
-                    return true;
-            }
-        }
-
-        if (cmd === "\n") {
-            if (window.keyboard.linkedToTerm) {
-                window.term[window.currentTerm].writelr("");
-            } else {
-                document.activeElement.dispatchEvent(new CustomEvent("change", { detail: "enter" }));
-            }
-            return true;
-        }
-
-        if (window.keyboard.linkedToTerm) {
-            window.term[window.currentTerm].write(cmd);
-        } else {
-            let isDelete = false;
-            if (document.activeElement.value !== undefined) {
-                switch (cmd) {
-                    case "":
-                        document.activeElement.value = document.activeElement.value.slice(0, -1);
-                        isDelete = true;
-                        break;
-                    case "OD":
-                        document.activeElement.selectionStart--;
-                        document.activeElement.selectionEnd = document.activeElement.selectionStart;
-                        break;
-                    case "OC":
-                        document.activeElement.selectionEnd++;
-                        document.activeElement.selectionStart = document.activeElement.selectionEnd;
-                        break;
-                    default:
-                        if (this.ctrlseq.includes(cmd.slice(0, 1))) {
-                            // Prevent trying to write other control sequences
-                        } else {
-                            document.activeElement.value = document.activeElement.value + cmd;
-                        }
-                }
-            }
-            // Emulate oninput events
-            document.activeElement.dispatchEvent(new CustomEvent("input", { detail: isDelete ? "delete" : "insert" }));
-            document.activeElement.focus();
-        }
+        return cmd;
     }
+    // Handles an "ESCAPED|-- X" pseudo-command by setting the corresponding
+    // dataset flag. Returns {handled: true} if cmd matched a known escaped
+    // command (caller should stop processing), otherwise {handled: false,
+    // cmd} with cmd set to the ESCAPED|-- -stripped value if the prefix
+    // matched (even when no case did), or left untouched if it didn't -
+    // matching the original inline code's fallthrough behavior exactly.
+    // Extracted out of pressKey() to keep its cognitive complexity down.
+    _handleEscapedCommand(cmd) {
+        if (!cmd.startsWith("ESCAPED|-- ")) return { handled: false, cmd };
+
+        const stripped = cmd.substr(11);
+        switch (stripped) {
+            case "CAPSLCK: ON":
+                this.container.dataset.isCapsLckOn = "true";
+                return { handled: true };
+            case "CAPSLCK: OFF":
+                this.container.dataset.isCapsLckOn = "false";
+                return { handled: true };
+            case "FN: ON":
+                this.container.dataset.isFnOn = "true";
+                return { handled: true };
+            case "FN: OFF":
+                this.container.dataset.isFnOn = "false";
+                return { handled: true };
+            case "CIRCUM":
+                this.container.dataset.isNextCircum = "true";
+                return { handled: true };
+            case "TREMA":
+                this.container.dataset.isNextTrema = "true";
+                return { handled: true };
+            case "ACUTE":
+                this.container.dataset.isNextAcute = "true";
+                return { handled: true };
+            case "GRAVE":
+                this.container.dataset.isNextGrave = "true";
+                return { handled: true };
+            case "CARON":
+                this.container.dataset.isNextCaron = "true";
+                return { handled: true };
+            case "BAR":
+                this.container.dataset.isNextBar = "true";
+                return { handled: true };
+            case "BREVE":
+                this.container.dataset.isNextBreve = "true";
+                return { handled: true };
+            case "TILDE":
+                this.container.dataset.isNextTilde = "true";
+                return { handled: true };
+            case "MACRON":
+                this.container.dataset.isNextMacron = "true";
+                return { handled: true };
+            case "CEDILLA":
+                this.container.dataset.isNextCedilla = "true";
+                return { handled: true };
+            case "OVERRING":
+                this.container.dataset.isNextOverring = "true";
+                return { handled: true };
+            case "GREEK":
+                this.container.dataset.isNextGreek = "true";
+                return { handled: true };
+            case "IOTASUB":
+                this.container.dataset.isNextIotasub = "true";
+                return { handled: true };
+        }
+        return { handled: false, cmd: stripped };
+    }
+
     togglePasswordMode() {
         let d = this.container.dataset.passwordMode;
         d = d === "true" ? "false" : "true";
