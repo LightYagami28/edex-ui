@@ -30,10 +30,6 @@ jobs:
         # https://github.com/electron/get#how-it-works
         path: ~/.cache/electron
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
-    - name: Install system dependencies for x64->x32 cross-build
-      run: |
-        sudo apt update
-        sudo apt install libc6-dev-i386 gcc-multilib g++-multilib
     - name: Setup Node.js
       uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
       with:
@@ -45,8 +41,11 @@ jobs:
       run: npm install
     - name: Run prebuild script
       run: npm run prebuild-linux
-    - name: Build for x64 / ia32
-      run: ./node_modules/.bin/electron-builder build -l --x64 --ia32
+    # NOTE: Linux ia32 (32-bit x86) dropped: electron 43.x publishes no
+    # linux-ia32 release asset at all (verified against the GitHub release
+    # for the pinned Electron version - only x64/arm64/armv7l exist).
+    - name: Build for x64
+      run: ./node_modules/.bin/electron-builder build -l --x64
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -159,7 +158,10 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
     - name: Setup npm
-      run: sudo npm i -g npm@latest
+      # No sudo here: running npm's global self-update as root on the
+      # macos-latest runner leaves root-owned files under ~/.npm, which
+      # then makes the next (non-root) `npm install` fail with EACCES.
+      run: npm i -g npm@latest
     - name: npm install
       run: npm install
     - name: npm build
