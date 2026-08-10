@@ -94,6 +94,4 @@ class DocReader {
     }
 }
 
-module.exports = {
-    DocReader,
-};
+window.DocReader = DocReader;

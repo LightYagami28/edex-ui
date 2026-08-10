@@ -3,6 +3,7 @@
 
 const { app, ipcMain, shell, clipboard, screen, globalShortcut } = require("electron");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const https = require("https");
 const net = require("net");
@@ -92,7 +93,7 @@ function register({ win, paths }) {
     ipcMain.handle("fs:watch", (e, dirPath) => {
         if (watchers.has(dirPath)) return;
         const sender = e.sender;
-        const watcher = fs.watch(dirPath, eventType => {
+        const watcher = fs.watch(dirPath, (eventType) => {
             if (!sender.isDestroyed()) sender.send("fs:watchEvent", dirPath, eventType);
         });
         watchers.set(dirPath, watcher);
@@ -113,7 +114,7 @@ function register({ win, paths }) {
             const maxmind = require("maxmind");
             const geoIPcachePath = path.join(app.getPath("userData"), "geoIPcache");
             await geolite2.downloadDbs({ path: geoIPcachePath });
-            geoLookup = await geolite2.open("GeoLite2-City", p => maxmind.open(p), geoIPcachePath);
+            geoLookup = await geolite2.open("GeoLite2-City", (p) => maxmind.open(p), geoIPcachePath);
         } catch (err) {
             console.warn("GeoIP database unavailable:", err);
         }
@@ -133,7 +134,7 @@ function register({ win, paths }) {
                 resolve((timeArr[0] * 1e9 + timeArr[1]) / 1e6);
                 s.destroy();
             });
-            s.on("error", err => {
+            s.on("error", (err) => {
                 s.destroy();
                 reject(err);
             });
@@ -147,9 +148,9 @@ function register({ win, paths }) {
     ipcMain.handle("net:getExternalIp", (e, localAddress) => {
         return new Promise((resolve, reject) => {
             https
-                .get({ host: "myexternalip.com", port: 443, path: "/json", localAddress }, res => {
+                .get({ host: "myexternalip.com", port: 443, path: "/json", localAddress }, (res) => {
                     let rawData = "";
-                    res.on("data", chunk => (rawData += chunk));
+                    res.on("data", (chunk) => (rawData += chunk));
                     res.on("end", () => {
                         try {
                             resolve(JSON.parse(rawData).ip);
@@ -172,13 +173,13 @@ function register({ win, paths }) {
                         path: "/repos/lightyagami28/edex-ui/releases/latest",
                         headers: { "User-Agent": "eDEX-UI UpdateChecker" },
                     },
-                    res => {
+                    (res) => {
                         if (res.statusCode !== 200) {
                             reject(new Error(`GitHub API returned ${res.statusCode}`));
                             return;
                         }
                         let rawData = "";
-                        res.on("data", chunk => (rawData += chunk));
+                        res.on("data", (chunk) => (rawData += chunk));
                         res.on("end", () => {
                             try {
                                 resolve(JSON.parse(rawData));
@@ -193,6 +194,7 @@ function register({ win, paths }) {
     });
 
     // ---- Misc ----
+    ipcMain.handle("os:uptime", () => os.uptime());
     ipcMain.handle("os:username", async () => {
         try {
             return await (await import("username")).username();

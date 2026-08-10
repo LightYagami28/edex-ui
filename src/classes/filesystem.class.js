@@ -743,6 +743,4 @@ class FilesystemDisplay {
     }
 }
 
-module.exports = {
-    FilesystemDisplay,
-};
+window.FilesystemDisplay = FilesystemDisplay;

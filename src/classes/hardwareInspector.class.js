@@ -57,6 +57,4 @@ class HardwareInspector {
     }
 }
 
-module.exports = {
-    HardwareInspector,
-};
+window.HardwareInspector = HardwareInspector;

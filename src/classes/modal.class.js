@@ -202,6 +202,4 @@ class Modal {
     }
 }
 
-module.exports = {
-    Modal,
-};
+window.Modal = Modal;
