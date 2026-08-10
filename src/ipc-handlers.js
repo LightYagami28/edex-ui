@@ -13,6 +13,7 @@ function register({ win, paths }) {
 
     // ---- App / window ----
     ipcMain.handle("app:getVersion", () => app.getVersion());
+    ipcMain.handle("app:getElectronVersion", () => process.versions.electron);
     ipcMain.handle("app:getPath", (e, name) => app.getPath(name));
     ipcMain.handle("app:getArgv", () => process.argv);
     ipcMain.on("app:focus", () => app.focus());
