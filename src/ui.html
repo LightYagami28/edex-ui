@@ -2,6 +2,11 @@
 <html lang="en">
     <head>
         <meta charset="utf-8" />
+        <!-- 'unsafe-inline' is required: the file-manager/modal click handlers
+             throughout this app are wired via inline onclick attributes
+             (see filesystem.class.js's generated entry HTML), and removing it
+             would break that architecture app-wide. -->
+        <!-- NOSONAR -->
         <meta http-equiv="Content-Security-Policy" content="default-src file: 'unsafe-inline'; img-src file: data:; media-src file:; connect-src ws: file:">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>eDEX-UI</title>
@@ -35,7 +40,10 @@
 
         <!-- Load dependency js -->
         <!-- pdfjs-dist v6+ only ships ESM (.mjs); bridge it to a window global
-             since the rest of the app's scripts are classic (non-module) scripts. -->
+             since the rest of the app's scripts are classic (non-module) scripts.
+             build/pdf.mjs is pdfjs-dist's own declared "main" entry point in its
+             package.json, not an internal implementation detail. -->
+        <!-- NOSONAR -->
         <script type="module">
             import * as pdfjsLib from "./node_modules/pdfjs-dist/build/pdf.mjs";
             window.pdfjsLib = pdfjsLib;
