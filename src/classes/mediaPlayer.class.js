@@ -20,17 +20,17 @@ class MediaPlayer {
         let fullscreenVisible = true;
         let fullscreenTimeout;
         media.controls = false;
-        mediaControls.setAttribute("data-state", "visible");
+        mediaControls.dataset.state = "visible";
 
         this.changeButtonState = () => {
             if (media.paused || media.ended) {
-                playpause.setAttribute("data-state", "play");
+                playpause.dataset.state = "play";
                 playpause.innerHTML = `
                     <svg viewBox="0 0 ${icons["play"].width} ${icons["play"].height}" fill="${iconcolor}">
                         ${icons["play"].svg}
                     </svg>`;
             } else {
-                playpause.setAttribute("data-state", "pause");
+                playpause.dataset.state = "pause";
                 playpause.innerHTML = `
                     <svg viewBox="0 0 ${icons["pause"].width} ${icons["pause"].height}" fill="${iconcolor}">
                         ${icons["pause"].svg}
@@ -42,8 +42,8 @@ class MediaPlayer {
             if (fullscreen === null) {
                 return;
             }
-            mediaContainer.setAttribute("data-fullscreen", !!state);
-            fullscreen.setAttribute("data-state", state ? "cancel-fullscreen" : "go-fullscreen");
+            mediaContainer.dataset.fullscreen = !!state;
+            fullscreen.dataset.state = state ? "cancel-fullscreen" : "go-fullscreen";
             const buttonIcon = state ? "fullscreen-exit" : "fullscreen";
             fullscreen.innerHTML = `
                 <svg viewBox="0 0 ${icons[buttonIcon].width} ${icons[buttonIcon].height}" fill="${iconcolor}">
@@ -95,10 +95,10 @@ class MediaPlayer {
         };
 
         this.mediaTimeToHMS = (time) => {
-            let seconds = parseInt(time);
-            const hours = parseInt(seconds / 3600);
+            let seconds = Number.parseInt(time);
+            const hours = Number.parseInt(seconds / 3600);
             seconds = seconds % 3600;
-            const minutes = parseInt(seconds / 60);
+            const minutes = Number.parseInt(seconds / 60);
             seconds = seconds % 60;
             return (
                 (hours < 10 ? "0" : "") +

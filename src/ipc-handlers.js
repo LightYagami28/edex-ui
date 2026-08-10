@@ -39,6 +39,7 @@ function register({ win, paths }) {
     });
 
     ipcMain.handle("clipboard:readText", () => clipboard.readText());
+    ipcMain.handle("clipboard:writeText", (e, text) => clipboard.writeText(text));
 
     // Restrict to http(s): shell.openExternal with an unvalidated scheme can
     // be abused via crafted file:// or custom-protocol-handler URLs on some

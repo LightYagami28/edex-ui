@@ -16,14 +16,14 @@ window._escapeHtml = (text) => {
     });
 };
 window._encodePathURI = (uri) => {
-    return encodeURI(uri).replace(/#/g, "%23");
+    return encodeURI(uri).replaceAll("#", "%23");
 };
 window._purifyCSS = (str) => {
-    if (typeof str === "undefined") return "";
+    if (str === undefined) return "";
     if (typeof str !== "string") {
         str = str.toString();
     }
-    return str.replace(/[<]/g, "");
+    return str.replaceAll("<", "");
 };
 window._delay = (ms) => {
     return new Promise((resolve) => {
@@ -33,7 +33,8 @@ window._delay = (ms) => {
 
 // Initiate basic error handling
 window.onerror = (msg, path, line, col, error) => {
-    document.getElementById("boot_screen").innerHTML += `${error} :  ${msg}<br/>==> at ${path}  ${line}:${col}`;
+    const msgStr = typeof msg === "string" ? msg : JSON.stringify(msg);
+    document.getElementById("boot_screen").innerHTML += `${error} :  ${msgStr}<br/>==> at ${path}  ${line}:${col}`;
 };
 
 const eDEX = window.eDEX;
@@ -53,15 +54,15 @@ window._loadTheme = (theme) => {
     // Load fonts
     let mainFont = new FontFace(
         theme.cssvars.font_main,
-        `url("${path.join(fontsDir, theme.cssvars.font_main.toLowerCase().replace(/ /g, "_") + ".woff2").replace(/\\/g, "/")}")`
+        `url("${path.join(fontsDir, theme.cssvars.font_main.toLowerCase().replaceAll(" ", "_") + ".woff2").replaceAll("\\", "/")}")`
     );
     let lightFont = new FontFace(
         theme.cssvars.font_main_light,
-        `url("${path.join(fontsDir, theme.cssvars.font_main_light.toLowerCase().replace(/ /g, "_") + ".woff2").replace(/\\/g, "/")}")`
+        `url("${path.join(fontsDir, theme.cssvars.font_main_light.toLowerCase().replaceAll(" ", "_") + ".woff2").replaceAll("\\", "/")}")`
     );
     let termFont = new FontFace(
         theme.terminal.fontFamily,
-        `url("${path.join(fontsDir, theme.terminal.fontFamily.toLowerCase().replace(/ /g, "_") + ".woff2").replace(/\\/g, "/")}")`
+        `url("${path.join(fontsDir, theme.terminal.fontFamily.toLowerCase().replaceAll(" ", "_") + ".woff2").replaceAll("\\", "/")}")`
     );
 
     document.fonts.add(mainFont);
@@ -109,14 +110,15 @@ window._loadTheme = (theme) => {
 function initGraphicalErrorHandling() {
     window.edexErrorsModals = [];
     window.onerror = (msg, path, line, col, error) => {
+        const msgStr = typeof msg === "string" ? msg : JSON.stringify(msg);
         let errorModal = new Modal({
             type: "error",
             title: error,
-            message: `${msg}<br/>        at ${path}  ${line}:${col}`,
+            message: `${msgStr}<br/>        at ${path}  ${line}:${col}`,
         });
         window.edexErrorsModals.push(errorModal);
 
-        ipc.send("log", "error", `${error}: ${msg}`);
+        ipc.send("log", "error", `${error}: ${msgStr}`);
         ipc.send("log", "debug", `at ${path} ${line}:${col}`);
     };
 }
@@ -154,13 +156,13 @@ function initSystemInformationProxy() {
             },
             get: (target, prop) => {
                 return function (...args) {
-                    let callback = typeof args[args.length - 1] === "function" ? true : false;
+                    let callback = typeof args.at(-1) === "function";
 
                     return new Promise((resolve) => {
                         let id = crypto.randomUUID();
                         ipc.once("systeminformation-reply-" + id, (e, res) => {
                             if (callback) {
-                                args[args.length - 1](res);
+                                args.at(-1)(res);
                             }
                             resolve(res);
                         });
@@ -180,7 +182,7 @@ let i = 0;
 function displayLine() {
     let bootScreen = document.getElementById("boot_screen");
 
-    if (typeof bootLogLines[i] === "undefined") {
+    if (bootLogLines[i] === undefined) {
         setTimeout(displayTitleScreen, 300);
         return;
     }
@@ -196,7 +198,7 @@ function displayLine() {
 
     switch (true) {
         case i === 2:
-            bootScreen.innerHTML += `eDEX-UI Kernel version ${appVersion} boot at ${Date().toString()}; root:xnu-1699.22.73~1/RELEASE_X86_64`;
+            bootScreen.innerHTML += `eDEX-UI Kernel version ${appVersion} boot at ${String(new Date())}; root:xnu-1699.22.73~1/RELEASE_X86_64`;
         // falls through
         case i === 4:
             setTimeout(displayLine, 500);
@@ -346,6 +348,7 @@ async function initUI() {
         layout: window.settings.keyboard,
         container: "keyboard",
     });
+    window.keyboard.start();
     await window.keyboard.ready;
 
     await _delay(10);
@@ -393,6 +396,7 @@ async function initUI() {
     // Left column
     window.mods.clock = new Clock("mod_column_left");
     window.mods.sysinfo = new Sysinfo("mod_column_left");
+    window.mods.sysinfo.start();
     window.mods.hardwareInspector = new HardwareInspector("mod_column_left");
     window.mods.cpuinfo = new Cpuinfo("mod_column_left");
     window.mods.ramwatcher = new RAMwatcher("mod_column_left");
@@ -401,6 +405,7 @@ async function initUI() {
     // Right column
     window.mods.netstat = new Netstat("mod_column_right");
     window.mods.globe = new LocationGlobe("mod_column_right");
+    window.mods.globe.start();
     window.mods.conninfo = new Conninfo("mod_column_right");
 
     // Fade-in animations
@@ -468,13 +473,14 @@ async function initUI() {
     window.fsDisp = new FilesystemDisplay({
         parentId: "filesystem",
     });
+    window.fsDisp.start();
 
     await _delay(200);
 
     document.getElementById("filesystem").setAttribute("style", "opacity: 1;");
 
     // Resend terminal CWD to fsDisp if we're hot reloading
-    if (window.performance.navigation.type === 1) {
+    if (window.performance.getEntriesByType("navigation")[0]?.type === "reload") {
         window.term[window.currentTerm].resendCWD();
     }
 
@@ -496,6 +502,7 @@ window.remakeKeyboard = (layout) => {
         layout: layout || window.settings.keyboard,
         container: "keyboard",
     });
+    window.keyboard.start();
     ipc.send("setKbOverride", layout);
 };
 
@@ -592,7 +599,9 @@ window.openSettings = async () => {
     // Unlink the tactile keyboard from the terminal emulator to allow filling in the settings fields
     window.keyboard.detach();
 
-    new Modal(
+    // Modal self-registers in window.modals[this.id], no local reference needed.
+    // prettier-ignore
+    new Modal( // NOSONAR
         {
             type: "custom",
             title: `Settings <i>(v${appVersion})</i>`,
@@ -690,7 +699,7 @@ window.openSettings = async () => {
                         <td>monitor</td>
                         <td>Which monitor to spawn the UI in (defaults to primary display)</td>
                         <td><select id="settingsEditor-monitor">
-                            ${typeof window.settings.monitor !== "undefined" ? "<option>" + window.settings.monitor + "</option>" : ""}
+                            ${window.settings.monitor !== undefined ? "<option>" + window.settings.monitor + "</option>" : ""}
                             ${monitors}
                         </select></td>
                     </tr>
@@ -845,7 +854,7 @@ window.writeSettingsFile = () => {
 };
 
 window.toggleFullScreen = async () => {
-    let useFullscreen = (await eDEX.win.isFullScreen()) ? false : true;
+    let useFullscreen = !(await eDEX.win.isFullScreen());
     eDEX.win.setFullScreen(useFullscreen);
 
     //Update settings
@@ -904,7 +913,9 @@ window.openShortcutsHelp = () => {
         });
 
     window.keyboard.detach();
-    new Modal(
+    // Modal self-registers in window.modals[this.id], no local reference needed.
+    // prettier-ignore
+    new Modal( // NOSONAR
         {
             type: "custom",
             title: `Available Keyboard Shortcuts <i>(v${appVersion})</i>`,
@@ -1116,8 +1127,8 @@ eDEX.webFrame.setVisualZoomLevelLimits(1, 1);
 
 // Resize terminal with window
 window.onresize = () => {
-    if (typeof window.currentTerm !== "undefined") {
-        if (typeof window.term[window.currentTerm] !== "undefined") {
+    if (window.currentTerm !== undefined) {
+        if (window.term[window.currentTerm] !== undefined) {
             window.term[window.currentTerm].fit();
         }
     }
@@ -1139,9 +1150,9 @@ eDEX.win.onResize(async () => {
         let size = await eDEX.win.getSize();
 
         if (size[0] >= size[1]) {
-            eDEX.win.setSize(size[0], parseInt((size[0] * 9) / 16));
+            eDEX.win.setSize(size[0], Number.parseInt((size[0] * 9) / 16));
         } else {
-            eDEX.win.setSize(size[1], parseInt((size[1] * 9) / 16));
+            eDEX.win.setSize(size[1], Number.parseInt((size[1] * 9) / 16));
         }
     }, 100);
 });

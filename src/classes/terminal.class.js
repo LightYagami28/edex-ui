@@ -1,7 +1,7 @@
 class Terminal {
     constructor(opts) {
         if (opts.role === "client") {
-            if (!opts.parentId) throw "Missing options";
+            if (!opts.parentId) throw new Error("Missing options");
 
             this.xTerm = window.XTerm.Terminal;
             const { AttachAddon } = window.XTermAddonAttach;
@@ -27,7 +27,7 @@ class Terminal {
             };
 
             // Support for custom color filters on the terminal - see #483
-            let doCustomFilter = window.isTermFilterValidated ? true : false;
+            let doCustomFilter = !!window.isTermFilterValidated;
 
             // Parse & validate color filter
             if (
@@ -83,16 +83,11 @@ class Terminal {
                     let newColor = color(base);
                     target = color(target);
 
-                    for (let i = 0; i < window.theme.terminal.colorFilter.length; i++) {
-                        if (window.theme.terminal.colorFilter[i].func === "mix") {
-                            newColor = newColor[window.theme.terminal.colorFilter[i].func](
-                                target,
-                                ...window.theme.terminal.colorFilter[i].arg
-                            );
+                    for (const filter of window.theme.terminal.colorFilter) {
+                        if (filter.func === "mix") {
+                            newColor = newColor[filter.func](target, ...filter.arg);
                         } else {
-                            newColor = newColor[window.theme.terminal.colorFilter[i].func](
-                                ...window.theme.terminal.colorFilter[i].arg
-                            );
+                            newColor = newColor[filter.func](...filter.arg);
                         }
                     }
 
@@ -216,9 +211,7 @@ class Terminal {
 
                 // See #397
                 if (!window.settings.experimentalGlobeFeatures) return;
-                let ips = e.data.match(
-                    /((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/g
-                );
+                let ips = e.data.match(/((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)/g);
                 if (ips !== null && ips.length >= 1) {
                     ips = ips.filter((val, index, self) => {
                         return self.indexOf(val) === index;
@@ -307,7 +300,7 @@ class Terminal {
             this.clipboard = {
                 copy: () => {
                     if (!this.term.hasSelection()) return false;
-                    document.execCommand("copy");
+                    window.eDEX.clipboard.writeText(this.term.getSelection());
                     this.term.clearSelection();
                     this.clipboard.didCopy = true;
                 },
@@ -337,9 +330,9 @@ class Terminal {
                     // Coerce to a plain integer before shell interpolation below (defense in depth).
                     let pid = Number.parseInt(tty._pid, 10);
                     if (!Number.isSafeInteger(pid)) return reject(new Error("Invalid TTY pid"));
-                    switch (require("os").type()) {
+                    switch (require("node:os").type()) {
                         case "Linux":
-                            require("fs").readlink(`/proc/${pid}/cwd`, (e, cwd) => {
+                            require("node:fs").readlink(`/proc/${pid}/cwd`, (e, cwd) => {
                                 if (e !== null) {
                                     reject(e);
                                 } else {
@@ -348,7 +341,7 @@ class Terminal {
                             });
                             break;
                         case "Darwin":
-                            require("child_process").exec(
+                            require("node:child_process").exec(
                                 `lsof -a -d cwd -p ${pid} | tail -1 | awk '{ for (i=9; i<=NF; i++) printf "%s ", $i }'`,
                                 (e, cwd) => {
                                     if (e !== null) {
@@ -360,7 +353,7 @@ class Terminal {
                             );
                             break;
                         default:
-                            reject("Unsupported OS");
+                            reject(new Error("Unsupported OS"));
                     }
                 });
             };
@@ -369,10 +362,10 @@ class Terminal {
                     // Coerce to a plain integer before shell interpolation below (defense in depth).
                     let pid = Number.parseInt(tty._pid, 10);
                     if (!Number.isSafeInteger(pid)) return reject(new Error("Invalid TTY pid"));
-                    switch (require("os").type()) {
+                    switch (require("node:os").type()) {
                         case "Linux":
                         case "Darwin":
-                            require("child_process").exec(
+                            require("node:child_process").exec(
                                 `ps -o comm --no-headers --sort=+pid -g ${pid} | tail -1`,
                                 (e, proc) => {
                                     if (e !== null) {
@@ -384,7 +377,7 @@ class Terminal {
                             );
                             break;
                         default:
-                            reject("Unsupported OS");
+                            reject(new Error("Unsupported OS"));
                     }
                 });
             };
@@ -441,17 +434,17 @@ class Terminal {
                 }
             }, 1000);
 
-            this.tty = this.Pty.spawn(
-                opts.shell || "bash",
-                opts.params.length > 0 ? opts.params : process.platform === "win32" ? [] : ["--login"],
-                {
-                    name: opts.env.TERM || "xterm-256color",
-                    cols: 80,
-                    rows: 24,
-                    cwd: opts.cwd || process.env.PWD,
-                    env: opts.env || process.env,
-                }
-            );
+            let ttyParams = opts.params;
+            if (ttyParams.length === 0) {
+                ttyParams = process.platform === "win32" ? [] : ["--login"];
+            }
+            this.tty = this.Pty.spawn(opts.shell || "bash", ttyParams, {
+                name: opts.env.TERM || "xterm-256color",
+                cols: 80,
+                rows: 24,
+                cwd: opts.cwd || process.env.PWD,
+                env: opts.env || process.env,
+            });
 
             this.tty.onExit((code, signal) => {
                 this._closed = true;
@@ -462,11 +455,7 @@ class Terminal {
                 port: this.port,
                 clientTracking: true,
                 verifyClient: () => {
-                    if (this.wss.clients.length >= 1) {
-                        return false;
-                    } else {
-                        return true;
-                    }
+                    return this.wss.clients.length < 1;
                 },
             });
             this.Ipc.on("terminal_channel-" + this.port, (e, ...args) => {
@@ -525,7 +514,7 @@ class Terminal {
                 this._closed = true;
             };
         } else {
-            throw "Unknown purpose";
+            throw new Error("Unknown purpose");
         }
     }
 

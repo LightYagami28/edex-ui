@@ -1,6 +1,6 @@
 class Sysinfo {
     constructor(parentId) {
-        if (!parentId) throw "Missing parameters";
+        if (!parentId) throw new Error("Missing parameters");
 
         // See #255
         let os;
@@ -37,7 +37,6 @@ class Sysinfo {
         </div>`;
 
         this.updateDate();
-        this.updateUptime();
         this.uptimeUpdater = setInterval(() => {
             this.updateUptime();
         }, 60000);
@@ -45,6 +44,10 @@ class Sysinfo {
         this.batteryUpdater = setInterval(() => {
             this.updateBattery();
         }, 3000);
+    }
+    // updateUptime() is async - callers should call this right after construction.
+    start() {
+        return this.updateUptime();
     }
     updateDate() {
         let time = new Date();

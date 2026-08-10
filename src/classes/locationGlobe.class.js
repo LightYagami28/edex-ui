@@ -1,11 +1,6 @@
 class LocationGlobe {
     constructor(parentId) {
-        if (!parentId) throw "Missing parameters";
-
-        // encom-globe.js is loaded as a classic <script> in ui.html (it's a
-        // self-contained browserify bundle, sets window.ENCOM itself); grid.json
-        // is fetched as a static asset since it can no longer be require()'d.
-        this._geodataReady = fetch("assets/misc/grid.json").then((r) => r.json());
+        if (!parentId) throw new Error("Missing parameters");
         this.ENCOM = window.ENCOM;
 
         // Create DOM and include lib
@@ -91,7 +86,7 @@ class LocationGlobe {
                 } catch {
                     // do nothing
                 }
-                let geo = data !== null && typeof data !== "undefined" ? data.location : {};
+                let geo = data !== null && data !== undefined ? data.location : {};
                 if (geo.latitude && geo.longitude) {
                     const lat = Number(geo.latitude);
                     const lon = Number(geo.longitude);
@@ -136,6 +131,15 @@ class LocationGlobe {
         }, 4000);
     }
 
+    // encom-globe.js is loaded as a classic <script> in ui.html (it's a
+    // self-contained browserify bundle, sets window.ENCOM itself); grid.json
+    // is fetched as a static asset since it can no longer be require()'d.
+    // Callers should call this right after construction.
+    start() {
+        this._geodataReady = fetch("assets/misc/grid.json").then((r) => r.json());
+        return this._geodataReady;
+    }
+
     addRandomConnectedMarkers() {
         const randomLat = this.getRandomInRange(40, 90, 3);
         const randomLong = this.getRandomInRange(-180, 0, 3);
@@ -144,7 +148,7 @@ class LocationGlobe {
     }
     async addTemporaryConnectedMarker(ip) {
         let data = await window.mods.netstat.geoLookup.get(ip);
-        let geo = data !== null && typeof data !== "undefined" ? data.location : {};
+        let geo = data !== null && data !== undefined ? data.location : {};
         if (geo.latitude && geo.longitude) {
             const lat = Number(geo.latitude);
             const lon = Number(geo.longitude);
@@ -228,7 +232,7 @@ class LocationGlobe {
             });
 
             this.conns.forEach((conn) => {
-                if (newconns.indexOf(conn.ip) !== -1) {
+                if (newconns.includes(conn.ip)) {
                     newconns.splice(newconns.indexOf(conn.ip), 1);
                 } else {
                     this.removeConn(conn.ip);

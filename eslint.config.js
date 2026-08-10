@@ -61,7 +61,9 @@ module.exports = [
         rules: {
             // Formatting (indent, quotes, semi, ...) is owned by Prettier, not ESLint -
             // ESLint's own stylistic rules were deprecated in favor of dedicated formatters.
-            "no-unused-vars": ["warn"],
+            // Leading underscore marks an intentionally-unused binding (e.g. a
+            // `new Modal(...)` kept only for its constructor side effects).
+            "no-unused-vars": ["warn", { varsIgnorePattern: "^_", argsIgnorePattern: "^_" }],
             "no-console": "off",
         },
     },

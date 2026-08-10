@@ -1,6 +1,6 @@
 class HardwareInspector {
     constructor(parentId) {
-        if (!parentId) throw "Missing parameters";
+        if (!parentId) throw new Error("Missing parameters");
 
         // Create DOM
         this.parent = document.getElementById(parentId);
