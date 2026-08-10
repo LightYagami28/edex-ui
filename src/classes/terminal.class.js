@@ -27,54 +27,7 @@ class Terminal {
             };
 
             // Support for custom color filters on the terminal - see #483
-            let doCustomFilter = !!window.isTermFilterValidated;
-
-            // Parse & validate color filter
-            if (
-                window.isTermFilterValidated !== true &&
-                typeof window.theme.terminal.colorFilter === "object" &&
-                window.theme.terminal.colorFilter.length > 0
-            ) {
-                doCustomFilter = window.theme.terminal.colorFilter.every((step, i, a) => {
-                    let func = step.slice(0, step.indexOf("("));
-
-                    switch (func) {
-                        case "negate":
-                        case "grayscale":
-                            a[i] = {
-                                func,
-                                arg: [],
-                            };
-                            return true;
-                        case "lighten":
-                        case "darken":
-                        case "saturate":
-                        case "desaturate":
-                        case "whiten":
-                        case "blacken":
-                        case "fade":
-                        case "opaquer":
-                        case "rotate":
-                        case "mix":
-                            break;
-                        default:
-                            return false;
-                    }
-
-                    let arg = step.slice(step.indexOf("(") + 1, step.indexOf(")"));
-
-                    if (typeof Number(arg) === "number") {
-                        a[i] = {
-                            func,
-                            arg: [Number(arg)],
-                        };
-                        window.isTermFilterValidated = true;
-                        return true;
-                    }
-
-                    return false;
-                });
-            }
+            let doCustomFilter = this._parseColorFilter();
 
             let color = window.Color;
             let colorify;
@@ -516,6 +469,59 @@ class Terminal {
         } else {
             throw new Error("Unknown purpose");
         }
+    }
+
+    // Parse & validate window.theme.terminal.colorFilter (see #483), caching
+    // the result on window.isTermFilterValidated. Extracted out of the
+    // constructor to keep its cognitive complexity down.
+    _parseColorFilter() {
+        if (
+            window.isTermFilterValidated === true ||
+            typeof window.theme.terminal.colorFilter !== "object" ||
+            window.theme.terminal.colorFilter.length === 0
+        ) {
+            return !!window.isTermFilterValidated;
+        }
+
+        return window.theme.terminal.colorFilter.every((step, i, a) => {
+            let func = step.slice(0, step.indexOf("("));
+
+            switch (func) {
+                case "negate":
+                case "grayscale":
+                    a[i] = {
+                        func,
+                        arg: [],
+                    };
+                    return true;
+                case "lighten":
+                case "darken":
+                case "saturate":
+                case "desaturate":
+                case "whiten":
+                case "blacken":
+                case "fade":
+                case "opaquer":
+                case "rotate":
+                case "mix":
+                    break;
+                default:
+                    return false;
+            }
+
+            let arg = step.slice(step.indexOf("(") + 1, step.indexOf(")"));
+
+            if (typeof Number(arg) === "number") {
+                a[i] = {
+                    func,
+                    arg: [Number(arg)],
+                };
+                window.isTermFilterValidated = true;
+                return true;
+            }
+
+            return false;
+        });
     }
 
     _sanitizeTerminalInput(input) {
