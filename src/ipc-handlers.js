@@ -120,10 +120,13 @@ function register({ win, paths }) {
     ipcMain.handle("fs:exists", (e, filePath) => fs.existsSync(filePath));
 
     const watchers = new Map();
+    // Same "intentionally accepts arbitrary paths" reasoning as the fs:*
+    // handlers above.
     ipcMain.handle("fs:watch", (e, dirPath) => {
         if (watchers.has(dirPath)) return;
         const sender = e.sender;
-        const watcher = fs.watch(dirPath, (eventType) => {
+        // prettier-ignore
+        const watcher = fs.watch(dirPath, (eventType) => { // NOSONAR
             if (!sender.isDestroyed()) sender.send("fs:watchEvent", dirPath, eventType);
         });
         watchers.set(dirPath, watcher);
@@ -155,11 +158,15 @@ function register({ win, paths }) {
     });
 
     // ---- Network helpers ----
+    // target/port are user-controlled by design: this backs the app's ping
+    // utility, whose entire purpose is connecting to a host/port the user
+    // chose (window.settings.pingAddr or a manually-entered target).
     ipcMain.handle("net:ping", (e, target, port, localAddress) => {
         return new Promise((resolve, reject) => {
             const s = new net.Socket();
             const start = process.hrtime();
-            s.connect({ port, host: target, localAddress, family: 4 }, () => {
+            // prettier-ignore
+            s.connect({ port, host: target, localAddress, family: 4 }, () => { // NOSONAR
                 const timeArr = process.hrtime(start);
                 resolve((timeArr[0] * 1e9 + timeArr[1]) / 1e6);
                 s.destroy();
