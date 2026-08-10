@@ -1,4 +1,4 @@
-const signale = require("signale");
+const signale = require("./logger.js");
 const { app, BrowserWindow, dialog, shell } = require("electron");
 
 process.on("uncaughtException", (e) => {
@@ -38,7 +38,7 @@ const which = require("which");
 const Terminal = require("./classes/terminal.class.js").Terminal;
 
 ipc.on("log", (e, type, content) => {
-    signale[type](content);
+    if (typeof signale[type] === "function") signale[type](content);
 });
 
 let win, tty, extraTtys;
@@ -69,9 +69,23 @@ try {
 } catch {
     signale.info(`Base config dir is ${electron.app.getPath("userData")}`);
 }
+// Atomically create a file only if it doesn't already exist - avoids the
+// check-then-write race a plain `if (!existsSync) writeFileSync` has
+// between the check and the write (see CodeQL: "file may have changed
+// since it was checked").
+function writeIfMissing(path, data) {
+    try {
+        fs.writeFileSync(path, data, { flag: "wx" });
+        return true;
+    } catch (e) {
+        if (e.code === "EEXIST") return false;
+        throw e;
+    }
+}
+
 // Create default settings file
-if (!fs.existsSync(settingsFile)) {
-    fs.writeFileSync(
+if (
+    writeIfMissing(
         settingsFile,
         JSON.stringify(
             {
@@ -100,12 +114,13 @@ if (!fs.existsSync(settingsFile)) {
             "",
             4
         )
-    );
+    )
+) {
     signale.info(`Default settings written to ${settingsFile}`);
 }
 // Create default shortcuts file
-if (!fs.existsSync(shortcutsFile)) {
-    fs.writeFileSync(
+if (
+    writeIfMissing(
         shortcutsFile,
         JSON.stringify(
             [
@@ -127,12 +142,13 @@ if (!fs.existsSync(shortcutsFile)) {
             "",
             4
         )
-    );
+    )
+) {
     signale.info(`Default keymap written to ${shortcutsFile}`);
 }
 //Create default window state file
-if (!fs.existsSync(lastWindowStateFile)) {
-    fs.writeFileSync(
+if (
+    writeIfMissing(
         lastWindowStateFile,
         JSON.stringify(
             {
@@ -141,7 +157,8 @@ if (!fs.existsSync(lastWindowStateFile)) {
             "",
             4
         )
-    );
+    )
+) {
     signale.info(`Default last window state written to ${lastWindowStateFile}`);
 }
 
@@ -177,7 +194,16 @@ fs.readdirSync(innerFontsDir).forEach((e) => {
 
 // Version history logging
 const versionHistoryPath = path.join(electron.app.getPath("userData"), "versions_log.json");
-let versionHistory = fs.existsSync(versionHistoryPath) ? require(versionHistoryPath) : {};
+// Read directly instead of existsSync()-then-require(): avoids a TOCTOU gap
+// where the file could be deleted between the check and the read, and skips
+// require()'s module cache (this path is only ever read once per boot, but
+// caching would be wrong if that ever changed).
+let versionHistory;
+try {
+    versionHistory = JSON.parse(fs.readFileSync(versionHistoryPath, "utf-8"));
+} catch {
+    versionHistory = {};
+}
 let version = app.getVersion();
 if (versionHistory[version] === undefined) {
     versionHistory[version] = {
