@@ -457,7 +457,17 @@ class Terminal {
                     this.ondisconnected(code, reason);
                 });
                 ws.on("message", (msg) => {
-                    const safeInput = this._sanitizeTerminalInput(msg);
+                    let rawInput = "";
+
+                    if (typeof msg === "string") {
+                        rawInput = msg;
+                    } else if (Buffer.isBuffer(msg)) {
+                        rawInput = msg.toString("utf8");
+                    } else {
+                        return;
+                    }
+
+                    const safeInput = this._sanitizeTerminalInput(rawInput);
                     if (!safeInput) return;
                     this.tty.write(safeInput);
                 });
