@@ -15,46 +15,46 @@ class Modal {
         this.classes = "modal_popup";
         let buttons = [];
         let augs = [];
-        let zindex = 0;
+        let zindex;
 
         // Reserve a slot in window.modals
         window.modals[this.id] = {};
 
         switch(this.type) {
-            case "error":
-                this.classes += " error";
-                zindex = 1500;
-                buttons.push({label:"PANIC", action:"window.modals['"+this.id+"'].close();"}, {label:"RELOAD", action:"window.location.reload(true);"});
-                augs.push("tr-clip", "bl-rect", "r-clip");
-                break;
-            case "warning":
-                this.classes += " warning";
-                zindex = 1000;
-                buttons.push({label:"OK", action:"window.modals['"+this.id+"'].close();"});
-                augs.push("bl-clip", "tr-clip", "r-rect", "b-rect");
-                break;
-            case "custom":
-                this.classes += " info custom";
-                zindex = 500;
-                buttons = options.buttons || [];
-                buttons.push({label:"Close", action:"window.modals['"+this.id+"'].close();"});
-                augs.push("tr-clip", "bl-clip");
-                break;
-            default:
-                this.classes += " info";
-                zindex = 500;
-                buttons.push({label:"OK", action:"window.modals['"+this.id+"'].close();"});
-                augs.push("tr-clip", "bl-clip");
-                break;
+        case "error":
+            this.classes += " error";
+            zindex = 1500;
+            buttons.push({label:"PANIC", action:"window.modals['"+this.id+"'].close();"}, {label:"RELOAD", action:"window.location.reload(true);"});
+            augs.push("tr-clip", "bl-rect", "r-clip");
+            break;
+        case "warning":
+            this.classes += " warning";
+            zindex = 1000;
+            buttons.push({label:"OK", action:"window.modals['"+this.id+"'].close();"});
+            augs.push("bl-clip", "tr-clip", "r-rect", "b-rect");
+            break;
+        case "custom":
+            this.classes += " info custom";
+            zindex = 500;
+            buttons = options.buttons || [];
+            buttons.push({label:"Close", action:"window.modals['"+this.id+"'].close();"});
+            augs.push("tr-clip", "bl-clip");
+            break;
+        default:
+            this.classes += " info";
+            zindex = 500;
+            buttons.push({label:"OK", action:"window.modals['"+this.id+"'].close();"});
+            augs.push("tr-clip", "bl-clip");
+            break;
         }
 
         let DOMstring = `<div id="modal_${this.id}" class="${this.classes}" style="z-index:${zindex+Object.keys(window.modals).length};" augmented-ui="${augs.join(" ")} exe">
             <h1>${this.title}</h1>
             ${this.type === "custom" ? options.html : "<h5>"+this.message+"</h5>"}
             <div>`;
-            buttons.forEach(b => {
-                DOMstring += `<button onclick="${b.action}">${b.label}</button>`;
-            });
+        buttons.forEach(b => {
+            DOMstring += `<button onclick="${b.action}">${b.label}</button>`;
+        });
         DOMstring += `</div>
         </div>`;
 
@@ -98,15 +98,15 @@ class Modal {
         });
 
         switch(this.type) {
-            case "error":
-                window.audioManager.error.play();
-                break;
-            case "warning":
-                window.audioManager.alarm.play();
-                break;
-            default:
-                window.audioManager.info.play();
-                break;
+        case "error":
+            window.audioManager.error.play();
+            break;
+        case "warning":
+            window.audioManager.alarm.play();
+            break;
+        default:
+            window.audioManager.info.play();
+            break;
         }
         window.modals[this.id] = this;
         document.body.appendChild(element);
@@ -143,7 +143,7 @@ class Modal {
 
             draggedModal.setAttribute("style", `${draggedModal.zindex}background: rgba(var(--color_r), var(--color_g), var(--color_b), 0.5);left: ${draggedModal.posX}px;top: ${draggedModal.posY}px;`);
         }
-        function modalMouseupHandler(e) {
+        function modalMouseupHandler() {
             window.removeEventListener("mousemove", modalMousemoveHandler);
             draggedModal.setAttribute("style", `${draggedModal.zindex}left: ${draggedModal.posX}px;top: ${draggedModal.posY}px;`);
 
@@ -169,7 +169,7 @@ class Modal {
 
             draggedModal.setAttribute("style", `${draggedModal.zindex}background: rgba(var(--color_r), var(--color_g), var(--color_b), 0.5);left: ${draggedModal.posX}px;top: ${draggedModal.posY}px;`);
         }
-        function modalTouchendHandler(e) {
+        function modalTouchendHandler() {
             window.removeEventListener("touchmove", modalTouchmoveHandler);
             draggedModal.setAttribute("style", `${draggedModal.zindex}left: ${draggedModal.posX}px;top: ${draggedModal.posY}px;`);
 

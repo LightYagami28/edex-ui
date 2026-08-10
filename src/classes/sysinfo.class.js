@@ -5,14 +5,14 @@ class Sysinfo {
         // See #255
         let os;
         switch (require("os").platform()) {
-            case "darwin":
-                os = "macOS";
-                break;
-            case "win32":
-                os = "win";
-                break;
-            default:
-                os = require("os").platform();
+        case "darwin":
+            os = "macOS";
+            break;
+        case "win32":
+            os = "win";
+            break;
+        default:
+            os = require("os").platform();
         }
 
         // Create DOM
@@ -53,42 +53,42 @@ class Sysinfo {
 
         let month = time.getMonth();
         switch(month) {
-            case 0:
-                month = "JAN";
-                break;
-            case 1:
-                month = "FEB";
-                break;
-            case 2:
-                month = "MAR";
-                break;
-            case 3:
-                month = "APR";
-                break;
-            case 4:
-                month = "MAY";
-                break;
-            case 5:
-                month = "JUN";
-                break;
-            case 6:
-                month = "JUL";
-                break;
-            case 7:
-                month = "AUG";
-                break;
-            case 8:
-                month = "SEP";
-                break;
-            case 9:
-                month = "OCT";
-                break;
-            case 10:
-                month = "NOV";
-                break;
-            case 11:
-                month = "DEC";
-                break;
+        case 0:
+            month = "JAN";
+            break;
+        case 1:
+            month = "FEB";
+            break;
+        case 2:
+            month = "MAR";
+            break;
+        case 3:
+            month = "APR";
+            break;
+        case 4:
+            month = "MAY";
+            break;
+        case 5:
+            month = "JUN";
+            break;
+        case 6:
+            month = "JUL";
+            break;
+        case 7:
+            month = "AUG";
+            break;
+        case 8:
+            month = "SEP";
+            break;
+        case 9:
+            month = "OCT";
+            break;
+        case 10:
+            month = "NOV";
+            break;
+        case 11:
+            month = "DEC";
+            break;
         }
         document.querySelector("#mod_sysinfo > div:first-child > h2").innerHTML = month+" "+time.getDate();
 
@@ -114,7 +114,7 @@ class Sysinfo {
         if (uptime.hours.toString().length !== 2) uptime.hours = "0"+uptime.hours;
         if (uptime.minutes.toString().length !== 2) uptime.minutes = "0"+uptime.minutes;
 
-        document.querySelector("#mod_sysinfo > div:nth-child(2) > h2").innerHTML = uptime.days + '<span style="opacity:0.5;">d</span>' + uptime.hours + '<span style="opacity:0.5;">:</span>' + uptime.minutes;
+        document.querySelector("#mod_sysinfo > div:nth-child(2) > h2").innerHTML = uptime.days + "<span style=\"opacity:0.5;\">d</span>" + uptime.hours + "<span style=\"opacity:0.5;\">:</span>" + uptime.minutes;
     }
     updateBattery() {
         window.si.battery().then(bat => {

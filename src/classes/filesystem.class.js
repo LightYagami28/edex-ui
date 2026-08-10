@@ -21,7 +21,7 @@ class FilesystemDisplay {
             theme: {
                 width: 24,
                 height: 24,
-                svg: '<path d="M 17.9994,3.99805L 17.9994,2.99805C 17.9994,2.44604 17.5514,1.99805 16.9994,1.99805L 4.9994,1.99805C 4.4474,1.99805 3.9994,2.44604 3.9994,2.99805L 3.9994,6.99805C 3.9994,7.55005 4.4474,7.99805 4.9994,7.99805L 16.9994,7.99805C 17.5514,7.99805 17.9994,7.55005 17.9994,6.99805L 17.9994,5.99805L 18.9994,5.99805L 18.9994,9.99805L 8.9994,9.99805L 8.9994,20.998C 8.9994,21.55 9.4474,21.998 9.9994,21.998L 11.9994,21.998C 12.5514,21.998 12.9994,21.55 12.9994,20.998L 12.9994,11.998L 20.9994,11.998L 20.9994,3.99805L 17.9994,3.99805 Z"/>'
+                svg: "<path d=\"M 17.9994,3.99805L 17.9994,2.99805C 17.9994,2.44604 17.5514,1.99805 16.9994,1.99805L 4.9994,1.99805C 4.4474,1.99805 3.9994,2.44604 3.9994,2.99805L 3.9994,6.99805C 3.9994,7.55005 4.4474,7.99805 4.9994,7.99805L 16.9994,7.99805C 17.5514,7.99805 17.9994,7.55005 17.9994,6.99805L 17.9994,5.99805L 18.9994,5.99805L 18.9994,9.99805L 8.9994,9.99805L 8.9994,20.998C 8.9994,21.55 9.4474,21.998 9.9994,21.998L 11.9994,21.998C 12.5514,21.998 12.9994,21.55 12.9994,20.998L 12.9994,11.998L 20.9994,11.998L 20.9994,3.99805L 17.9994,3.99805 Z\"/>"
             },
             themesDir: {
                 width: 24,
@@ -31,7 +31,7 @@ class FilesystemDisplay {
             kblayout: {
                 width: 24,
                 height: 24,
-                svg: '<path d="M 18.9994,9.99807L 16.9994,9.99807L 16.9994,7.99807L 18.9994,7.99807M 18.9994,12.9981L 16.9994,12.9981L 16.9994,10.9981L 18.9994,10.9981M 15.9994,9.99807L 13.9994,9.99807L 13.9994,7.99807L 15.9994,7.99807M 15.9994,12.9981L 13.9994,12.9981L 13.9994,10.9981L 15.9994,10.9981M 15.9994,16.9981L 7.99941,16.9981L 7.99941,14.9981L 15.9994,14.9981M 6.99941,9.99807L 4.99941,9.99807L 4.99941,7.99807L 6.99941,7.99807M 6.99941,12.9981L 4.99941,12.9981L 4.99941,10.9981L 6.99941,10.9981M 7.99941,10.9981L 9.99941,10.9981L 9.99941,12.9981L 7.99941,12.9981M 7.99941,7.99807L 9.99941,7.99807L 9.99941,9.99807L 7.99941,9.99807M 10.9994,10.9981L 12.9994,10.9981L 12.9994,12.9981L 10.9994,12.9981M 10.9994,7.99807L 12.9994,7.99807L 12.9994,9.99807L 10.9994,9.99807M 19.9994,4.99807L 3.99941,4.99807C 2.89441,4.99807 2.0094,5.89406 2.0094,6.99807L 1.99941,16.9981C 1.99941,18.1021 2.89441,18.9981 3.99941,18.9981L 19.9994,18.9981C 21.1034,18.9981 21.9994,18.1021 21.9994,16.9981L 21.9994,6.99807C 21.9994,5.89406 21.1034,4.99807 19.9994,4.99807 Z"/>'
+                svg: "<path d=\"M 18.9994,9.99807L 16.9994,9.99807L 16.9994,7.99807L 18.9994,7.99807M 18.9994,12.9981L 16.9994,12.9981L 16.9994,10.9981L 18.9994,10.9981M 15.9994,9.99807L 13.9994,9.99807L 13.9994,7.99807L 15.9994,7.99807M 15.9994,12.9981L 13.9994,12.9981L 13.9994,10.9981L 15.9994,10.9981M 15.9994,16.9981L 7.99941,16.9981L 7.99941,14.9981L 15.9994,14.9981M 6.99941,9.99807L 4.99941,9.99807L 4.99941,7.99807L 6.99941,7.99807M 6.99941,12.9981L 4.99941,12.9981L 4.99941,10.9981L 6.99941,10.9981M 7.99941,10.9981L 9.99941,10.9981L 9.99941,12.9981L 7.99941,12.9981M 7.99941,7.99807L 9.99941,7.99807L 9.99941,9.99807L 7.99941,9.99807M 10.9994,10.9981L 12.9994,10.9981L 12.9994,12.9981L 10.9994,12.9981M 10.9994,7.99807L 12.9994,7.99807L 12.9994,9.99807L 10.9994,9.99807M 19.9994,4.99807L 3.99941,4.99807C 2.89441,4.99807 2.0094,5.89406 2.0094,6.99807L 1.99941,16.9981C 1.99941,18.1021 2.89441,18.9981 3.99941,18.9981L 19.9994,18.9981C 21.1034,18.9981 21.9994,18.1021 21.9994,16.9981L 21.9994,6.99807C 21.9994,5.89406 21.1034,4.99807 19.9994,4.99807 Z\"/>"
             },
             kblayoutsDir: {
                 width: 24,
@@ -41,7 +41,7 @@ class FilesystemDisplay {
             settings: {
                 width: 24,
                 height: 24,
-                svg: '<path d="M 11.9994,15.498C 10.0664,15.498 8.49939,13.931 8.49939,11.998C 8.49939,10.0651 10.0664,8.49805 11.9994,8.49805C 13.9324,8.49805 15.4994,10.0651 15.4994,11.998C 15.4994,13.931 13.9324,15.498 11.9994,15.498 Z M 19.4284,12.9741C 19.4704,12.6531 19.4984,12.329 19.4984,11.998C 19.4984,11.6671 19.4704,11.343 19.4284,11.022L 21.5414,9.36804C 21.7294,9.21606 21.7844,8.94604 21.6594,8.73004L 19.6594,5.26605C 19.5354,5.05005 19.2734,4.96204 19.0474,5.04907L 16.5584,6.05206C 16.0424,5.65607 15.4774,5.32104 14.8684,5.06903L 14.4934,2.41907C 14.4554,2.18103 14.2484,1.99805 13.9994,1.99805L 9.99939,1.99805C 9.74939,1.99805 9.5434,2.18103 9.5054,2.41907L 9.1304,5.06805C 8.52039,5.32104 7.95538,5.65607 7.43939,6.05206L 4.95139,5.04907C 4.7254,4.96204 4.46338,5.05005 4.33939,5.26605L 2.33939,8.73004C 2.21439,8.94604 2.26938,9.21606 2.4574,9.36804L 4.5694,11.022C 4.5274,11.342 4.49939,11.6671 4.49939,11.998C 4.49939,12.329 4.5274,12.6541 4.5694,12.9741L 2.4574,14.6271C 2.26938,14.78 2.21439,15.05 2.33939,15.2661L 4.33939,18.73C 4.46338,18.946 4.7254,19.0341 4.95139,18.947L 7.4404,17.944C 7.95639,18.34 8.52139,18.675 9.1304,18.9271L 9.5054,21.577C 9.5434,21.8151 9.74939,21.998 9.99939,21.998L 13.9994,21.998C 14.2484,21.998 14.4554,21.8151 14.4934,21.577L 14.8684,18.9271C 15.4764,18.6741 16.0414,18.34 16.5574,17.9431L 19.0474,18.947C 19.2734,19.0341 19.5354,18.946 19.6594,18.73L 21.6594,15.2661C 21.7844,15.05 21.7294,14.78 21.5414,14.6271L 19.4284,12.9741 Z"/>'
+                svg: "<path d=\"M 11.9994,15.498C 10.0664,15.498 8.49939,13.931 8.49939,11.998C 8.49939,10.0651 10.0664,8.49805 11.9994,8.49805C 13.9324,8.49805 15.4994,10.0651 15.4994,11.998C 15.4994,13.931 13.9324,15.498 11.9994,15.498 Z M 19.4284,12.9741C 19.4704,12.6531 19.4984,12.329 19.4984,11.998C 19.4984,11.6671 19.4704,11.343 19.4284,11.022L 21.5414,9.36804C 21.7294,9.21606 21.7844,8.94604 21.6594,8.73004L 19.6594,5.26605C 19.5354,5.05005 19.2734,4.96204 19.0474,5.04907L 16.5584,6.05206C 16.0424,5.65607 15.4774,5.32104 14.8684,5.06903L 14.4934,2.41907C 14.4554,2.18103 14.2484,1.99805 13.9994,1.99805L 9.99939,1.99805C 9.74939,1.99805 9.5434,2.18103 9.5054,2.41907L 9.1304,5.06805C 8.52039,5.32104 7.95538,5.65607 7.43939,6.05206L 4.95139,5.04907C 4.7254,4.96204 4.46338,5.05005 4.33939,5.26605L 2.33939,8.73004C 2.21439,8.94604 2.26938,9.21606 2.4574,9.36804L 4.5694,11.022C 4.5274,11.342 4.49939,11.6671 4.49939,11.998C 4.49939,12.329 4.5274,12.6541 4.5694,12.9741L 2.4574,14.6271C 2.26938,14.78 2.21439,15.05 2.33939,15.2661L 4.33939,18.73C 4.46338,18.946 4.7254,19.0341 4.95139,18.947L 7.4404,17.944C 7.95639,18.34 8.52139,18.675 9.1304,18.9271L 9.5054,21.577C 9.5434,21.8151 9.74939,21.998 9.99939,21.998L 13.9994,21.998C 14.2484,21.998 14.4554,21.8151 14.4934,21.577L 14.8684,18.9271C 15.4764,18.6741 16.0414,18.34 16.5574,17.9431L 19.0474,18.947C 19.2734,19.0341 19.5354,18.946 19.6594,18.73L 21.6594,15.2661C 21.7844,15.05 21.7294,14.78 21.5414,14.6271L 19.4284,12.9741 Z\"/>"
             }
         };
 
@@ -84,7 +84,7 @@ class FilesystemDisplay {
                                 if (typeof d === "undefined" && typeof err === "undefined") resolve();
                             });
                         });
-                    }
+                    };
                 }
             },
             set: function() {
@@ -130,7 +130,7 @@ class FilesystemDisplay {
             if (this._fsWatcher) {
                 this._fsWatcher.close();
             }
-            this._fsWatcher = fs.watch(dir, (eventType, filename) => {
+            this._fsWatcher = fs.watch(dir, eventType => {
                 if (eventType !== "change") { // #758 - Don't refresh file view if only file contents have changed.
                     this._runNextTick = true;
                 }
@@ -239,7 +239,7 @@ class FilesystemDisplay {
                     this.cwd.push(e);
                     if (i === content.length-1) resolve();
                 });
-            }).catch(() => { this.setFailedState() });
+            }).catch(() => { this.setFailedState(); });
 
             if (this.failed) return false;
 
@@ -311,7 +311,7 @@ class FilesystemDisplay {
                 document.querySelector("section#filesystem > h3.title > p:first-of-type").innerText = "FILESYSTEM - TRACKING FAILED, RUNNING DETACHED FROM TTY";
             }
 
-            let filesDOM = ``;
+            let filesDOM = "";
             blockList.forEach((e, blockIndex) => {
                 let hidden = e.hidden ? " hidden" : "";
 
@@ -321,9 +321,9 @@ class FilesystemDisplay {
                             } else if (window.keyboard.container.dataset.isShiftOn === "true") {
                                 window.term[window.currentTerm].write("\\""+fsDisp.cwd[${blockIndex}].path+"\\"");
                             } else {
-                          `.replace(/\n+ */g, ''); // Minify
+                          `.replace(/\n+ */g, ""); // Minify
 
-                let cmdSuffix = `}`;
+                let cmdSuffix = "}";
 
                 let cmd;
 
@@ -331,12 +331,12 @@ class FilesystemDisplay {
                     if (e.type === "dir" || e.type.endsWith("Dir")) {
                         cmd = `window.term[window.currentTerm].writelr("cd \\""+fsDisp.cwd[${blockIndex}].name+"\\"")`;
                     } else if (e.type === "up") {
-                        cmd = `window.term[window.currentTerm].writelr("cd ..")`;
+                        cmd = "window.term[window.currentTerm].writelr(\"cd ..\")";
                     } else if (e.type === "disk" || e.type === "rom" || e.type === "usb") {
                         if (process.platform === "win32") {
-                            cmd = `window.term[window.currentTerm].writelr("${e.path.replace(/\\/g, '')}")`;
+                            cmd = `window.term[window.currentTerm].writelr("${e.path.replace(/\\/g, "")}")`;
                         } else {
-                            cmd = `window.term[window.currentTerm].writelr("cd \\"${e.path.replace(/\\/g, '')}\\"")`;
+                            cmd = `window.term[window.currentTerm].writelr("cd \\"${e.path.replace(/\\/g, "")}\\"")`;
                         }
                     } else {
                         cmd = `window.term[window.currentTerm].write("\\""+fsDisp.cwd[${blockIndex}].path+"\\"")`;
@@ -345,9 +345,9 @@ class FilesystemDisplay {
                     if (e.type === "dir" || e.type.endsWith("Dir")) {
                         cmd = `window.fsDisp.readFS(fsDisp.cwd[${blockIndex}].path)`;
                     } else if (e.type === "up") {
-                        cmd = `window.fsDisp.readFS(path.resolve(window.fsDisp.dirpath, ".."))`;
+                        cmd = "window.fsDisp.readFS(path.resolve(window.fsDisp.dirpath, \"..\"))";
                     } else if (e.type === "disk" || e.type === "rom" || e.type === "usb") {
-                        cmd = `window.fsDisp.readFS("${e.path.replace(/\\/g, '')}")`;
+                        cmd = `window.fsDisp.readFS("${e.path.replace(/\\/g, "")}")`;
                     } else {
                         cmd = `window.term[window.currentTerm].write("\\""+fsDisp.cwd[${blockIndex}].path+"\\"")`;
                     }
@@ -362,15 +362,15 @@ class FilesystemDisplay {
                 }
 
                 if (e.type === "showDisks") {
-                    cmd = `window.fsDisp.readDevices()`;
-                    cmdPrefix = '';
-                    cmdSuffix = '';
+                    cmd = "window.fsDisp.readDevices()";
+                    cmdPrefix = "";
+                    cmdSuffix = "";
                 }
 
                 if (e.type === "up") {
                     // cmd is OS-specific and defined above
-                    cmdPrefix = '';
-                    cmdSuffix = '';
+                    cmdPrefix = "";
+                    cmdSuffix = "";
                 }
 
                 if (e.type === "edex-theme") {
@@ -380,84 +380,85 @@ class FilesystemDisplay {
                     cmd = `window.remakeKeyboard("${e.name.slice(0, -5)}")`;
                 }
                 if (e.type === "edex-settings") {
-                    cmd = `window.openSettings()`;
+                    cmd = "window.openSettings()";
                 }
                 if (e.type === "edex-shortcuts") {
-                    cmd = `window.openShortcutsHelp()`;
+                    cmd = "window.openShortcutsHelp()";
                 }
 
-                let icon = "";
+                let icon;
                 let type = "";
                 switch(e.type) {
-                    case "showDisks":
-                        icon = this.icons.showDisks;
-                        type = "--";
-                        e.category = "showDisks";
-                        break;
-                    case "up":
-                        icon = this.icons.up;
-                        type = "--";
-                        e.category = "up";
-                        break;
-                    case "symlink":
-                        icon = this.icons.symlink;
-                        break;
-                    case "disk":
-                        icon = this.icons.disk;
-                        break;
-                    case "rom":
-                        icon = this.icons.rom;
-                        break;
-                    case "usb":
-                        icon = this.icons.usb;
-                        break;
-                    case "edex-theme":
-                        icon = this.edexIcons.theme;
-                        type = "eDEX-UI theme";
-                        break;
-                    case "edex-kblayout":
-                        icon = this.edexIcons.kblayout;
-                        type = "eDEX-UI keyboard layout";
-                        break;
-                    case "edex-settings":
-                    case "edex-shortcuts":
-                        icon = this.edexIcons.settings;
-                        type = "eDEX-UI config file";
-                        break;
-                    case "system":
-                        icon = this.edexIcons.settings;
-                        break;
-                    case "edex-themesDir":
-                        icon = this.edexIcons.themesDir;
-                        type = "eDEX-UI themes folder";
-                        break;
-                    case "edex-kblayoutsDir":
-                        icon = this.edexIcons.kblayoutsDir;
-                        type = "eDEX-UI keyboards folder";
-                        break;
-                    default:
-                        let iconName = this.fileIconsMatcher(e.name);
-                        icon = this.icons[iconName];
-                        if (typeof icon === "undefined") {
-                            if (e.type === "file") icon = this.icons.file;
-                            if (e.type === "dir") {
-                                icon = this.icons.dir;
-                                type = "folder";
-                            }
-                            if (typeof icon === "undefined") icon = this.icons.other;
-                        } else if (e.category !== "dir") {
-                            type = iconName.replace("icon-", "");
-                        } else {
-                            type = "special folder";
+                case "showDisks":
+                    icon = this.icons.showDisks;
+                    type = "--";
+                    e.category = "showDisks";
+                    break;
+                case "up":
+                    icon = this.icons.up;
+                    type = "--";
+                    e.category = "up";
+                    break;
+                case "symlink":
+                    icon = this.icons.symlink;
+                    break;
+                case "disk":
+                    icon = this.icons.disk;
+                    break;
+                case "rom":
+                    icon = this.icons.rom;
+                    break;
+                case "usb":
+                    icon = this.icons.usb;
+                    break;
+                case "edex-theme":
+                    icon = this.edexIcons.theme;
+                    type = "eDEX-UI theme";
+                    break;
+                case "edex-kblayout":
+                    icon = this.edexIcons.kblayout;
+                    type = "eDEX-UI keyboard layout";
+                    break;
+                case "edex-settings":
+                case "edex-shortcuts":
+                    icon = this.edexIcons.settings;
+                    type = "eDEX-UI config file";
+                    break;
+                case "system":
+                    icon = this.edexIcons.settings;
+                    break;
+                case "edex-themesDir":
+                    icon = this.edexIcons.themesDir;
+                    type = "eDEX-UI themes folder";
+                    break;
+                case "edex-kblayoutsDir":
+                    icon = this.edexIcons.kblayoutsDir;
+                    type = "eDEX-UI keyboards folder";
+                    break;
+                default: {
+                    let iconName = this.fileIconsMatcher(e.name);
+                    icon = this.icons[iconName];
+                    if (typeof icon === "undefined") {
+                        if (e.type === "file") icon = this.icons.file;
+                        if (e.type === "dir") {
+                            icon = this.icons.dir;
+                            type = "folder";
                         }
-                        break;
+                        if (typeof icon === "undefined") icon = this.icons.other;
+                    } else if (e.category !== "dir") {
+                        type = iconName.replace("icon-", "");
+                    } else {
+                        type = "special folder";
+                    }
+                    break;
+                }
                 }
 
                 if (type === "") type = e.type;
                 e.type = type;
 
                 // Handle displayable media
-                if (e.type === 'video' || e.type === 'audio' || e.type === 'image') {
+                if (e.type === "video" || e.type === "audio" || e.type === "image") {
                     this.cwd[blockIndex].type = e.type;
                     cmd = `window.fsDisp.openMedia(${blockIndex})`;
                 }
@@ -553,7 +554,7 @@ class FilesystemDisplay {
             this.readFS(window.term[window.currentTerm].cwd || window.settings.cwd);
         }
 
-        this.openFile = (name, path, type) => { //Might add text formatting at some point, not now though - Surge
+        this.openFile = name => { //Might add text formatting at some point, not now though - Surge
             let block;
 
             if (typeof name === "number") {
@@ -567,8 +568,8 @@ class FilesystemDisplay {
 
             let filetype = mime.lookup(name.split(".")[name.split(".").length - 1]);
             switch (filetype) {
-                case "application/pdf":
-                    let html = `<div>
+            case "application/pdf": {
+                let html = `<div>
                         <div class="pdf_options">
                             <button class="zoom_in">
                                 <svg viewBox="0 0 ${this.icons["zoom-in"].width} ${this.icons["zoom-in"].height}" fill="${this.iconcolor}">
@@ -596,47 +597,48 @@ class FilesystemDisplay {
                             <canvas class="pdf_canvas" />
                         </div>
                     </div>`;
-                    const newModal = new Modal(
-                        {
-                            type: "custom",
-                            title: _escapeHtml(name),
-                            html: html
-                        }
-                    );
-                    new DocReader(
-                        {
-                            modalId: newModal.id,
-                            path: block.path
-                        }
-                    );
+                const newModal = new Modal(
+                    {
+                        type: "custom",
+                        title: _escapeHtml(name),
+                        html: html
+                    }
+                );
+                new DocReader(
+                    {
+                        modalId: newModal.id,
+                        path: block.path
+                    }
+                );
+                break;
+            }
+            default:
+                if (mime.charset(filetype) === "UTF-8") {
+                    fs.readFile(block.path, "utf-8", (err, data) => {
+                        if (err) {
+                            new Modal({
+                                type: "info",
+                                title: "Failed to load file: " + block.path,
+                                html: err
+                            });
+                            console.log(err);
+                        };
+                        window.keyboard.detach();
+                        new Modal(
+                            {
+                                type: "custom",
+                                title: _escapeHtml(name),
+                                html: `<textarea id="fileEdit" rows="40" cols="150" spellcheck="false">${data}</textarea><p id="fedit-status"></p>`,
+                                buttons: [
+                                    {label:"Save to Disk",action:`window.writeFile('${block.path}')`}
+                                ]
+                            }, () => {
+                                window.keyboard.attach();
+                                window.term[window.currentTerm].term.focus();
+                            }
+                        );
+                    });
                     break;
-                default:
-                    if (mime.charset(filetype) === "UTF-8") {
-                        fs.readFile(block.path, 'utf-8', (err, data) => {
-                            if (err) {
-                                new Modal({
-                                    type: "info",
-                                    title: "Failed to load file: " + block.path,
-                                    html: err
-                                });
-                                console.log(err);
-                            };
-                            window.keyboard.detach();
-                            new Modal(
-                                {
-                                    type: "custom",
-                                    title: _escapeHtml(name),
-                                    html: `<textarea id="fileEdit" rows="40" cols="150" spellcheck="false">${data}</textarea><p id="fedit-status"></p>`,
-                                    buttons: [
-                                        {label:"Save to Disk",action:`window.writeFile('${block.path}')`}
-                                    ]
-                                }, () => {
-                                    window.keyboard.attach();
-                                    window.term[window.currentTerm].term.focus();
-                                }
-                            );
-                        });
-                   break;
                 }
             }
         };
@@ -652,11 +654,11 @@ class FilesystemDisplay {
             block.path = block.path.replace(/\\/g, "/");
 
             switch (type || block.type) {
-                case "image":
-                    html = `<img class="fsDisp_mediaDisp" src="${window._encodePathURI(path || block.path)}" ondragstart="return false;">`;
-                    break;
-                case "audio":
-                    html = `<div>
+            case "image":
+                html = `<img class="fsDisp_mediaDisp" src="${window._encodePathURI(path || block.path)}" ondragstart="return false;">`;
+                break;
+            case "audio":
+                html = `<div>
                                 <div class="media_container" data-fullscreen="false">
                                     <audio class="media fsDisp_mediaDisp" preload="auto">
                                         <source src="${window._encodePathURI(path || block.path)}">
@@ -686,9 +688,9 @@ class FilesystemDisplay {
                                     </div>
                                 </div>
                             </div>`;
-                    break;
-                case "video":
-                    html = `<div>
+                break;
+            case "video":
+                html = `<div>
                                 <div class="media_container" data-fullscreen="false">
                                     <video class="media fsDisp_mediaDisp" preload="auto">
                                         <source src="${window._encodePathURI(path || block.path)}">
@@ -723,9 +725,9 @@ class FilesystemDisplay {
                                     </div>
                                 </div>
                             </div>`;
-                    break;
-                default:
-                    throw new Error("fsDisp media displayer: unknown type " + (type || block.type));
+                break;
+            default:
+                throw new Error("fsDisp media displayer: unknown type " + (type || block.type));
             }
 
             const newModal = new Modal({

@@ -5,11 +5,11 @@ window.eval = global.eval = function () {
 // Security helper :)
 window._escapeHtml = text => {
     let map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#039;"
     };
     return text.replace(/[&<>"']/g, m => {return map[m];});
 };
@@ -24,7 +24,7 @@ window._purifyCSS = str => {
     return str.replace(/[<]/g, "");
 };
 window._delay = ms => {
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
         setTimeout(resolve, ms);
     });
 };
@@ -93,9 +93,9 @@ window._loadTheme = theme => {
     }
 
     // Load fonts
-    let mainFont = new FontFace(theme.cssvars.font_main, `url("${path.join(fontsDir, theme.cssvars.font_main.toLowerCase().replace(/ /g, '_')+'.woff2').replace(/\\/g, '/')}")`);
-    let lightFont = new FontFace(theme.cssvars.font_main_light, `url("${path.join(fontsDir, theme.cssvars.font_main_light.toLowerCase().replace(/ /g, '_')+'.woff2').replace(/\\/g, '/')}")`);
-    let termFont = new FontFace(theme.terminal.fontFamily, `url("${path.join(fontsDir, theme.terminal.fontFamily.toLowerCase().replace(/ /g, '_')+'.woff2').replace(/\\/g, '/')}")`);
+    let mainFont = new FontFace(theme.cssvars.font_main, `url("${path.join(fontsDir, theme.cssvars.font_main.toLowerCase().replace(/ /g, "_")+".woff2").replace(/\\/g, "/")}")`);
+    let lightFont = new FontFace(theme.cssvars.font_main_light, `url("${path.join(fontsDir, theme.cssvars.font_main_light.toLowerCase().replace(/ /g, "_")+".woff2").replace(/\\/g, "/")}")`);
+    let termFont = new FontFace(theme.terminal.fontFamily, `url("${path.join(fontsDir, theme.terminal.fontFamily.toLowerCase().replace(/ /g, "_")+".woff2").replace(/\\/g, "/")}")`);
 
     document.fonts.add(mainFont);
     document.fonts.load("12px "+theme.cssvars.font_main);
@@ -177,13 +177,13 @@ function waitForFonts() {
 // A proxy function used to add multithreading to systeminformation calls - see backend process manager @ _multithread.js
 function initSystemInformationProxy() {
     window.si = new Proxy({}, {
-        apply: () => {throw new Error("Cannot use sysinfo proxy directly as a function")},
-        set: () => {throw new Error("Cannot set a property on the sysinfo proxy")},
-        get: (target, prop, receiver) => {
+        apply: () => {throw new Error("Cannot use sysinfo proxy directly as a function");},
+        set: () => {throw new Error("Cannot set a property on the sysinfo proxy");},
+        get: (target, prop) => {
             return function(...args) {
                 let callback = (typeof args[args.length - 1] === "function") ? true : false;
 
-                return new Promise((resolve, reject) => {
+                return new Promise(resolve => {
                     let id = crypto.randomUUID();
                     ipc.once("systeminformation-reply-"+id, (e, res) => {
                         if (callback) {
@@ -218,7 +218,7 @@ if (window.settings.nointro || window.settings.nointroOverride) {
 // Startup boot log
 function displayLine() {
     let bootScreen = document.getElementById("boot_screen");
-    let log = fs.readFileSync(path.join(__dirname, "assets", "misc", "boot_log.txt")).toString().split('\n');
+    let log = fs.readFileSync(path.join(__dirname, "assets", "misc", "boot_log.txt")).toString().split("\n");
 
     function isArchUser() {
         return require("os").platform() === "linux"
@@ -240,33 +240,34 @@ function displayLine() {
     i++;
 
     switch(true) {
-        case i === 2:
-            bootScreen.innerHTML += `eDEX-UI Kernel version ${remote.app.getVersion()} boot at ${Date().toString()}; root:xnu-1699.22.73~1/RELEASE_X86_64`;
-        case i === 4:
-            setTimeout(displayLine, 500);
-            break;
-        case i > 4 && i < 25:
-            setTimeout(displayLine, 30);
-            break;
-        case i === 25:
-            setTimeout(displayLine, 400);
-            break;
-        case i === 42:
-            setTimeout(displayLine, 300);
-            break;
-        case i > 42 && i < 82:
-            setTimeout(displayLine, 25);
-            break;
-        case i === 83:
-            if (isArchUser())
-                bootScreen.innerHTML += "btw i use arch<br/>";
-            setTimeout(displayLine, 25);
-            break;
-        case i >= log.length-2 && i < log.length:
-            setTimeout(displayLine, 300);
-            break;
-        default:
-            setTimeout(displayLine, Math.pow(1 - (i/1000), 3)*25);
+    case i === 2:
+        bootScreen.innerHTML += `eDEX-UI Kernel version ${remote.app.getVersion()} boot at ${Date().toString()}; root:xnu-1699.22.73~1/RELEASE_X86_64`;
+        // falls through
+    case i === 4:
+        setTimeout(displayLine, 500);
+        break;
+    case i > 4 && i < 25:
+        setTimeout(displayLine, 30);
+        break;
+    case i === 25:
+        setTimeout(displayLine, 400);
+        break;
+    case i === 42:
+        setTimeout(displayLine, 300);
+        break;
+    case i > 42 && i < 82:
+        setTimeout(displayLine, 25);
+        break;
+    case i === 83:
+        if (isArchUser())
+            bootScreen.innerHTML += "btw i use arch<br/>";
+        setTimeout(displayLine, 25);
+        break;
+    case i >= log.length-2 && i < log.length:
+        setTimeout(displayLine, 300);
+        break;
+    default:
+        setTimeout(displayLine, Math.pow(1 - (i/1000), 3)*25);
     }
 }
 
@@ -333,7 +334,9 @@ async function getDisplayName() {
 
     try {
         user = await (await import("username")).username();
-    } catch (e) {}
+    } catch {
+        // Fall back to null - the greeting simply won't include a username.
+    }
 
     return user;
 }
@@ -487,7 +490,7 @@ async function initUI() {
         document.getElementById("shell_tab0").innerHTML = `<p>MAIN - ${p}</p>`;
     };
     // Prevent losing hardware keyboard focus on the terminal when using touch keyboard
-    window.onmouseup = e => {
+    window.onmouseup = () => {
         if (window.keyboard.linkedToTerm) window.term[window.currentTerm].term.focus();
     };
     window.term[0].term.writeln("\033[1m"+`Welcome to eDEX-UI v${remote.app.getVersion()} - Electron v${process.versions.electron}`+"\033[0m");
@@ -566,7 +569,7 @@ window.focusShellTab = number => {
                     port
                 });
 
-                window.term[number].onclose = e => {
+                window.term[number].onclose = () => {
                     delete window.term[number].onprocesschange;
                     document.getElementById("shell_tab"+number).innerHTML = "<p>EMPTY</p>";
                     document.getElementById("terminal"+number).innerHTML = "";
@@ -634,7 +637,7 @@ window.openSettings = async () => {
                     <tr>
                         <td>shellArgs</td>
                         <td>Arguments to pass to the shell</td>
-                        <td><input type="text" id="settingsEditor-shellArgs" value="${window.settings.shellArgs || ''}"></td>
+                        <td><input type="text" id="settingsEditor-shellArgs" value="${window.settings.shellArgs || ""}"></td>
                     </tr>
                     <tr>
                         <td>cwd</td>
@@ -683,7 +686,7 @@ window.openSettings = async () => {
                     <tr>
                         <td>audioVolume</td>
                         <td>Set default volume for sound effects (0.0 - 1.0)</td>
-                        <td><input type="number" id="settingsEditor-audioVolume" value="${window.settings.audioVolume || '1.0'}"></td>
+                        <td><input type="number" id="settingsEditor-audioVolume" value="${window.settings.audioVolume || "1.0"}"></td>
                     </tr>
                     <tr>
                         <td>disableFeedbackAudio</td>
@@ -754,8 +757,8 @@ window.openSettings = async () => {
                         <td>keepGeometry</td>
                         <td>Try to keep a 16:9 aspect ratio in windowed mode</td>
                         <td><select id="settingsEditor-keepGeometry">
-                            <option>${(window.settings.keepGeometry === false) ? 'false' : 'true'}</option>
-                            <option>${(window.settings.keepGeometry === false) ? 'true' : 'false'}</option>
+                            <option>${(window.settings.keepGeometry === false) ? "false" : "true"}</option>
+                            <option>${(window.settings.keepGeometry === false) ? "true" : "false"}</option>
                         </select></td>
                     </tr>
                     <tr>
@@ -897,7 +900,7 @@ window.openShortcutsHelp = () => {
         let action = (cut.action.startsWith("TAB_")) ? "TAB_X" : cut.action;
 
         appList += `<tr>
-                        <td>${(cut.enabled) ? 'YES' : 'NO'}</td>
+                        <td>${(cut.enabled) ? "YES" : "NO"}</td>
                         <td><input disabled type="text" maxlength=25 value="${cut.trigger}"></td>
                         <td>${shortcutsDefinition[action]}</td>
                     </tr>`;
@@ -906,11 +909,11 @@ window.openShortcutsHelp = () => {
     let customList = "";
     window.shortcuts.filter(e => e.type === "shell").forEach(cut => {
         customList += `<tr>
-                            <td>${(cut.enabled) ? 'YES' : 'NO'}</td>
+                            <td>${(cut.enabled) ? "YES" : "NO"}</td>
                             <td><input disabled type="text" maxlength=25 value="${cut.trigger}"></td>
                             <td>
                                 <input disabled type="text" placeholder="Run terminal command..." value="${cut.action}">
-                                <input disabled type="checkbox" name="shortcutsHelpNew_Enter" ${(cut.linebreak) ? 'checked' : ''}>
+                                <input disabled type="checkbox" name="shortcutsHelpNew_Enter" ${(cut.linebreak) ? "checked" : ""}>
                                 <label for="shortcutsHelpNew_Enter">Enter</label>
                             </td>
                         </tr>`;
@@ -954,95 +957,96 @@ window.openShortcutsHelp = () => {
         window.term[window.currentTerm].term.focus();
     });
 
-    let wrap1 = document.getElementById('shortcutsHelpAccordeon1');
-    let wrap2 = document.getElementById('shortcutsHelpAccordeon2');
+    let wrap1 = document.getElementById("shortcutsHelpAccordeon1");
+    let wrap2 = document.getElementById("shortcutsHelpAccordeon2");
 
-    wrap1.addEventListener('toggle', e => {
+    wrap1.addEventListener("toggle", () => {
         wrap2.open = !wrap1.open;
     });
 
-    wrap2.addEventListener('toggle', e => {
+    wrap2.addEventListener("toggle", () => {
         wrap1.open = !wrap2.open;
     });
 };
 
 window.useAppShortcut = action => {
     switch(action) {
-        case "COPY":
-            window.term[window.currentTerm].clipboard.copy();
-            return true;
-        case "PASTE":
-            window.term[window.currentTerm].clipboard.paste();
-            return true;
-        case "NEXT_TAB":
-                if (window.term[window.currentTerm+1]) {
-                    window.focusShellTab(window.currentTerm+1);
-                } else if (window.term[window.currentTerm+2]) {
-                    window.focusShellTab(window.currentTerm+2);
-                } else if (window.term[window.currentTerm+3]) {
-                    window.focusShellTab(window.currentTerm+3);
-                } else if (window.term[window.currentTerm+4]) {
-                    window.focusShellTab(window.currentTerm+4);
-                } else {
-                    window.focusShellTab(0);
-                }
-            return true;
-        case "PREVIOUS_TAB":
-                let i = window.currentTerm || 4;
-                if (window.term[i] && i !== window.currentTerm) {
-                    window.focusShellTab(i);
-                } else if (window.term[i-1]) {
-                    window.focusShellTab(i-1);
-                } else if (window.term[i-2]) {
-                    window.focusShellTab(i-2);
-                } else if (window.term[i-3]) {
-                    window.focusShellTab(i-3);
-                } else if (window.term[i-4]) {
-                    window.focusShellTab(i-4);
-                }
-            return true;
-        case "TAB_1":
+    case "COPY":
+        window.term[window.currentTerm].clipboard.copy();
+        return true;
+    case "PASTE":
+        window.term[window.currentTerm].clipboard.paste();
+        return true;
+    case "NEXT_TAB":
+        if (window.term[window.currentTerm+1]) {
+            window.focusShellTab(window.currentTerm+1);
+        } else if (window.term[window.currentTerm+2]) {
+            window.focusShellTab(window.currentTerm+2);
+        } else if (window.term[window.currentTerm+3]) {
+            window.focusShellTab(window.currentTerm+3);
+        } else if (window.term[window.currentTerm+4]) {
+            window.focusShellTab(window.currentTerm+4);
+        } else {
             window.focusShellTab(0);
-            return true;
-        case "TAB_2":
-            window.focusShellTab(1);
-            return true;
-        case "TAB_3":
-            window.focusShellTab(2);
-            return true;
-        case "TAB_4":
-            window.focusShellTab(3);
-            return true;
-        case "TAB_5":
-            window.focusShellTab(4);
-            return true;
-        case "SETTINGS":
-            window.openSettings();
-            return true;
-        case "SHORTCUTS":
-            window.openShortcutsHelp();
-            return true;
-        case "FUZZY_SEARCH":
-            window.activeFuzzyFinder = new FuzzyFinder();
-            return true;
-        case "FS_LIST_VIEW":
-            window.fsDisp.toggleListview();
-            return true;
-        case "FS_DOTFILES":
-            window.fsDisp.toggleHidedotfiles();
-            return true;
-        case "KB_PASSMODE":
-            window.keyboard.togglePasswordMode();
-            return true;
-        case "DEV_DEBUG":
-            remote.getCurrentWindow().webContents.toggleDevTools();
-            return true;
-        case "DEV_RELOAD":
-            window.location.reload(true);
-            return true;
-        default:
-            console.warn(`Unknown "${action}" app shortcut action`);
-            return false;
+        }
+        return true;
+    case "PREVIOUS_TAB": {
+        let i = window.currentTerm || 4;
+        if (window.term[i] && i !== window.currentTerm) {
+            window.focusShellTab(i);
+        } else if (window.term[i-1]) {
+            window.focusShellTab(i-1);
+        } else if (window.term[i-2]) {
+            window.focusShellTab(i-2);
+        } else if (window.term[i-3]) {
+            window.focusShellTab(i-3);
+        } else if (window.term[i-4]) {
+            window.focusShellTab(i-4);
+        }
+        return true;
+    }
+    case "TAB_1":
+        window.focusShellTab(0);
+        return true;
+    case "TAB_2":
+        window.focusShellTab(1);
+        return true;
+    case "TAB_3":
+        window.focusShellTab(2);
+        return true;
+    case "TAB_4":
+        window.focusShellTab(3);
+        return true;
+    case "TAB_5":
+        window.focusShellTab(4);
+        return true;
+    case "SETTINGS":
+        window.openSettings();
+        return true;
+    case "SHORTCUTS":
+        window.openShortcutsHelp();
+        return true;
+    case "FUZZY_SEARCH":
+        window.activeFuzzyFinder = new FuzzyFinder();
+        return true;
+    case "FS_LIST_VIEW":
+        window.fsDisp.toggleListview();
+        return true;
+    case "FS_DOTFILES":
+        window.fsDisp.toggleHidedotfiles();
+        return true;
+    case "KB_PASSMODE":
+        window.keyboard.togglePasswordMode();
+        return true;
+    case "DEV_DEBUG":
+        remote.getCurrentWindow().webContents.toggleDevTools();
+        return true;
+    case "DEV_RELOAD":
+        window.location.reload(true);
+        return true;
+    default:
+        console.warn(`Unknown "${action}" app shortcut action`);
+        return false;
     }
 };
 
@@ -1058,7 +1062,7 @@ window.registerKeyboardShortcuts = () => {
             if (cut.action === "TAB_X") {
                 for (let i = 1; i <= 5; i++) {
                     let trigger = cut.trigger.replace("X", i);
-                    let dfn = () => { window.useAppShortcut(`TAB_${i}`) };
+                    let dfn = () => { window.useAppShortcut(`TAB_${i}`); };
                     globalShortcut.register(trigger, dfn);
                 }
             } else {

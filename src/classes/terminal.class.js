@@ -35,26 +35,26 @@ class Terminal {
                     let func = step.slice(0, step.indexOf("("));
 
                     switch(func) {
-                        case "negate":
-                        case "grayscale":
-                            a[i] = {
-                                func,
-                                arg: []
-                            };
-                            return true;
-                        case "lighten":
-                        case "darken":
-                        case "saturate":
-                        case "desaturate":
-                        case "whiten":
-                        case "blacken":
-                        case "fade":
-                        case "opaquer":
-                        case "rotate":
-                        case "mix":
-                            break;
-                        default:
-                            return false;
+                    case "negate":
+                    case "grayscale":
+                        a[i] = {
+                            func,
+                            arg: []
+                        };
+                        return true;
+                    case "lighten":
+                    case "darken":
+                    case "saturate":
+                    case "desaturate":
+                    case "whiten":
+                    case "blacken":
+                    case "fade":
+                    case "opaquer":
+                    case "rotate":
+                    case "mix":
+                        break;
+                    default:
+                        return false;
                     }
 
                     let arg = step.slice(step.indexOf("(")+1, step.indexOf(")"));
@@ -146,27 +146,27 @@ class Terminal {
                 return true;
             });
             // Prevent soft-keyboard on touch devices #733
-            document.querySelectorAll('.xterm-helper-textarea').forEach(textarea => textarea.setAttribute('readonly', 'readonly'))
+            document.querySelectorAll(".xterm-helper-textarea").forEach(textarea => textarea.setAttribute("readonly", "readonly"));
             this.term.focus();
 
             this.Ipc.send("terminal_channel-"+this.port, "Renderer startup");
             this.Ipc.on("terminal_channel-"+this.port, (e, ...args) => {
                 switch(args[0]) {
-                    case "New cwd":
-                        this.cwd = args[1];
-                        this.oncwdchange(this.cwd);
-                        break;
-                    case "Fallback cwd":
-                        this.cwd = "FALLBACK |-- "+args[1];
-                        this.oncwdchange(this.cwd);
-                        break;
-                    case "New process":
-                        if (this.onprocesschange) {
-                            this.onprocesschange(args[1]);
-                        }
-                        break;
-                    default:
-                        return;
+                case "New cwd":
+                    this.cwd = args[1];
+                    this.oncwdchange(this.cwd);
+                    break;
+                case "Fallback cwd":
+                    this.cwd = "FALLBACK |-- "+args[1];
+                    this.oncwdchange(this.cwd);
+                    break;
+                case "New process":
+                    if (this.onprocesschange) {
+                        this.onprocesschange(args[1]);
+                    }
+                    break;
+                default:
+                    return;
                 }
             });
             this.resendCWD = () => {
@@ -182,7 +182,7 @@ class Terminal {
                 this.term.loadAddon(attachAddon);
                 this.fit();
             };
-            this.socket.onerror = e => {throw JSON.stringify(e)};
+            this.socket.onerror = e => {throw JSON.stringify(e);};
             this.socket.onclose = e => {
                 if (this.onclose) {
                     this.onclose(e);
@@ -229,10 +229,10 @@ class Terminal {
                     this.term.scrollLines(-Math.round(deltaY/10));
                 }
             });
-            parent.addEventListener("touchend", e => {
+            parent.addEventListener("touchend", () => {
                 this._lastTouch = null;
             });
-            parent.addEventListener("touchcancel", e => {
+            parent.addEventListener("touchcancel", () => {
                 this._lastTouch = null;
             });
 
@@ -321,26 +321,26 @@ class Terminal {
                     let pid = Number.parseInt(tty._pid, 10);
                     if (!Number.isSafeInteger(pid)) return reject(new Error("Invalid TTY pid"));
                     switch(require("os").type()) {
-                        case "Linux":
-                            require("fs").readlink(`/proc/${pid}/cwd`, (e, cwd) => {
-                                if (e !== null) {
-                                    reject(e);
-                                } else {
-                                    resolve(cwd);
-                                }
-                            });
-                            break;
-                        case "Darwin":
-                            require("child_process").exec(`lsof -a -d cwd -p ${pid} | tail -1 | awk '{ for (i=9; i<=NF; i++) printf "%s ", $i }'`, (e, cwd) => {
-                                if (e !== null) {
-                                    reject(e);
-                                } else {
-                                    resolve(cwd.trim());
-                                }
-                            });
-                            break;
-                        default:
-                            reject("Unsupported OS");
+                    case "Linux":
+                        require("fs").readlink(`/proc/${pid}/cwd`, (e, cwd) => {
+                            if (e !== null) {
+                                reject(e);
+                            } else {
+                                resolve(cwd);
+                            }
+                        });
+                        break;
+                    case "Darwin":
+                        require("child_process").exec(`lsof -a -d cwd -p ${pid} | tail -1 | awk '{ for (i=9; i<=NF; i++) printf "%s ", $i }'`, (e, cwd) => {
+                            if (e !== null) {
+                                reject(e);
+                            } else {
+                                resolve(cwd.trim());
+                            }
+                        });
+                        break;
+                    default:
+                        reject("Unsupported OS");
                     }
                 });
             };
@@ -350,18 +350,18 @@ class Terminal {
                     let pid = Number.parseInt(tty._pid, 10);
                     if (!Number.isSafeInteger(pid)) return reject(new Error("Invalid TTY pid"));
                     switch(require("os").type()) {
-                        case "Linux":
-                        case "Darwin":
-                            require("child_process").exec(`ps -o comm --no-headers --sort=+pid -g ${pid} | tail -1`, (e, proc) => {
-                                if (e !== null) {
-                                    reject(e);
-                                } else {
-                                    resolve(proc.trim());
-                                }
-                            });
-                            break;
-                        default:
-                            reject("Unsupported OS");
+                    case "Linux":
+                    case "Darwin":
+                        require("child_process").exec(`ps -o comm --no-headers --sort=+pid -g ${pid} | tail -1`, (e, proc) => {
+                            if (e !== null) {
+                                reject(e);
+                            } else {
+                                resolve(proc.trim());
+                            }
+                        });
+                        break;
+                    default:
+                        reject("Unsupported OS");
                     }
                 });
             };
@@ -382,7 +382,7 @@ class Terminal {
                             this._disableCWDtracking = true;
                             try {
                                 this.renderer.send("terminal_channel-"+this.port, "Fallback cwd", opts.cwd || process.env.PWD);
-                            } catch(e) {
+                            } catch {
                                 // renderer closed
                             }
                         }
@@ -402,7 +402,7 @@ class Terminal {
                             console.log("Error while retrieving TTY subprocess: ", e);
                             try {
                                 this.renderer.send("terminal_channel-"+this.port, "New process", "");
-                            } catch(e) {
+                            } catch {
                                 // renderer closed
                             }
                         }
@@ -426,7 +426,7 @@ class Terminal {
             this.wss = new this.Websocket({
                 port: this.port,
                 clientTracking: true,
-                verifyClient: info => {
+                verifyClient: () => {
                     if (this.wss.clients.length >= 1) {
                         return false;
                     } else {
@@ -436,27 +436,28 @@ class Terminal {
             });
             this.Ipc.on("terminal_channel-"+this.port, (e, ...args) => {
                 switch(args[0]) {
-                    case "Renderer startup":
-                        this.renderer = e.sender;
-                        if (!this._disableCWDtracking && this.tty._cwd) {
-                            this.renderer.send("terminal_channel-"+this.port, "New cwd", this.tty._cwd);
-                        }
-                        if (this._disableCWDtracking) {
-                            this.renderer.send("terminal_channel-"+this.port, "Fallback cwd", opts.cwd || process.env.PWD);
-                        }
-                        break;
-                    case "Resize":
-                        let cols = args[1];
-                        let rows = args[2];
-                        try {
-                            this.tty.resize(Number(cols), Number(rows));
-                        } catch (error) {
-                            //Keep going, it'll work anyways.
-                        }
-                        this.onresized(cols, rows);
-                        break;
-                    default:
-                        return;
+                case "Renderer startup":
+                    this.renderer = e.sender;
+                    if (!this._disableCWDtracking && this.tty._cwd) {
+                        this.renderer.send("terminal_channel-"+this.port, "New cwd", this.tty._cwd);
+                    }
+                    if (this._disableCWDtracking) {
+                        this.renderer.send("terminal_channel-"+this.port, "Fallback cwd", opts.cwd || process.env.PWD);
+                    }
+                    break;
+                case "Resize": {
+                    let cols = args[1];
+                    let rows = args[2];
+                    try {
+                        this.tty.resize(Number(cols), Number(rows));
+                    } catch {
+                        //Keep going, it'll work anyways.
+                    }
+                    this.onresized(cols, rows);
+                    break;
+                }
+                default:
+                    return;
                 }
             });
             this.wss.on("connection", ws => {
@@ -474,7 +475,7 @@ class Terminal {
                     this._nextTickUpdateProcess = true;
                     try {
                         ws.send(data);
-                    } catch (e) {
+                    } catch {
                         // Websocket closed
                     }
                 });
@@ -504,6 +505,7 @@ class Terminal {
 
         // Keep common terminal input characters and ESC sequences support,
         // while dropping other control characters.
+        // eslint-disable-next-line no-control-regex -- intentional: these are the exact control chars we allow through
         return input.replace(/[^\x1B\x09\x0A\x0D\x20-\x7E]/g, "");
     }
 }

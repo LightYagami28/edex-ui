@@ -136,8 +136,8 @@ class LocationGlobe {
     addRandomConnectedMarkers() {
         const randomLat = this.getRandomInRange(40, 90, 3);
         const randomLong = this.getRandomInRange(-180, 0, 3);
-        this.globe.addMarker(randomLat, randomLong, '');
-        this.globe.addMarker(randomLat - 20, randomLong + 150, '', true);
+        this.globe.addMarker(randomLat, randomLong, "");
+        this.globe.addMarker(randomLat - 20, randomLong + 150, "", true);
     }
     addTemporaryConnectedMarker(ip) {
         let data = window.mods.netstat.geoLookup.get(ip);
@@ -150,7 +150,7 @@ class LocationGlobe {
                 ip,
                 pin: window.mods.globe.globe.addPin(lat, lon, "", 1.2)
             });
-            let mark = window.mods.globe.globe.addMarker(lat, lon, '', true);
+            let mark = window.mods.globe.globe.addMarker(lat, lon, "", true);
             setTimeout(() => {
                 mark.remove();
             }, 3000);
@@ -186,7 +186,7 @@ class LocationGlobe {
                 document.querySelector("div#mod_globe").setAttribute("class", "");
             }).catch(() => {
                 document.querySelector("i.mod_globe_headerInfo").innerText = "UNKNOWN";
-            })
+            });
         }
     }
     async updateConOnlineConnection() {

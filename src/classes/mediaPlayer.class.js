@@ -22,7 +22,7 @@ class MediaPlayer {
         media.controls = false;
         mediaControls.setAttribute("data-state", "visible");
 
-        this.changeButtonState = (type) => {
+        this.changeButtonState = () => {
             if (media.paused || media.ended) {
                 playpause.setAttribute("data-state", "play");
                 playpause.innerHTML = `
@@ -41,8 +41,8 @@ class MediaPlayer {
         this.setFullscreenData = (state) => {
             if (fullscreen === null) { return; }
             mediaContainer.setAttribute("data-fullscreen", !!state);
-            fullscreen.setAttribute("data-state", !!state ? "cancel-fullscreen" : "go-fullscreen");
-            const buttonIcon = !!state ? "fullscreen-exit" : "fullscreen";
+            fullscreen.setAttribute("data-state", state ? "cancel-fullscreen" : "go-fullscreen");
+            const buttonIcon = state ? "fullscreen-exit" : "fullscreen";
             fullscreen.innerHTML = `
                 <svg viewBox="0 0 ${icons[buttonIcon].width} ${icons[buttonIcon].height}" fill="${iconcolor}">
                     ${icons[buttonIcon].svg}
@@ -54,7 +54,7 @@ class MediaPlayer {
                 document.exitFullscreen();
                 this.setFullscreenData(false);
 
-                mediaContainer.removeEventListener('mousemove', this.handleFullscreenControls);
+                mediaContainer.removeEventListener("mousemove", this.handleFullscreenControls);
                 fullscreenVisible = true;
                 clearTimeout(fullscreenTimeout);
                 this.fullscreenVisible();
@@ -64,13 +64,13 @@ class MediaPlayer {
 
                 fullscreenVisible = false;
                 this.fullscreenHidden();
-                mediaContainer.addEventListener('mousemove', this.handleFullscreenControls);
+                mediaContainer.addEventListener("mousemove", this.handleFullscreenControls);
             }
         };
 
         this.handleFullscreenControls = () => {
             if (!fullscreenVisible) {
-                fullscreenVisible = true
+                fullscreenVisible = true;
                 this.fullscreenVisible();
 
                 clearTimeout(fullscreenTimeout);
@@ -93,7 +93,7 @@ class MediaPlayer {
         };
 
         this.mediaTimeToHMS = (time) => {
-            let seconds = parseInt(time)
+            let seconds = parseInt(time);
             const hours = parseInt(seconds / 3600);
             seconds = seconds % 3600;
             const minutes = parseInt(seconds / 60);
@@ -126,8 +126,8 @@ class MediaPlayer {
         media.addEventListener("loadedmetadata", () => {
             mediaTime.textContent = "00:00:00";
         });
-        media.addEventListener("play", () => { this.changeButtonState("playpause") }, false);
-        media.addEventListener("pause", () => { this.changeButtonState("playpause") }, false);
+        media.addEventListener("play", () => { this.changeButtonState("playpause"); }, false);
+        media.addEventListener("pause", () => { this.changeButtonState("playpause"); }, false);
         media.addEventListener("timeupdate", () => {
             progressBar.style.width = Math.floor((media.currentTime / media.duration) * 100) + "%";
             mediaTime.textContent = this.mediaTimeToHMS(media.currentTime);
@@ -158,7 +158,7 @@ class MediaPlayer {
         playpause.addEventListener("click", () => {
             (media.paused || media.ended) ? media.play(): media.pause();
         });
-        if (fullscreen) fullscreen.addEventListener("click", () => { this.handleFullscreen() });
+        if (fullscreen) fullscreen.addEventListener("click", () => { this.handleFullscreen(); });
 
         document.addEventListener("fullscreenchange", () => {
             this.setFullscreenData(!!(document.fullscreenElement));
