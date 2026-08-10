@@ -12,6 +12,9 @@
     "terminal"
   ],
   "main": "src/_boot.js",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "start": "electron src --nointro",
     "lint": "eslint src/**/*.js *.js --max-warnings=0",
