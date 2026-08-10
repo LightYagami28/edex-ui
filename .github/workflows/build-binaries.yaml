@@ -89,9 +89,16 @@ jobs:
     - name: Run prebuild outside of QEMU emulator
       run: sudo npm i -g npm@latest && npm install && rsync -a --info=progress2 src/ prebuild-src --exclude node_modules && node prebuild-minify.js && rm -rf node_modules
     - name: Build for arm64 (aka arm64v8)
-      uses: docker://arm64v8/node:26-bookworm
-      with:
-        args: bash -c "npm i -g npm@latest && npm install && ./node_modules/.bin/electron-builder build -l --arm64"
+      # `uses: docker://...` doesn't support --platform, and the arm64v8/node
+      # image has no linux/amd64 manifest for Docker to fall back to on this
+      # (amd64) runner - run it explicitly under QEMU emulation instead.
+      run: |
+        docker run --rm --platform linux/arm64 \
+          -v "${{ github.workspace }}:${{ github.workspace }}" \
+          -w "${{ github.workspace }}" \
+          -e GH_TOKEN \
+          arm64v8/node:26-bookworm \
+          bash -c "npm i -g npm@latest && npm install && ./node_modules/.bin/electron-builder build -l --arm64"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
