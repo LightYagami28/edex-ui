@@ -54,16 +54,16 @@ It keeps a futuristic look and feel while remaining usable in real-life scenario
 ## Screenshots
 
 ![Default screenshot](media/screenshot_default.png)
-_[neofetch](https://github.com/dylanaraps/neofetch) on the default "tron" theme & QWERTY keyboard_
+*[neofetch](https://github.com/dylanaraps/neofetch) on the default "tron" theme & QWERTY keyboard*
 
 ![Blade screenshot](media/screenshot_blade.png)
-_Browsing themes in [eDEX's config dir](https://github.com/lightyagami28/edex-ui/wiki/Configuration) with [`ranger`](https://github.com/ranger/ranger), "blade" theme_
+*Browsing themes in [eDEX's config dir](https://github.com/lightyagami28/edex-ui/wiki/Configuration) with [`ranger`](https://github.com/ranger/ranger), "blade" theme*
 
 ![Disrupted screenshot](media/screenshot_disrupted.png)
-_[cmatrix](https://github.com/abishekvashok/cmatrix) on the experimental "tron-disrupted" theme, user-contributed DVORAK keyboard_
+*[cmatrix](https://github.com/abishekvashok/cmatrix) on the experimental "tron-disrupted" theme, user-contributed DVORAK keyboard*
 
 ![Horizon screenshot](media/screenshot_horizon.png)
-_Editing eDEX-UI source with `nvim`, custom [`horizon-full`](https://github.com/GitSquared/horizon-edex-theme) theme_
+*Editing eDEX-UI source with `nvim`, custom [`horizon-full`](https://github.com/GitSquared/horizon-edex-theme) theme*
 
 ## Getting it
 
@@ -99,22 +99,34 @@ Dashboards: [Security Advisories](../../security/advisories) · [Dependabot Aler
 
 ## Q&A
 
-#### I have a problem!
+### I have a problem
+
 Search [Issues](https://github.com/lightyagami28/edex-ui/issues) first. If it's not reported yet, open a new one. If your issue is closed already, the fix likely ships in the next version.
-#### Can you disable the keyboard/the filesystem display?
+
+### Can you disable the keyboard/the filesystem display?
+
 Not yet, but you can hide them — see the `tron-notype` theme.
-#### Why is the file browser saying "Tracking Failed"? (Windows only)
+
+### Why is the file browser saying "Tracking Failed"? (Windows only)
+
 On Linux/macOS, eDEX tracks the terminal's working directory to mirror it in the file browser. That's not implemented for Windows yet, so the file browser falls back to a "detached" mode — you can still browse and click files to insert their path into the terminal.
-#### Can this run on a Raspberry Pi / ARM device?
+
+### Can this run on a Raspberry Pi / ARM device?
+
 Prebuilt arm64 builds are provided. For other ARM variants see [this issue comment](https://github.com/GitSquared/edex-ui/issues/313#issuecomment-443465345) and [#818](https://github.com/GitSquared/edex-ui/issues/818).
-#### Is this repo actively maintained?
+
+### Is this repo actively maintained?
+
 The original upstream project ([GitSquared/edex-ui](https://github.com/GitSquared/edex-ui)) was archived after a 3-year run — see the [announcement](https://github.com/GitSquared/edex-ui/releases/tag/v2.2.8). **This fork keeps it alive**: dependencies, CI/CD and security scanning are actively maintained here.
-#### How did you make this?
+
+### How did you make this?
+
 See [#272](https://github.com/GitSquared/edex-ui/issues/272) on the original repo.
 
-<p align="center"><img width="220" src="https://78.media.tumblr.com/35d4ef4447e0112f776b629bffd99188/tumblr_mk4gf8zvyC1s567uwo1_500.gif" /></p>
+<p align="center"><img width="220" alt="Congratulations, you found the easter egg" src="https://78.media.tumblr.com/35d4ef4447e0112f776b629bffd99188/tumblr_mk4gf8zvyC1s567uwo1_500.gif" /></p>
 
-## Featured in...
+## Featured in
+
 - [Linux Uprising Blog](https://www.linuxuprising.com/2018/11/edex-ui-fully-functioning-sci-fi.html)
 - [r/unixporn](https://www.reddit.com/r/unixporn/comments/9ysbx7/oc_a_little_project_that_ive_been_working_on/)
 - [Korben (French)](https://korben.info/une-interface-futuriste-pour-vos-ecrans-tactiles.html)
@@ -137,7 +149,7 @@ eDEX-UI's source code was primarily written by [Squared](https://github.com/GitS
 
 [PixelyIon](https://github.com/PixelyIon) helped with Windows compatibility. [IceWolf](https://soundcloud.com/iamicewolf) composed the sound effects (v2.1.x+).
 
-eDEX wouldn't exist without [Seena](https://github.com/seenaburns)'s original work on [r/unixporn](https://reddit.com/r/unixporn). Full dependency graph [here](https://github.com/lightyagami28/edex-ui/network/dependencies) — particular thanks to the developers of [xterm.js](https://github.com/xtermjs/xterm.js), [systeminformation](https://github.com/sebhildebrandt/systeminformation) and [SmoothieCharts](https://github.com/joewalnes/smoothie), and to [Rob "Arscan" Scanlon](https://github.com/arscan) for the freely-distributed [ENCOM Globe](https://github.com/arscan/encom-globe).
+eDEX wouldn't exist without [Seena](https://github.com/seenaburns)'s original work on [r/unixporn](https://reddit.com/r/unixporn). See the [full dependency graph](https://github.com/lightyagami28/edex-ui/network/dependencies) — particular thanks to the developers of [xterm.js](https://github.com/xtermjs/xterm.js), [systeminformation](https://github.com/sebhildebrandt/systeminformation) and [SmoothieCharts](https://github.com/joewalnes/smoothie), and to [Rob "Arscan" Scanlon](https://github.com/arscan) for the freely-distributed [ENCOM Globe](https://github.com/arscan/encom-globe).
 
 ### Sponsor
 

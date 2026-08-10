@@ -1,6 +1,6 @@
 class Clock {
     constructor(parentId) {
-        if (!parentId) throw "Missing parameters";
+        if (!parentId) throw new Error("Missing parameters");
 
         // Load settings
         this.twelveHours = window.settings.clockHours === 12;
@@ -35,7 +35,7 @@ class Clock {
             }
         });
         let clockString = `${array[0]}:${array[1]}:${array[2]}`;
-        array = clockString.match(/.{1}/g);
+        array = clockString.match(/./g);
         clockString = "";
         array.forEach((e) => {
             if (e === ":") clockString += "<em>" + e + "</em>";

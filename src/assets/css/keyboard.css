@@ -176,6 +176,9 @@ div.keyboard_row > .keyboard_key:first-child {
 
 div.keyboard_key#keyboard_spacebar {
     border: 0.19vh solid rgba(var(--color_r), var(--color_g), var(--color_b), 0.5);
+    width: 47.68vh;
+    min-width: 47.68vh;
+    height: 3.52vh;
 }
 
 div.keyboard_row#row_1 > div.keyboard_enter {
@@ -200,12 +203,6 @@ div.keyboard_row#row_2 > div.keyboard_enter {
 div.keyboard_row#row_2 > div.keyboard_enter:active,
 div.keyboard_row#row_2 > div.keyboard_enter.active {
     border-top: 0.3vh solid rgb(var(--color_r), var(--color_g), var(--color_b));
-}
-
-div.keyboard_key#keyboard_spacebar {
-    width: 47.68vh;
-    min-width: 47.68vh;
-    height: 3.52vh;
 }
 
 div.keyboard_row:nth-child(4) > div.keyboard_key:last-child {

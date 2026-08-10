@@ -31,7 +31,7 @@ class FuzzyFinder {
         this.results = document.getElementById("fuzzyFinder-results");
 
         this.input.addEventListener("input", (e) => {
-            if ((e.inputType && e.inputType.startsWith("delete")) || (e.detail && e.detail.startsWith("delete"))) {
+            if (e.inputType?.startsWith("delete") || e.detail?.startsWith("delete")) {
                 this.input.value = "";
                 this.search("");
             } else {
@@ -52,7 +52,7 @@ class FuzzyFinder {
                     break;
                 case "ArrowDown":
                     selectedEl = document.querySelector("li.fuzzyFinderMatchSelected");
-                    selected = Number(selectedEl.id.substr(17));
+                    selected = Number(selectedEl.id.slice(17));
                     next = document.getElementById(`fuzzyFinderMatch-${selected + 1}`) ? selected + 1 : 0;
                     nextEl = document.getElementById(`fuzzyFinderMatch-${next}`);
                     selectedEl.removeAttribute("class");
@@ -61,7 +61,7 @@ class FuzzyFinder {
                     break;
                 case "ArrowUp":
                     selectedEl = document.querySelector("li.fuzzyFinderMatchSelected");
-                    selected = Number(selectedEl.id.substr(17));
+                    selected = Number(selectedEl.id.slice(17));
                     next = document.getElementById(`fuzzyFinderMatch-${selected - 1}`) ? selected - 1 : 0;
                     nextEl = document.getElementById(`fuzzyFinderMatch-${next}`);
                     selectedEl.removeAttribute("class");

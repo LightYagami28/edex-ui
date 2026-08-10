@@ -31,9 +31,9 @@ signale.time("Startup");
 
 const electron = require("electron");
 const ipc = electron.ipcMain;
-const path = require("path");
-const url = require("url");
-const fs = require("fs");
+const path = require("node:path");
+const url = require("node:url");
+const fs = require("node:fs");
 const which = require("which");
 const Terminal = require("./classes/terminal.class.js").Terminal;
 
@@ -179,7 +179,7 @@ fs.readdirSync(innerFontsDir).forEach((e) => {
 const versionHistoryPath = path.join(electron.app.getPath("userData"), "versions_log.json");
 let versionHistory = fs.existsSync(versionHistoryPath) ? require(versionHistoryPath) : {};
 let version = app.getVersion();
-if (typeof versionHistory[version] === "undefined") {
+if (versionHistory[version] === undefined) {
     versionHistory[version] = {
         firstSeen: Date.now(),
         lastSeen: Date.now(),
@@ -193,7 +193,7 @@ function createWindow(settings) {
     signale.info("Creating window...");
 
     let display;
-    if (!isNaN(settings.monitor)) {
+    if (!Number.isNaN(settings.monitor)) {
         display = electron.screen.getAllDisplays()[settings.monitor] || electron.screen.getPrimaryDisplay();
     } else {
         display = electron.screen.getPrimaryDisplay();
@@ -269,7 +269,7 @@ app.on("ready", async () => {
     signale.info(`Shell found at ${settings.shell}`);
     signale.success("Settings loaded!");
 
-    if (!require("fs").existsSync(settings.cwd)) throw new Error("Configured cwd path does not exist.");
+    if (!require("node:fs").existsSync(settings.cwd)) throw new Error("Configured cwd path does not exist.");
 
     // See #366
     // "shell-env" is ESM-only, so it can't be require()'d from this CJS main process.

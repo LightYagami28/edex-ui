@@ -1,6 +1,6 @@
 class Netstat {
     constructor(parentId) {
-        if (!parentId) throw "Missing parameters";
+        if (!parentId) throw new Error("Missing parameters");
 
         const eDEX = window.eDEX;
 
@@ -103,7 +103,7 @@ class Netstat {
                         .getExternalIp(net.ip4)
                         .then(async (ip) => {
                             let geo = await eDEX.geoip.lookup(ip);
-                            this.ipinfo = { ip, geo: geo && geo.location };
+                            this.ipinfo = { ip, geo: geo?.location };
 
                             document.querySelector("#mod_netstat_innercontainer > div:nth-child(2) > h2").innerHTML =
                                 window._escapeHtml(ip);

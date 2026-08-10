@@ -55,6 +55,7 @@ contextBridge.exposeInMainWorld("eDEX", {
     },
     clipboard: {
         readText: () => ipcRenderer.invoke("clipboard:readText"),
+        writeText: (text) => ipcRenderer.invoke("clipboard:writeText", text),
     },
     shell: {
         openExternal: (url) => ipcRenderer.send("shell:openExternal", url),

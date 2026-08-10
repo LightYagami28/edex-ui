@@ -1,6 +1,24 @@
+function formatRuntime(ms) {
+    const msInDay = 24 * 60 * 60 * 1000;
+    let days = Math.floor(ms / msInDay);
+    let remainingMS = ms % msInDay;
+
+    const msInHour = 60 * 60 * 1000;
+    let hours = Math.floor(remainingMS / msInHour);
+    remainingMS = ms % msInHour;
+
+    let msInMin = 60 * 1000;
+    let minutes = Math.floor(remainingMS / msInMin);
+    remainingMS = ms % msInMin;
+
+    let seconds = Math.floor(remainingMS / 1000);
+
+    return `${days < 10 ? "0" : ""}${days}:${hours < 10 ? "0" : ""}${hours}:${minutes < 10 ? "0" : ""}${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+}
+
 class Toplist {
     constructor(parentId) {
-        if (!parentId) throw "Missing parameters";
+        if (!parentId) throw new Error("Missing parameters");
 
         // Create DOM
         this.parent = document.getElementById(parentId);
@@ -79,24 +97,6 @@ class Toplist {
                 sortKey = fieldName;
                 ascending = false;
             }
-        }
-
-        function formatRuntime(ms) {
-            const msInDay = 24 * 60 * 60 * 1000;
-            let days = Math.floor(ms / msInDay);
-            let remainingMS = ms % msInDay;
-
-            const msInHour = 60 * 60 * 1000;
-            let hours = Math.floor(remainingMS / msInHour);
-            remainingMS = ms % msInHour;
-
-            let msInMin = 60 * 1000;
-            let minutes = Math.floor(remainingMS / msInMin);
-            remainingMS = ms % msInMin;
-
-            let seconds = Math.floor(remainingMS / 1000);
-
-            return `${days < 10 ? "0" : ""}${days}:${hours < 10 ? "0" : ""}${hours}:${minutes < 10 ? "0" : ""}${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
         }
 
         function updateProcessList() {
@@ -194,7 +194,9 @@ class Toplist {
         }
 
         window.keyboard.detach();
-        new Modal(
+        // Modal self-registers in window.modals[this.id], no local reference needed.
+        // prettier-ignore
+        new Modal( // NOSONAR
             {
                 type: "custom",
                 title: "Active Processes",

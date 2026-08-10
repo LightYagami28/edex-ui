@@ -112,7 +112,7 @@
         "@electron/rebuild": "4.2.0",
         "clean-css": "5.3.3",
         "electron": "43.3.0",
-        "electron-builder": "26.15.7",
+        "electron-builder": "^26.24.0",
         "mime-types": "3.0.2",
         "node-abi": "4.33.0",
         "node-json-minify": "3.0.0",
@@ -124,6 +124,10 @@
         "globals": "17.9.0",
         "prettier": "3.9.6",
         "snyk": "1.1306.3"
+    },
+    "overrides": {
+        "inflight": "1.0.6",
+        "unzipper": "0.10.11"
     },
     "optionalDependencies": {
         "cson-parser": "4.0.9"

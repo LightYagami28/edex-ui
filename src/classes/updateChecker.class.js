@@ -14,12 +14,14 @@ class UpdateChecker {
                     if (release.tag_name.slice(1) === current) {
                         eDEX.ipc.send("log", "info", "UpdateChecker: Running latest version.");
                     } else if (
-                        Number(release.tag_name.slice(1).replace(/\./g, "")) <
-                        Number(current.replace("-pre", "").replace(/\./g, ""))
+                        Number(release.tag_name.slice(1).replaceAll(".", "")) <
+                        Number(current.replace("-pre", "").replaceAll(".", ""))
                     ) {
                         eDEX.ipc.send("log", "info", "UpdateChecker: Running an unreleased, development version.");
                     } else {
-                        new Modal({
+                        // Modal self-registers in window.modals[this.id], no local reference needed.
+                        // prettier-ignore
+                        new Modal({ // NOSONAR
                             type: "info",
                             title: "New version available",
                             message: `eDEX-UI <strong>${release.tag_name}</strong> is now available.<br/>Head over to <a href="#" onclick="window.eDEX.shell.openExternal('${release.html_url}')">github.com</a> to download the latest version.`,

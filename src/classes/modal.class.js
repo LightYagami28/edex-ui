@@ -2,11 +2,11 @@ window.modals = {};
 
 class Modal {
     constructor(options, onclose) {
-        if (!options || !options.type) throw "Missing parameters";
+        if (!options?.type) throw new Error("Missing parameters");
 
         this.type = options.type;
         this.id = crypto.randomUUID();
-        while (typeof window.modals[this.id] !== "undefined") {
+        while (window.modals[this.id] !== undefined) {
             this.id = crypto.randomUUID();
         }
         this.title = options.title || options.type || "Modal window";
@@ -197,8 +197,6 @@ class Modal {
             window.removeEventListener("touchend", modalTouchendHandler);
         }
         dragTarget.addEventListener("touchstart", modalTouchstartHandler);
-
-        return this.id;
     }
 }
 

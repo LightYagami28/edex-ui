@@ -1,12 +1,16 @@
 class Keyboard {
     constructor(opts) {
-        if (!opts.layout || !opts.container) throw "Missing options";
+        if (!opts.layout || !opts.container) throw new Error("Missing options");
+        this._opts = opts;
+    }
 
-        // Layout files are now loaded through the main process (see
-        // ipc-handlers.js), which is inherently async - callers should
-        // `await keyboard.ready` before relying on the on-screen keyboard
-        // being fully built.
-        this.ready = this._init(opts);
+    // Layout files are now loaded through the main process (see
+    // ipc-handlers.js), which is inherently async - callers should call
+    // `.start()` right after construction, then `await keyboard.ready`
+    // before relying on the on-screen keyboard being fully built.
+    start() {
+        this.ready = this._init(this._opts);
+        return this.ready;
     }
 
     async _init(opts) {
@@ -42,7 +46,7 @@ class Keyboard {
             Shift: [],
         };
         window.shortcuts.forEach((scut) => {
-            let cut = Object.assign({}, scut);
+            let cut = { ...scut };
             let mods = cut.trigger.split("+");
             cut.trigger = mods.pop();
 
@@ -55,7 +59,7 @@ class Keyboard {
 
             if (cut.type === "app" && cut.action === "TAB_X" && cut.trigger === "X") {
                 for (let i = 1; i <= 5; i++) {
-                    let ncut = Object.assign({}, cut);
+                    let ncut = { ...cut };
                     ncut.trigger = `${i}`;
                     ncut.action = `TAB_${i}`;
                     this._shortcuts[cat].push(ncut);
@@ -168,7 +172,7 @@ class Keyboard {
                     };
                 } else {
                     key.onmousedown = (e) => {
-                        if (/^ESCAPED\|-- (CTRL|SHIFT|ALT){1}.*/.test(key.dataset.cmd)) {
+                        if (/^ESCAPED\|-- (CTRL|SHIFT|ALT).*/.test(key.dataset.cmd)) {
                             let cmd = key.dataset.cmd.substr(11);
                             if (cmd.startsWith("CTRL")) {
                                 this.container.dataset.isCtrlOn = "true";
@@ -194,7 +198,7 @@ class Keyboard {
                         e.preventDefault();
                     };
                     key.onmouseup = () => {
-                        if (/^ESCAPED\|-- (CTRL|SHIFT|ALT){1}.*/.test(key.dataset.cmd)) {
+                        if (/^ESCAPED\|-- (CTRL|SHIFT|ALT).*/.test(key.dataset.cmd)) {
                             let cmd = key.dataset.cmd.substr(11);
                             if (cmd.startsWith("CTRL")) {
                                 this.container.dataset.isCtrlOn = "false";
@@ -228,8 +232,8 @@ class Keyboard {
         // Tactile multi-touch support (#100)
         this.container.addEventListener("touchstart", (e) => {
             e.preventDefault();
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                let key = e.changedTouches[i].target.parentElement;
+            for (const touch of e.changedTouches) {
+                let key = touch.target.parentElement;
                 if (key.tagName === "svg") key = key.parentElement;
                 if (key.getAttribute("class").startsWith("keyboard_key")) {
                     key.setAttribute("class", key.getAttribute("class") + " active");
@@ -239,7 +243,7 @@ class Keyboard {
                         },
                     });
                 } else {
-                    key = e.changedTouches[i].target;
+                    key = touch.target;
                     if (key.getAttribute("class").startsWith("keyboard_key")) {
                         key.setAttribute("class", key.getAttribute("class") + " active");
                         key.onmousedown({
@@ -253,8 +257,8 @@ class Keyboard {
         });
         let dropKeyTouchHandler = (e) => {
             e.preventDefault();
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                let key = e.changedTouches[i].target.parentElement;
+            for (const touch of e.changedTouches) {
+                let key = touch.target.parentElement;
                 if (key.tagName === "svg") key = key.parentElement;
                 if (key.getAttribute("class").startsWith("keyboard_key")) {
                     key.setAttribute("class", key.getAttribute("class").replace("active", ""));
@@ -264,7 +268,7 @@ class Keyboard {
                         },
                     });
                 } else {
-                    key = e.changedTouches[i].target;
+                    key = touch.target;
                     if (key.getAttribute("class").startsWith("keyboard_key")) {
                         key.setAttribute("class", key.getAttribute("class").replace("active", ""));
                         key.onmouseup({
@@ -282,8 +286,7 @@ class Keyboard {
         // Bind actual keyboard actions to on-screen animations (for use without a touchscreen)
         let findKey = (e) => {
             // Fix incorrect querySelector error
-            let physkey;
-            e.key === '"' ? (physkey = '\\"') : (physkey = e.key);
+            let physkey = e.key === '"' ? String.raw`\"` : e.key;
 
             // Find basic keys (typically letters, upper and lower-case)
             let key = document.querySelector('div.keyboard_key[data-cmd="' + physkey + '"]');
@@ -584,7 +587,7 @@ class Keyboard {
             window.term[window.currentTerm].write(cmd);
         } else {
             let isDelete = false;
-            if (typeof document.activeElement.value !== "undefined") {
+            if (document.activeElement.value !== undefined) {
                 switch (cmd) {
                     case "":
                         document.activeElement.value = document.activeElement.value.slice(0, -1);
@@ -599,7 +602,7 @@ class Keyboard {
                         document.activeElement.selectionStart = document.activeElement.selectionEnd;
                         break;
                     default:
-                        if (this.ctrlseq.indexOf(cmd.slice(0, 1)) !== -1) {
+                        if (this.ctrlseq.includes(cmd.slice(0, 1))) {
                             // Prevent trying to write other control sequences
                         } else {
                             document.activeElement.value = document.activeElement.value + cmd;
@@ -613,89 +616,51 @@ class Keyboard {
     }
     togglePasswordMode() {
         let d = this.container.dataset.passwordMode;
-        d === "true" ? (d = "false") : (d = "true");
+        d = d === "true" ? "false" : "true";
         this.container.dataset.passwordMode = d;
         window.passwordMode = d;
         return d;
     }
     addCircum(char) {
-        switch (char) {
-            case "a":
-                return "â";
-            case "A":
-                return "Â";
-            case "z":
-                return "ẑ";
-            case "Z":
-                return "Ẑ";
-            case "e":
-                return "ê";
-            case "E":
-                return "Ê";
-            case "y":
-                return "ŷ";
-            case "Y":
-                return "Ŷ";
-            case "u":
-                return "û";
-            case "U":
-                return "Û";
-            case "i":
-                return "î";
-            case "I":
-                return "Î";
-            case "o":
-                return "ô";
-            case "O":
-                return "Ô";
-            case "s":
-                return "ŝ";
-            case "S":
-                return "Ŝ";
-            case "g":
-                return "ĝ";
-            case "G":
-                return "Ĝ";
-            case "h":
-                return "ĥ";
-            case "H":
-                return "Ĥ";
-            case "j":
-                return "ĵ";
-            case "J":
-                return "Ĵ";
-            case "w":
-                return "ŵ";
-            case "W":
-                return "Ŵ";
-            case "c":
-                return "ĉ";
-            case "C":
-                return "Ĉ";
-            // the circumflex can also be used for superscript numbers
-            case "1":
-                return "¹";
-            case "2":
-                return "²";
-            case "3":
-                return "³";
-            case "4":
-                return "⁴";
-            case "5":
-                return "⁵";
-            case "6":
-                return "⁶";
-            case "7":
-                return "⁷";
-            case "8":
-                return "⁸";
-            case "9":
-                return "⁹";
-            case "0":
-                return "⁰";
-            default:
-                return char;
-        }
+        const map = {
+            a: "â",
+            A: "Â",
+            z: "ẑ",
+            Z: "Ẑ",
+            e: "ê",
+            E: "Ê",
+            y: "ŷ",
+            Y: "Ŷ",
+            u: "û",
+            U: "Û",
+            i: "î",
+            I: "Î",
+            o: "ô",
+            O: "Ô",
+            s: "ŝ",
+            S: "Ŝ",
+            g: "ĝ",
+            G: "Ĝ",
+            h: "ĥ",
+            H: "Ĥ",
+            j: "ĵ",
+            J: "Ĵ",
+            w: "ŵ",
+            W: "Ŵ",
+            c: "ĉ",
+            C: "Ĉ",
+            1: "¹",
+            2: "²",
+            3: "³",
+            4: "⁴",
+            5: "⁵",
+            6: "⁶",
+            7: "⁷",
+            8: "⁸",
+            9: "⁹",
+            0: "⁰",
+        };
+        return map[char] ?? char;
     }
     addTrema(char) {
         switch (char) {
@@ -743,94 +708,51 @@ class Keyboard {
         }
     }
     addAcute(char) {
-        switch (char) {
-            case "a":
-                return "á";
-            case "A":
-                return "Á";
-            case "c":
-                return "ć";
-            case "C":
-                return "Ć";
-            case "e":
-                return "é";
-            case "E":
-                return "E";
-            case "g":
-                return "ǵ";
-            case "G":
-                return "Ǵ";
-            case "i":
-                return "í";
-            case "I":
-                return "Í";
-            case "j":
-                return "ȷ́";
-            case "J":
-                return "J́";
-            case "k":
-                return "ḱ";
-            case "K":
-                return "Ḱ";
-            case "l":
-                return "ĺ";
-            case "L":
-                return "Ĺ";
-            case "m":
-                return "ḿ";
-            case "M":
-                return "Ḿ";
-            case "n":
-                return "ń";
-            case "N":
-                return "Ń";
-            case "o":
-                return "ó";
-            case "O":
-                return "Ó";
-            case "p":
-                return "ṕ";
-            case "P":
-                return "Ṕ";
-            case "r":
-                return "ŕ";
-            case "R":
-                return "Ŕ";
-            case "s":
-                return "ś";
-            case "S":
-                return "Ś";
-            case "u":
-                return "ú";
-            case "U":
-                return "Ú";
-            case "v":
-                return "v́";
-            case "V":
-                return "V́";
-            case "w":
-                return "ẃ";
-            case "W":
-                return "Ẃ";
-            case "y":
-                return "ý";
-            case "Y":
-                return "Ý";
-            case "z":
-                return "ź";
-            case "Z":
-                return "Ź";
-            case "ê":
-                return "ế";
-            case "Ê":
-                return "Ế";
-            case "ç":
-                return "ḉ";
-            case "Ç":
-                return "Ḉ";
-            default:
-                return char;
-        }
+        const map = {
+            a: "á",
+            A: "Á",
+            c: "ć",
+            C: "Ć",
+            e: "é",
+            E: "E",
+            g: "ǵ",
+            G: "Ǵ",
+            i: "í",
+            I: "Í",
+            j: "ȷ́",
+            J: "J́",
+            k: "ḱ",
+            K: "Ḱ",
+            l: "ĺ",
+            L: "Ĺ",
+            m: "ḿ",
+            M: "Ḿ",
+            n: "ń",
+            N: "Ń",
+            o: "ó",
+            O: "Ó",
+            p: "ṕ",
+            P: "Ṕ",
+            r: "ŕ",
+            R: "Ŕ",
+            s: "ś",
+            S: "Ś",
+            u: "ú",
+            U: "Ú",
+            v: "v́",
+            V: "V́",
+            w: "ẃ",
+            W: "Ẃ",
+            y: "ý",
+            Y: "Ý",
+            z: "ź",
+            Z: "Ź",
+            ê: "ế",
+            Ê: "Ế",
+            ç: "ḉ",
+            Ç: "Ḉ",
+        };
+        return map[char] ?? char;
     }
     addGrave(char) {
         switch (char) {
@@ -883,171 +805,91 @@ class Keyboard {
         }
     }
     addCaron(char) {
-        switch (char) {
-            case "a":
-                return "ǎ";
-            case "A":
-                return "Ǎ";
-            case "c":
-                return "č";
-            case "C":
-                return "Č";
-            case "d":
-                return "ď";
-            case "D":
-                return "Ď";
-            case "e":
-                return "ě";
-            case "E":
-                return "Ě";
-            case "g":
-                return "ǧ";
-            case "G":
-                return "Ǧ";
-            case "h":
-                return "ȟ";
-            case "H":
-                return "Ȟ";
-            case "i":
-                return "ǐ";
-            case "I":
-                return "Ǐ";
-            case "j":
-                return "ǰ";
-            case "k":
-                return "ǩ";
-            case "K":
-                return "Ǩ";
-            case "l":
-                return "ľ";
-            case "L":
-                return "Ľ";
-            case "n":
-                return "ň";
-            case "N":
-                return "Ň";
-            case "o":
-                return "ǒ";
-            case "O":
-                return "Ǒ";
-            case "r":
-                return "ř";
-            case "R":
-                return "Ř";
-            case "s":
-                return "š";
-            case "S":
-                return "Š";
-            case "t":
-                return "ť";
-            case "T":
-                return "Ť";
-            case "u":
-                return "ǔ";
-            case "U":
-                return "Ǔ";
-            case "z":
-                return "ž";
-            case "Z":
-                return "Ž";
-            // caron can also be used for subscript numbers
-            case "1":
-                return "₁";
-            case "2":
-                return "₂";
-            case "3":
-                return "₃";
-            case "4":
-                return "₄";
-            case "5":
-                return "₅";
-            case "6":
-                return "₆";
-            case "7":
-                return "₇";
-            case "8":
-                return "₈";
-            case "9":
-                return "₉";
-            case "0":
-                return "₀";
-            default:
-                return char;
-        }
+        const map = {
+            a: "ǎ",
+            A: "Ǎ",
+            c: "č",
+            C: "Č",
+            d: "ď",
+            D: "Ď",
+            e: "ě",
+            E: "Ě",
+            g: "ǧ",
+            G: "Ǧ",
+            h: "ȟ",
+            H: "Ȟ",
+            i: "ǐ",
+            I: "Ǐ",
+            j: "ǰ",
+            k: "ǩ",
+            K: "Ǩ",
+            l: "ľ",
+            L: "Ľ",
+            n: "ň",
+            N: "Ň",
+            o: "ǒ",
+            O: "Ǒ",
+            r: "ř",
+            R: "Ř",
+            s: "š",
+            S: "Š",
+            t: "ť",
+            T: "Ť",
+            u: "ǔ",
+            U: "Ǔ",
+            z: "ž",
+            Z: "Ž",
+            1: "₁",
+            2: "₂",
+            3: "₃",
+            4: "₄",
+            5: "₅",
+            6: "₆",
+            7: "₇",
+            8: "₈",
+            9: "₉",
+            0: "₀",
+        };
+        return map[char] ?? char;
     }
     addBar(char) {
-        switch (char) {
-            case "a":
-                return "ⱥ";
-            case "A":
-                return "Ⱥ";
-            case "b":
-                return "ƀ";
-            case "B":
-                return "Ƀ";
-            case "c":
-                return "ȼ";
-            case "C":
-                return "Ȼ";
-            case "d":
-                return "đ";
-            case "D":
-                return "Đ";
-            case "e":
-                return "ɇ";
-            case "E":
-                return "Ɇ";
-            case "g":
-                return "ǥ";
-            case "G":
-                return "Ǥ";
-            case "h":
-                return "ħ";
-            case "H":
-                return "Ħ";
-            case "i":
-                return "ɨ";
-            case "I":
-                return "Ɨ";
-            case "j":
-                return "ɉ";
-            case "J":
-                return "Ɉ";
-            case "l":
-                return "ł";
-            case "L":
-                return "Ł";
-            case "o":
-                return "ø";
-            case "O":
-                return "Ø";
-            case "p":
-                return "ᵽ";
-            case "P":
-                return "Ᵽ";
-            case "r":
-                return "ɍ";
-            case "R":
-                return "Ɍ";
-            case "t":
-                return "ŧ";
-            case "T":
-                return "Ŧ";
-            case "u":
-                return "ʉ";
-            case "U":
-                return "Ʉ";
-            case "y":
-                return "ɏ";
-            case "Y":
-                return "Ɏ";
-            case "z":
-                return "ƶ";
-            case "Z":
-                return "Ƶ";
-            default:
-                return char;
-        }
+        const map = {
+            a: "ⱥ",
+            A: "Ⱥ",
+            b: "ƀ",
+            B: "Ƀ",
+            c: "ȼ",
+            C: "Ȼ",
+            d: "đ",
+            D: "Đ",
+            e: "ɇ",
+            E: "Ɇ",
+            g: "ǥ",
+            G: "Ǥ",
+            h: "ħ",
+            H: "Ħ",
+            i: "ɨ",
+            I: "Ɨ",
+            j: "ɉ",
+            J: "Ɉ",
+            l: "ł",
+            L: "Ł",
+            o: "ø",
+            O: "Ø",
+            p: "ᵽ",
+            P: "Ᵽ",
+            r: "ɍ",
+            R: "Ɍ",
+            t: "ŧ",
+            T: "Ŧ",
+            u: "ʉ",
+            U: "Ʉ",
+            y: "ɏ",
+            Y: "Ɏ",
+            z: "ƶ",
+            Z: "Ƶ",
+        };
+        return map[char] ?? char;
     }
     addBreve(char) {
         switch (char) {
@@ -1236,82 +1078,45 @@ class Keyboard {
         }
     }
     toGreek(char) {
-        switch (char) {
-            case "b":
-                return "β";
-            case "p":
-                return "π";
-            case "P":
-                return "Π";
-            case "d":
-                return "δ";
-            case "D":
-                return "Δ";
-            case "l":
-                return "λ";
-            case "L":
-                return "Λ";
-            case "j":
-                return "θ";
-            case "J":
-                return "Θ";
-            case "z":
-                return "ζ";
-            case "w":
-                return "ω";
-            case "W":
-                return "Ω";
-            case "A":
-                return "α";
-            case "u":
-                return "υ";
-            case "U":
-                return "Υ";
-            case "i":
-                return "ι";
-            case "e":
-                return "ε";
-            case "t":
-                return "τ";
-            case "s":
-                return "σ";
-            case "S":
-                return "Σ";
-            case "r":
-                return "ρ";
-            case "R":
-                return "Ρ";
-            case "n":
-                return "ν";
-            case "m":
-                return "μ";
-            case "y":
-                return "ψ";
-            case "Y":
-                return "Ψ";
-            case "x":
-                return "ξ";
-            case "X":
-                return "Ξ";
-            case "k":
-                return "κ";
-            case "q":
-                return "χ";
-            case "Q":
-                return "Χ";
-            case "g":
-                return "γ";
-            case "G":
-                return "Γ";
-            case "h":
-                return "η";
-            case "f":
-                return "φ";
-            case "F":
-                return "Φ";
-            default:
-                return char;
-        }
+        const map = {
+            b: "β",
+            p: "π",
+            P: "Π",
+            d: "δ",
+            D: "Δ",
+            l: "λ",
+            L: "Λ",
+            j: "θ",
+            J: "Θ",
+            z: "ζ",
+            w: "ω",
+            W: "Ω",
+            A: "α",
+            u: "υ",
+            U: "Υ",
+            i: "ι",
+            e: "ε",
+            t: "τ",
+            s: "σ",
+            S: "Σ",
+            r: "ρ",
+            R: "Ρ",
+            n: "ν",
+            m: "μ",
+            y: "ψ",
+            Y: "Ψ",
+            x: "ξ",
+            X: "Ξ",
+            k: "κ",
+            q: "χ",
+            Q: "Χ",
+            g: "γ",
+            G: "Γ",
+            h: "η",
+            f: "φ",
+            F: "Φ",
+        };
+        return map[char] ?? char;
     }
     addIotasub(char) {
         switch (char) {

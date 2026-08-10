@@ -1,19 +1,18 @@
 class FilesystemDisplay {
     constructor(opts) {
-        if (!opts.parentId) throw "Missing options";
+        if (!opts.parentId) throw new Error("Missing options");
 
         const eDEX = window.eDEX;
         const path = eDEX.path;
         this.cwd = [];
         this.cwd_path = null;
         this.iconcolor = `rgb(${window.theme.r}, ${window.theme.g}, ${window.theme.b})`;
-        this._formatBytes = (bytes, decimals) => {
+        this._formatBytes = (bytes, decimals = 2) => {
             if (bytes === 0) return "0 Bytes";
             const base = 1024;
-            const precision = decimals || 2;
             const units = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
             const magnitude = Math.floor(Math.log(bytes) / Math.log(base));
-            return parseFloat((bytes / Math.pow(base, magnitude)).toFixed(precision)) + " " + units[magnitude];
+            return Number.parseFloat((bytes / Math.pow(base, magnitude)).toFixed(decimals)) + " " + units[magnitude];
         };
         this.fileIconsMatcher = window.fileIconsMatcher;
         this.icons = window.FileIcons;
@@ -181,7 +180,7 @@ class FilesystemDisplay {
                 content.forEach(async (file, i) => {
                     let fstat = await eDEX.fs.lstat(path.join(tcwd, file)).catch((e) => {
                         if (!e.message.includes("EPERM") && !e.message.includes("EBUSY")) {
-                            reject();
+                            reject(e);
                         }
                     });
 
@@ -193,7 +192,7 @@ class FilesystemDisplay {
                         hidden: false,
                     };
 
-                    if (typeof fstat !== "undefined") {
+                    if (fstat !== undefined) {
                         e.lastAccessed = fstat.mtimeMs;
 
                         if (fstat.isDirectory) {
@@ -292,7 +291,7 @@ class FilesystemDisplay {
 
         this.render = async (originBlockList, isDiskView) => {
             // Work on a clone of the blocklist to avoid altering fsDisp.cwd
-            let blockList = JSON.parse(JSON.stringify(originBlockList));
+            let blockList = structuredClone(originBlockList);
 
             if (this.failed === true) return false;
 
@@ -331,23 +330,21 @@ class FilesystemDisplay {
                         cmd = 'window.term[window.currentTerm].writelr("cd ..")';
                     } else if (e.type === "disk" || e.type === "rom" || e.type === "usb") {
                         if (eDEX.platform === "win32") {
-                            cmd = `window.term[window.currentTerm].writelr("${e.path.replace(/\\/g, "")}")`;
+                            cmd = `window.term[window.currentTerm].writelr("${e.path.replaceAll("\\", "")}")`;
                         } else {
-                            cmd = `window.term[window.currentTerm].writelr("cd \\"${e.path.replace(/\\/g, "")}\\"")`;
+                            cmd = `window.term[window.currentTerm].writelr("cd \\"${e.path.replaceAll("\\", "")}\\"")`;
                         }
                     } else {
                         cmd = `window.term[window.currentTerm].write("\\""+fsDisp.cwd[${blockIndex}].path+"\\"")`;
                     }
+                } else if (e.type === "dir" || e.type.endsWith("Dir")) {
+                    cmd = `window.fsDisp.readFS(fsDisp.cwd[${blockIndex}].path)`;
+                } else if (e.type === "up") {
+                    cmd = 'window.fsDisp.readFS(window.eDEX.path.resolve(window.fsDisp.dirpath, ".."))';
+                } else if (e.type === "disk" || e.type === "rom" || e.type === "usb") {
+                    cmd = `window.fsDisp.readFS("${e.path.replaceAll("\\", "")}")`;
                 } else {
-                    if (e.type === "dir" || e.type.endsWith("Dir")) {
-                        cmd = `window.fsDisp.readFS(fsDisp.cwd[${blockIndex}].path)`;
-                    } else if (e.type === "up") {
-                        cmd = 'window.fsDisp.readFS(window.eDEX.path.resolve(window.fsDisp.dirpath, ".."))';
-                    } else if (e.type === "disk" || e.type === "rom" || e.type === "usb") {
-                        cmd = `window.fsDisp.readFS("${e.path.replace(/\\/g, "")}")`;
-                    } else {
-                        cmd = `window.term[window.currentTerm].write("\\""+fsDisp.cwd[${blockIndex}].path+"\\"")`;
-                    }
+                    cmd = `window.term[window.currentTerm].write("\\""+fsDisp.cwd[${blockIndex}].path+"\\"")`;
                 }
 
                 if (e.type === "file") {
@@ -435,13 +432,13 @@ class FilesystemDisplay {
                     default: {
                         let iconName = this.fileIconsMatcher(e.name);
                         icon = this.icons[iconName];
-                        if (typeof icon === "undefined") {
+                        if (icon === undefined) {
                             if (e.type === "file") icon = this.icons.file;
                             if (e.type === "dir") {
                                 icon = this.icons.dir;
                                 type = "folder";
                             }
-                            if (typeof icon === "undefined") icon = this.icons.other;
+                            if (icon === undefined) icon = this.icons.other;
                         } else if (e.category !== "dir") {
                             type = iconName.replace("icon-", "");
                         } else {
@@ -497,7 +494,7 @@ class FilesystemDisplay {
                 let e = this.filesContainer.childNodes[id];
                 e.setAttribute("class", e.className.replace(" animationWait", ""));
 
-                if (window.settings.hideDotfiles !== true || e.className.indexOf("hidden") === -1) {
+                if (window.settings.hideDotfiles !== true || !e.className.includes("hidden")) {
                     window.audioManager.folder.play();
                     await _delay(30);
                 }
@@ -535,10 +532,10 @@ class FilesystemDisplay {
                 fsBlock.mount.length < 18 ? fsBlock.mount : "..." + splitter + fsBlock.mount.split(splitter).pop();
 
             // See #226
-            if (!isNaN(fsBlock.use)) {
+            if (!Number.isNaN(fsBlock.use)) {
                 this.space_bar.text.innerHTML = `Mount <strong>${displayMount}</strong> used <strong>${Math.round(fsBlock.use)}%</strong>`;
                 this.space_bar.bar.value = Math.round(fsBlock.use);
-            } else if (!isNaN((fsBlock.size / fsBlock.used) * 100)) {
+            } else if (!Number.isNaN((fsBlock.size / fsBlock.used) * 100)) {
                 let usage = Math.round((fsBlock.size / fsBlock.used) * 100);
 
                 this.space_bar.text.innerHTML = `Mount <strong>${displayMount}</strong> used <strong>${usage}%</strong>`;
@@ -549,14 +546,6 @@ class FilesystemDisplay {
             }
         };
 
-        // Automatically start indexing supposed beginning CWD
-        // See #365
-        // ...except if we're hot-reloading, in which case this can mess up the rendering
-        // See #392
-        if (window.performance.navigation.type === 0) {
-            this.readFS(window.term[window.currentTerm].cwd || window.settings.cwd);
-        }
-
         this.openFile = async (name) => {
             //Might add text formatting at some point, not now though - Surge
             let block;
@@ -566,7 +555,7 @@ class FilesystemDisplay {
                 name = block.name;
             }
 
-            block.path = block.path.replace(/\\/g, "/");
+            block.path = block.path.replaceAll("\\", "/");
 
             let filetype = await eDEX.mime.lookup(name.split(".")[name.split(".").length - 1]);
             switch (filetype) {
@@ -604,26 +593,25 @@ class FilesystemDisplay {
                         title: _escapeHtml(name),
                         html: html,
                     });
-                    new DocReader({
-                        modalId: newModal.id,
-                        path: block.path,
-                    });
+                    // Constructor-only side effects, binds to DOM elements the Modal already created; no external reference needed.
+                    // prettier-ignore
+                    new DocReader({ modalId: newModal.id, path: block.path }); // NOSONAR
                     break;
                 }
                 default:
                     if ((await eDEX.mime.charset(filetype)) === "UTF-8") {
                         let data = await eDEX.fs.readFile(block.path, "utf-8").catch((err) => {
-                            new Modal({
-                                type: "info",
-                                title: "Failed to load file: " + block.path,
-                                html: String(err),
-                            });
+                            // Modal self-registers in window.modals[this.id], no local reference needed.
+                            // prettier-ignore
+                            new Modal({ type: "info", title: "Failed to load file: " + block.path, html: String(err) }); // NOSONAR
                             console.log(err);
                         });
-                        if (typeof data === "undefined") break;
+                        if (data === undefined) break;
 
                         window.keyboard.detach();
-                        new Modal(
+                        // Modal self-registers in window.modals[this.id], no local reference needed.
+                        // prettier-ignore
+                        new Modal( // NOSONAR
                             {
                                 type: "custom",
                                 title: _escapeHtml(name),
@@ -648,7 +636,7 @@ class FilesystemDisplay {
                 name = block.name;
             }
 
-            block.path = block.path.replace(/\\/g, "/");
+            block.path = block.path.replaceAll("\\", "/");
 
             switch (type || block.type) {
                 case "image":
@@ -733,13 +721,21 @@ class FilesystemDisplay {
                 html,
             });
             if (block.type === "audio" || block.type === "video") {
-                new MediaPlayer({
-                    modalId: newModal.id,
-                    path: block.path,
-                    type: block.type,
-                });
+                // Constructor-only side effects, binds to DOM elements the Modal already created; no external reference needed.
+                // prettier-ignore
+                new MediaPlayer({ modalId: newModal.id, path: block.path, type: block.type }); // NOSONAR
             }
         };
+    }
+
+    // Automatically start indexing supposed beginning CWD (see #365), except
+    // if we're hot-reloading, in which case this can mess up the rendering
+    // (see #392). readFS() is async - callers should call this right after
+    // construction.
+    start() {
+        if (window.performance.getEntriesByType("navigation")[0]?.type === "navigate") {
+            return this.readFS(window.term[window.currentTerm].cwd || window.settings.cwd);
+        }
     }
 }
 
