@@ -16,6 +16,79 @@ function formatRuntime(ms) {
     return `${days < 10 ? "0" : ""}${days}:${hours < 10 ? "0" : ""}${hours}:${minutes < 10 ? "0" : ""}${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
 }
 
+// Collapses same-named entries (a process's individual threads, when
+// systeminformation reports them separately) into one, summing their cpu/mem.
+// Shared by updateList() and processList()'s updateProcessList().
+function dedupeProcesses(list) {
+    return list
+        .sort((a, b) => a.pid - b.pid)
+        .filter((e, index, a) => {
+            let i = a.findIndex((x) => x.name === e.name);
+            if (i !== -1 && i !== index) {
+                a[i].cpu = a[i].cpu + e.cpu;
+                a[i].mem = a[i].mem + e.mem;
+                return false;
+            }
+            return true;
+        });
+}
+
+// The sort comparator backing processList()'s sortable column headers.
+function compareProcesses(a, b, sortKey, ascending) {
+    switch (sortKey) {
+        case "PID":
+            if (ascending) return a.pid - b.pid;
+            else return b.pid - a.pid;
+        case "Name":
+            if (ascending) {
+                if (a.name > b.name) return -1;
+                if (a.name < b.name) return 1;
+                return 0;
+            } else {
+                if (a.name < b.name) return -1;
+                if (a.name > b.name) return 1;
+                return 0;
+            }
+        case "User":
+            if (ascending) {
+                if (a.user > b.user) return -1;
+                if (a.user < b.user) return 1;
+                return 0;
+            } else {
+                if (a.user < b.user) return -1;
+                if (a.user > b.user) return 1;
+                return 0;
+            }
+        case "CPU":
+            if (ascending) return a.cpu - b.cpu;
+            else return b.cpu - a.cpu;
+        case "Memory":
+            if (ascending) return a.mem - b.mem;
+            else return b.mem - a.mem;
+        case "State":
+            if (a.state < b.state) return -1;
+            if (a.state > b.state) return 1;
+            return 0;
+        case "Started":
+            if (ascending) return Date.parse(a.started) - Date.parse(b.started);
+            else return Date.parse(b.started) - Date.parse(a.started);
+        case "Runtime":
+            if (ascending) return a.runtime - b.runtime;
+            else return b.runtime - a.runtime;
+        default:
+            // default to the same sorting as the toplist
+            return (b.cpu - a.cpu) * 100 + b.mem - a.mem;
+    }
+}
+
+// Resets every sortable column header's sort-direction arrow. Used before
+// (re-)applying the arrow to the column that was just clicked.
+function clearHeaderArrows(headers) {
+    for (let header of headers) {
+        header.textContent = header.textContent.replace("▲", "").replace("▼", "");
+    }
+}
+
 class Toplist {
     constructor(parentId) {
         if (!parentId) throw new Error("Missing parameters");
@@ -43,19 +116,7 @@ class Toplist {
         this.currentlyUpdating = true;
         window.si.processes().then((data) => {
             if (window.settings.excludeThreadsFromToplist === true) {
-                data.list = data.list
-                    .sort((a, b) => {
-                        return a.pid - b.pid;
-                    })
-                    .filter((e, index, a) => {
-                        let i = a.findIndex((x) => x.name === e.name);
-                        if (i !== -1 && i !== index) {
-                            a[i].cpu = a[i].cpu + e.cpu;
-                            a[i].mem = a[i].mem + e.mem;
-                            return false;
-                        }
-                        return true;
-                    });
+                data.list = dedupeProcesses(data.list);
             }
 
             let list = data.list
@@ -104,19 +165,7 @@ class Toplist {
             currentlyUpdating = true;
             window.si.processes().then((data) => {
                 if (window.settings.excludeThreadsFromToplist === true) {
-                    data.list = data.list
-                        .sort((a, b) => {
-                            return a.pid - b.pid;
-                        })
-                        .filter((e, index, a) => {
-                            let i = a.findIndex((x) => x.name === e.name);
-                            if (i !== -1 && i !== index) {
-                                a[i].cpu = a[i].cpu + e.cpu;
-                                a[i].mem = a[i].mem + e.mem;
-                                return false;
-                            }
-                            return true;
-                        });
+                    data.list = dedupeProcesses(data.list);
                 }
 
                 data.list.forEach((proc) => {
@@ -124,52 +173,7 @@ class Toplist {
                 });
 
                 currentlyUpdating = false;
-                let list = data.list.sort((a, b) => {
-                    switch (sortKey) {
-                        case "PID":
-                            if (ascending) return a.pid - b.pid;
-                            else return b.pid - a.pid;
-                        case "Name":
-                            if (ascending) {
-                                if (a.name > b.name) return -1;
-                                if (a.name < b.name) return 1;
-                                return 0;
-                            } else {
-                                if (a.name < b.name) return -1;
-                                if (a.name > b.name) return 1;
-                                return 0;
-                            }
-                        case "User":
-                            if (ascending) {
-                                if (a.user > b.user) return -1;
-                                if (a.user < b.user) return 1;
-                                return 0;
-                            } else {
-                                if (a.user < b.user) return -1;
-                                if (a.user > b.user) return 1;
-                                return 0;
-                            }
-                        case "CPU":
-                            if (ascending) return a.cpu - b.cpu;
-                            else return b.cpu - a.cpu;
-                        case "Memory":
-                            if (ascending) return a.mem - b.mem;
-                            else return b.mem - a.mem;
-                        case "State":
-                            if (a.state < b.state) return -1;
-                            if (a.state > b.state) return 1;
-                            return 0;
-                        case "Started":
-                            if (ascending) return Date.parse(a.started) - Date.parse(b.started);
-                            else return Date.parse(b.started) - Date.parse(a.started);
-                        case "Runtime":
-                            if (ascending) return a.runtime - b.runtime;
-                            else return b.runtime - a.runtime;
-                        default:
-                            // default to the same sorting as the toplist
-                            return (b.cpu - a.cpu) * 100 + b.mem - a.mem;
-                    }
-                });
+                let list = data.list.sort((a, b) => compareProcesses(a, b, sortKey, ascending));
 
                 if (removed) clearInterval(updateInterval);
                 else {
@@ -228,9 +232,7 @@ class Toplist {
         for (let header of headers) {
             let title = header.textContent;
             header.addEventListener("click", () => {
-                for (let header of headers) {
-                    header.textContent = header.textContent.replace("\u25B2", "").replace("\u25BC", "");
-                }
+                clearHeaderArrows(headers);
                 setSortKey(title);
                 if (sortKey) {
                     header.textContent = `${title}${ascending ? "\u25B2" : "\u25BC"}`;
