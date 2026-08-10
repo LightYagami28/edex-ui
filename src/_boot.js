@@ -57,10 +57,19 @@ const innerFontsDir = path.join(__dirname, "assets/fonts");
 if (process.env.http_proxy) delete process.env.http_proxy;
 if (process.env.https_proxy) delete process.env.https_proxy;
 
-// Bypass GPU acceleration blocklist, trading a bit of stability for a great deal of performance, mostly on Linux
-app.commandLine.appendSwitch("ignore-gpu-blocklist");
-app.commandLine.appendSwitch("enable-gpu-rasterization");
-app.commandLine.appendSwitch("enable-video-decode");
+// Bypass GPU acceleration blocklist, trading a bit of stability for a great
+// deal of performance, mostly on Linux. NOT applied on Windows: Chromium's
+// blocklist exists to catch genuinely broken driver/GPU combos, and forcing
+// it off there is what causes some AMD driver versions to hard-fail
+// DirectComposition (ui\gl\direct_composition_support.cc:
+// "AMD VideoProcessorGetOutputExtension failed") - the window is created but
+// never actually gets anything composited onto it, i.e. a black window.
+// Windows' default (blocklist-respecting) GPU path doesn't hit this.
+if (process.platform !== "win32") {
+    app.commandLine.appendSwitch("ignore-gpu-blocklist");
+    app.commandLine.appendSwitch("enable-gpu-rasterization");
+    app.commandLine.appendSwitch("enable-video-decode");
+}
 
 // Fix userData folder not setup on Windows
 try {
