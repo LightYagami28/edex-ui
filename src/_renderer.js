@@ -42,7 +42,7 @@ const path = eDEX.path;
 
 // eslint-disable-next-line no-unused-vars -- settingsDir is read by filesystem.class.js via the shared classic-script top-level scope
 let settingsDir, themesDir, keyboardsDir, fontsDir, settingsFile, shortcutsFile, lastWindowStateFile;
-let appVersion;
+let appVersion, electronVersion;
 
 // Load UI theme
 window._loadTheme = (theme) => {
@@ -459,7 +459,7 @@ async function initUI() {
         if (window.keyboard.linkedToTerm) window.term[window.currentTerm].term.focus();
     };
     window.term[0].term.writeln(
-        "\033[1m" + `Welcome to eDEX-UI v${appVersion} - Electron v${process.versions.electron}` + "\033[0m"
+        "\x1b[1m" + `Welcome to eDEX-UI v${appVersion} - Electron v${electronVersion}` + "\x1b[0m"
     );
 
     await _delay(100);
@@ -1161,6 +1161,7 @@ eDEX.win.onLeaveFullScreen(() => {
     lastWindowStateFile = paths.lastWindowStateFile;
 
     appVersion = await eDEX.app.getVersion();
+    electronVersion = await eDEX.app.getElectronVersion();
 
     // Load config
     window.settings = await eDEX.config.getSettings();
