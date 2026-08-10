@@ -51,6 +51,10 @@
   "optionalDependencies": {
     "osx-temperature-sensor": "1.0.8"
   },
+  "overrides": {
+    "undici": "8.10.0",
+    "brace-expansion": "5.0.9"
+  },
   "allowScripts": {
     "node-pty@1.1.0": true
   }
