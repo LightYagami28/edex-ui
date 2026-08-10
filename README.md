@@ -85,7 +85,7 @@ Sadly, this is technically impossible to do on Windows right now, so the file br
 #### Can this run on a Raspberry Pi / ARM device?
 We provide prebuilt arm64 builds. For other platforms, see [this issue comment](https://github.com/GitSquared/edex-ui/issues/313#issuecomment-443465345), and the thread on issue [#818](https://github.com/GitSquared/edex-ui/issues/818).
 #### Is this repo actively maintained?
-No, after a 3 years run, this project has been archived. See the [announcement](https://github.com/GitSquared/edex-ui/releases/tag/v2.2.8).
+The original upstream project ([GitSquared/edex-ui](https://github.com/GitSquared/edex-ui)) was archived after a 3 year run — see the [announcement](https://github.com/GitSquared/edex-ui/releases/tag/v2.2.8). This fork keeps it alive: dependencies, CI/CD, and security scanning are actively maintained here.
 #### How did you make this?
 Glad you're interested! See [#272](https://github.com/GitSquared/edex-ui/issues/272).
 #### This is so cool.
@@ -140,6 +140,10 @@ To report security vulnerabilities, see [SECURITY.md](SECURITY.md).
 ## Useful commands for the nerds
 
 **IMPORTANT NOTE:** the following instructions are meant for running eDEX from the latest unoptimized, unreleased, development version. If you'd like to get stable software instead, refer to [these](#how-do-i-get-it) instructions.
+
+#### Requirements
+- **Node.js ≥ 22.12** (this repo is developed and tested against **Node.js 26.7.0**; older versions are not supported by the current dependency tree)
+- npm (bundled with Node.js) kept at its latest version — run `npm i -g npm@latest` if in doubt
 
 #### Starting from source:
 on *nix systems (You'll need the Xcode command line tools on macOS):
