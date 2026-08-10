@@ -103,13 +103,16 @@ class LocationGlobe {
             };
 
             // Add random satellites
+            // Math.random() here is purely decorative (jitters where the
+            // satellite dots sit on the globe visualization) - no security or
+            // fairness property depends on it, so a CSPRNG would be pointless.
             let constellation = [];
             for (let i = 0; i < 2; i++) {
                 for (let j = 0; j < 3; j++) {
                     constellation.push({
-                        lat: 50 * i - 30 + 15 * Math.random(),
+                        lat: 50 * i - 30 + 15 * Math.random(), // NOSONAR
                         lon: 120 * j - 120 + 30 * i,
-                        altitude: Math.random() * (1.7 - 1.3) + 1.3,
+                        altitude: Math.random() * (1.7 - 1.3) + 1.3, // NOSONAR
                     });
                 }
             }
@@ -175,8 +178,10 @@ class LocationGlobe {
         });
         this.globe.pins = [];
     }
+    // Math.random() here is purely decorative (random lat/long used to jitter
+    // globe visuals) - no security or fairness property depends on it.
     getRandomInRange(from, to, fixed) {
-        return (Math.random() * (to - from) + from).toFixed(fixed) * 1;
+        return (Math.random() * (to - from) + from).toFixed(fixed) * 1; // NOSONAR
     }
     updateLoc() {
         if (window.mods.netstat.offline) {

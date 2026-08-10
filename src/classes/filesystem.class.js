@@ -298,16 +298,16 @@ class FilesystemDisplay {
         this._buildEntryCmd = (e, blockIndex) => {
             if (!this._noTracking) {
                 if (e.type === "dir" || e.type.endsWith("Dir")) {
-                    return `window.term[window.currentTerm].writelr("cd \\""+fsDisp.cwd[${blockIndex}].name+"\\"")`;
+                    return String.raw`window.term[window.currentTerm].writelr("cd \""+fsDisp.cwd[${blockIndex}].name+"\"")`;
                 } else if (e.type === "up") {
                     return 'window.term[window.currentTerm].writelr("cd ..")';
                 } else if (e.type === "disk" || e.type === "rom" || e.type === "usb") {
                     if (eDEX.platform === "win32") {
                         return `window.term[window.currentTerm].writelr("${e.path.replaceAll("\\", "")}")`;
                     }
-                    return `window.term[window.currentTerm].writelr("cd \\"${e.path.replaceAll("\\", "")}\\"")`;
+                    return String.raw`window.term[window.currentTerm].writelr("cd \"${e.path.replaceAll("\\", "")}\"")`;
                 }
-                return `window.term[window.currentTerm].write("\\""+fsDisp.cwd[${blockIndex}].path+"\\"")`;
+                return String.raw`window.term[window.currentTerm].write("\""+fsDisp.cwd[${blockIndex}].path+"\"")`;
             }
             if (e.type === "dir" || e.type.endsWith("Dir")) {
                 return `window.fsDisp.readFS(fsDisp.cwd[${blockIndex}].path)`;
@@ -316,7 +316,7 @@ class FilesystemDisplay {
             } else if (e.type === "disk" || e.type === "rom" || e.type === "usb") {
                 return `window.fsDisp.readFS("${e.path.replaceAll("\\", "")}")`;
             }
-            return `window.term[window.currentTerm].write("\\""+fsDisp.cwd[${blockIndex}].path+"\\"")`;
+            return String.raw`window.term[window.currentTerm].write("\""+fsDisp.cwd[${blockIndex}].path+"\"")`;
         };
 
         // Picks the icon and type label for one file-manager entry based on
@@ -399,11 +399,11 @@ class FilesystemDisplay {
         this._renderEntry = (e, blockIndex) => {
             let hidden = e.hidden ? " hidden" : "";
 
-            let cmdPrefix = `if (window.keyboard.container.dataset.isCtrlOn === "true") {
+            let cmdPrefix = String.raw`if (window.keyboard.container.dataset.isCtrlOn === "true") {
                             window.eDEX.shell.openPath(fsDisp.cwd[${blockIndex}].path);
                             window.eDEX.win.minimize();
                         } else if (window.keyboard.container.dataset.isShiftOn === "true") {
-                            window.term[window.currentTerm].write("\\""+fsDisp.cwd[${blockIndex}].path+"\\"");
+                            window.term[window.currentTerm].write("\""+fsDisp.cwd[${blockIndex}].path+"\"");
                         } else {
                       `.replace(/\n+ */g, ""); // Minify
 
@@ -579,9 +579,8 @@ class FilesystemDisplay {
             block.path = block.path.replaceAll("\\", "/");
 
             let filetype = await eDEX.mime.lookup(name.split(".")[name.split(".").length - 1]);
-            switch (filetype) {
-                case "application/pdf": {
-                    let html = `<div>
+            if (filetype === "application/pdf") {
+                let html = `<div>
                         <div class="pdf_options">
                             <button class="zoom_in">
                                 <svg viewBox="0 0 ${this.icons["zoom-in"].width} ${this.icons["zoom-in"].height}" fill="${this.iconcolor}">
@@ -609,43 +608,38 @@ class FilesystemDisplay {
                             <canvas class="pdf_canvas" />
                         </div>
                     </div>`;
-                    const newModal = new Modal({
-                        type: "custom",
-                        title: _escapeHtml(name),
-                        html: html,
-                    });
-                    // Constructor-only side effects, binds to DOM elements the Modal already created; no external reference needed.
+                const newModal = new Modal({
+                    type: "custom",
+                    title: _escapeHtml(name),
+                    html: html,
+                });
+                // Constructor-only side effects, binds to DOM elements the Modal already created; no external reference needed.
+                // prettier-ignore
+                new DocReader({ modalId: newModal.id, path: block.path }); // NOSONAR
+            } else if ((await eDEX.mime.charset(filetype)) === "UTF-8") {
+                let data = await eDEX.fs.readFile(block.path, "utf-8").catch((err) => {
+                    // Modal self-registers in window.modals[this.id], no local reference needed.
                     // prettier-ignore
-                    new DocReader({ modalId: newModal.id, path: block.path }); // NOSONAR
-                    break;
+                    new Modal({ type: "info", title: "Failed to load file: " + block.path, html: String(err) }); // NOSONAR
+                    console.log(err);
+                });
+                if (data !== undefined) {
+                    window.keyboard.detach();
+                    // Modal self-registers in window.modals[this.id], no local reference needed.
+                    // prettier-ignore
+                    new Modal( // NOSONAR
+                        {
+                            type: "custom",
+                            title: _escapeHtml(name),
+                            html: `<textarea id="fileEdit" rows="40" cols="150" spellcheck="false">${data}</textarea><p id="fedit-status"></p>`,
+                            buttons: [{ label: "Save to Disk", action: `window.writeFile('${block.path}')` }],
+                        },
+                        () => {
+                            window.keyboard.attach();
+                            window.term[window.currentTerm].term.focus();
+                        }
+                    );
                 }
-                default:
-                    if ((await eDEX.mime.charset(filetype)) === "UTF-8") {
-                        let data = await eDEX.fs.readFile(block.path, "utf-8").catch((err) => {
-                            // Modal self-registers in window.modals[this.id], no local reference needed.
-                            // prettier-ignore
-                            new Modal({ type: "info", title: "Failed to load file: " + block.path, html: String(err) }); // NOSONAR
-                            console.log(err);
-                        });
-                        if (data === undefined) break;
-
-                        window.keyboard.detach();
-                        // Modal self-registers in window.modals[this.id], no local reference needed.
-                        // prettier-ignore
-                        new Modal( // NOSONAR
-                            {
-                                type: "custom",
-                                title: _escapeHtml(name),
-                                html: `<textarea id="fileEdit" rows="40" cols="150" spellcheck="false">${data}</textarea><p id="fedit-status"></p>`,
-                                buttons: [{ label: "Save to Disk", action: `window.writeFile('${block.path}')` }],
-                            },
-                            () => {
-                                window.keyboard.attach();
-                                window.term[window.currentTerm].term.focus();
-                            }
-                        );
-                    }
-                    break;
             }
         };
 
