@@ -110,7 +110,7 @@
     "mime-types": "^2.1.35",
     "node-abi": "^4.31.0",
     "node-json-minify": "^3.0.0",
-    "terser": "^5.46.2"
+    "terser": "^5.48.0"
   },
   "devDependencies": {
     "eslint": "^10.2.1",
