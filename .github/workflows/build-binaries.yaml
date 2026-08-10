@@ -45,7 +45,7 @@ jobs:
     # linux-ia32 release asset at all (verified against the GitHub release
     # for the pinned Electron version - only x64/arm64/armv7l exist).
     - name: Build for x64
-      run: ./node_modules/.bin/electron-builder build -l --x64
+      run: ./node_modules/.bin/electron-builder build -l --x64 --publish never
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -98,7 +98,7 @@ jobs:
           -w "${{ github.workspace }}" \
           -e GH_TOKEN \
           arm64v8/node:26-bookworm \
-          bash -c "npm i -g npm@latest && npm install && ./node_modules/.bin/electron-builder build -l --arm64"
+          bash -c "npm i -g npm@latest && npm install && ./node_modules/.bin/electron-builder build -l --arm64 --publish never"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
