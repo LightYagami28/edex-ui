@@ -225,7 +225,7 @@
             "shift_cmd": "W",
             "ctrl_cmd": "~~~CTRLSEQ3~~~",
             "alt_name": "~",
-            "alt_cmd":"~"
+            "alt_cmd": "~"
         },
         {
             "name": "ENTER",

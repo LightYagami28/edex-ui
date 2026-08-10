@@ -22,7 +22,6 @@ class LocationGlobe {
         this.lastgeo = {};
         this.conns = [];
 
-
         setTimeout(() => {
             let container = document.getElementById("mod_globe_innercontainer");
             let placeholder = document.getElementById("mod_globe_canvas_placeholder");
@@ -35,14 +34,16 @@ class LocationGlobe {
                 baseColor: window.theme.globe.base || `rgb(${window.theme.r},${window.theme.g},${window.theme.b})`,
                 markerColor: window.theme.globe.marker || `rgb(${window.theme.r},${window.theme.g},${window.theme.b})`,
                 pinColor: window.theme.globe.pin || `rgb(${window.theme.r},${window.theme.g},${window.theme.b})`,
-                satelliteColor: window.theme.globe.satellite || `rgb(${window.theme.r},${window.theme.g},${window.theme.b})`,
+                satelliteColor:
+                    window.theme.globe.satellite || `rgb(${window.theme.r},${window.theme.g},${window.theme.b})`,
                 scale: 1.1,
-                viewAngle: 0.630,
+                viewAngle: 0.63,
                 dayLength: 1000 * 45,
                 introLinesDuration: 2000,
-                introLinesColor: window.theme.globe.marker || `rgb(${window.theme.r},${window.theme.g},${window.theme.b})`,
+                introLinesColor:
+                    window.theme.globe.marker || `rgb(${window.theme.r},${window.theme.g},${window.theme.b})`,
                 maxPins: 300,
-                maxMarkers: 100
+                maxMarkers: 100,
             });
 
             // Place Globe
@@ -58,7 +59,7 @@ class LocationGlobe {
                     setTimeout(() => {
                         try {
                             requestAnimationFrame(window.mods.globe._animate);
-                        } catch(e) {
+                        } catch (e) {
                             // We probably got caught in a theme change. Print it out but everything should keep running fine.
                             console.warn(e);
                         }
@@ -81,14 +82,14 @@ class LocationGlobe {
 
             // Connections
             this.conns = [];
-            this.addConn = ip => {
+            this.addConn = (ip) => {
                 let data = null;
                 try {
                     data = window.mods.netstat.geoLookup.get(ip);
                 } catch {
                     // do nothing
                 }
-                let geo = (data !== null ? data.location : {});
+                let geo = data !== null ? data.location : {};
                 if (geo.latitude && geo.longitude) {
                     const lat = Number(geo.latitude);
                     const lon = Number(geo.longitude);
@@ -98,20 +99,20 @@ class LocationGlobe {
                     });
                 }
             };
-            this.removeConn = ip => {
-                let index = this.conns.findIndex(x => x.ip === ip);
+            this.removeConn = (ip) => {
+                let index = this.conns.findIndex((x) => x.ip === ip);
                 this.conns[index].pin.remove();
                 this.conns.splice(index, 1);
             };
 
             // Add random satellites
             let constellation = [];
-            for (let i = 0; i< 2; i++){
-                for (let j = 0; j< 3; j++){
+            for (let i = 0; i < 2; i++) {
+                for (let j = 0; j < 3; j++) {
                     constellation.push({
                         lat: 50 * i - 30 + 15 * Math.random(),
                         lon: 120 * j - 120 + 30 * i,
-                        altitude: Math.random() * (1.7 - 1.3) + 1.3
+                        altitude: Math.random() * (1.7 - 1.3) + 1.3,
                     });
                 }
             }
@@ -141,14 +142,14 @@ class LocationGlobe {
     }
     addTemporaryConnectedMarker(ip) {
         let data = window.mods.netstat.geoLookup.get(ip);
-        let geo = (data !== null ? data.location : {});
+        let geo = data !== null ? data.location : {};
         if (geo.latitude && geo.longitude) {
             const lat = Number(geo.latitude);
             const lon = Number(geo.longitude);
 
             window.mods.globe.conns.push({
                 ip,
-                pin: window.mods.globe.globe.addPin(lat, lon, "", 1.2)
+                pin: window.mods.globe.globe.addPin(lat, lon, "", 1.2),
             });
             let mark = window.mods.globe.globe.addMarker(lat, lon, "", true);
             setTimeout(() => {
@@ -157,11 +158,13 @@ class LocationGlobe {
         }
     }
     removeMarkers() {
-        this.globe.markers.forEach(marker => { marker.remove(); });
+        this.globe.markers.forEach((marker) => {
+            marker.remove();
+        });
         this.globe.markers = [];
     }
     removePins() {
-        this.globe.pins.forEach(pin => {
+        this.globe.pins.forEach((pin) => {
             pin.remove();
         });
         this.globe.pins = [];
@@ -179,23 +182,24 @@ class LocationGlobe {
             this.conns = [];
             this.lastgeo = {
                 latitude: 0,
-                longitude: 0
+                longitude: 0,
             };
         } else {
-            this.updateConOnlineConnection().then(() => {
-                document.querySelector("div#mod_globe").setAttribute("class", "");
-            }).catch(() => {
-                document.querySelector("i.mod_globe_headerInfo").innerText = "UNKNOWN";
-            });
+            this.updateConOnlineConnection()
+                .then(() => {
+                    document.querySelector("div#mod_globe").setAttribute("class", "");
+                })
+                .catch(() => {
+                    document.querySelector("i.mod_globe_headerInfo").innerText = "UNKNOWN";
+                });
         }
     }
     async updateConOnlineConnection() {
         let newgeo = window.mods.netstat.ipinfo.geo;
-        newgeo.latitude = Math.round(newgeo.latitude*10000)/10000;
-        newgeo.longitude = Math.round(newgeo.longitude*10000)/10000;
+        newgeo.latitude = Math.round(newgeo.latitude * 10000) / 10000;
+        newgeo.longitude = Math.round(newgeo.longitude * 10000) / 10000;
 
         if (newgeo.latitude !== this.lastgeo.latitude || newgeo.longitude !== this.lastgeo.longitude) {
-
             document.querySelector("i.mod_globe_headerInfo").innerText = `${newgeo.latitude}, ${newgeo.longitude}`;
             this.removePins();
             this.removeMarkers();
@@ -211,9 +215,9 @@ class LocationGlobe {
     }
     updateConns() {
         if (!window.mods.globe.globe || window.mods.netstat.offline) return false;
-        window.si.networkConnections().then(conns => {
+        window.si.networkConnections().then((conns) => {
             let newconns = [];
-            conns.forEach(conn => {
+            conns.forEach((conn) => {
                 let ip = conn.peeraddress;
                 let state = conn.state;
                 if (state === "ESTABLISHED" && ip !== "0.0.0.0" && ip !== "127.0.0.1" && ip !== "::") {
@@ -221,7 +225,7 @@ class LocationGlobe {
                 }
             });
 
-            this.conns.forEach(conn => {
+            this.conns.forEach((conn) => {
                 if (newconns.indexOf(conn.ip) !== -1) {
                     newconns.splice(newconns.indexOf(conn.ip), 1);
                 } else {
@@ -229,7 +233,7 @@ class LocationGlobe {
                 }
             });
 
-            newconns.forEach(ip => {
+            newconns.forEach((ip) => {
                 this.addConn(ip);
             });
         });
@@ -237,5 +241,5 @@ class LocationGlobe {
 }
 
 module.exports = {
-    LocationGlobe
+    LocationGlobe,
 };

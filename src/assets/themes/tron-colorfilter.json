@@ -19,11 +19,7 @@
         "cursor": "#aacfd1",
         "cursorAccent": "#aacfd1",
         "selection": "rgba(170,207,209,0.3)",
-        "colorFilter": [
-            "rotate(180)",
-            "saturate(0.5)",
-            "mix(0.7)"
-        ]
+        "colorFilter": ["rotate(180)", "saturate(0.5)", "mix(0.7)"]
     },
     "globe": {
         "base": "#000000",

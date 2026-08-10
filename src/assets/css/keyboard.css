@@ -23,19 +23,29 @@ div.keyboard_row {
 }
 
 section#keyboard.animation_state_2 > div.keyboard_row:nth-child(1) {
-    transition: width .7s cubic-bezier(0.4, 0, 1, 1) .3s, filter .1s linear .8s;
+    transition:
+        width 0.7s cubic-bezier(0.4, 0, 1, 1) 0.3s,
+        filter 0.1s linear 0.8s;
 }
 section#keyboard.animation_state_2 > div.keyboard_row:nth-child(2) {
-    transition: width .7s cubic-bezier(0.4, 0, 1, 1) .2s, filter .1s linear .6s;
+    transition:
+        width 0.7s cubic-bezier(0.4, 0, 1, 1) 0.2s,
+        filter 0.1s linear 0.6s;
 }
 section#keyboard.animation_state_2 > div.keyboard_row:nth-child(3) {
-    transition: width .7s cubic-bezier(0.4, 0, 1, 1), filter .1s linear .5s;
+    transition:
+        width 0.7s cubic-bezier(0.4, 0, 1, 1),
+        filter 0.1s linear 0.5s;
 }
 section#keyboard.animation_state_2 > div.keyboard_row:nth-child(4) {
-    transition: width .7s cubic-bezier(0.4, 0, 1, 1) .25s, filter .1s linear .8s;
+    transition:
+        width 0.7s cubic-bezier(0.4, 0, 1, 1) 0.25s,
+        filter 0.1s linear 0.8s;
 }
 section#keyboard.animation_state_2 > div.keyboard_row:nth-child(5) {
-    transition: width .6s cubic-bezier(0.4, 0, 1, 1) .2s, filter .1s linear .6s;
+    transition:
+        width 0.6s cubic-bezier(0.4, 0, 1, 1) 0.2s,
+        filter 0.1s linear 0.6s;
 }
 
 section#keyboard.animation_state_1 > * {
@@ -60,8 +70,8 @@ div.keyboard_key {
     min-width: 2.7vw;
     overflow: hidden;
     border-radius: 0.46vh;
-    background-color: rgba(var(--color_r), var(--color_g), var(--color_b), 0.0);
-    border: 0.18vh solid rgba(var(--color_r), var(--color_g), var(--color_b), 0.0);
+    background-color: rgba(var(--color_r), var(--color_g), var(--color_b), 0);
+    border: 0.18vh solid rgba(var(--color_r), var(--color_g), var(--color_b), 0);
     margin: 0vh 0.46vh;
     display: flex;
     align-items: center;
@@ -70,22 +80,29 @@ div.keyboard_key {
     cursor: pointer;
 }
 
-section#keyboard:not([data-password-mode="true"]) div.keyboard_key:active, section#keyboard:not([data-password-mode="true"]) div.keyboard_key.active {
-    border: 0.18vh solid rgba(var(--color_r), var(--color_g), var(--color_b), 0.0);
+section#keyboard:not([data-password-mode="true"]) div.keyboard_key:active,
+section#keyboard:not([data-password-mode="true"]) div.keyboard_key.active {
+    border: 0.18vh solid rgba(var(--color_r), var(--color_g), var(--color_b), 0);
     background-color: rgba(var(--color_r), var(--color_g), var(--color_b), 1);
 }
 
 section#keyboard:not([data-password-mode="true"]) div.keyboard_key.blink {
     animation-name: blink;
-    animation-duration: .5s;
+    animation-duration: 0.5s;
     animation-iteration-count: infinite;
     animation-timing-function: linear;
 }
 
 @keyframes blink {
-    0% {background-color: rgba(var(--color_r), var(--color_g), var(--color_b), 0.0);}
-    50% {background-color: rgba(var(--color_r), var(--color_g), var(--color_b), 1);}
-    100% {background-color: rgba(var(--color_r), var(--color_g), var(--color_b), 0.0);}
+    0% {
+        background-color: rgba(var(--color_r), var(--color_g), var(--color_b), 0);
+    }
+    50% {
+        background-color: rgba(var(--color_r), var(--color_g), var(--color_b), 1);
+    }
+    100% {
+        background-color: rgba(var(--color_r), var(--color_g), var(--color_b), 0);
+    }
 }
 
 div.keyboard_key > * {
@@ -95,24 +112,30 @@ div.keyboard_key > * {
     -webkit-margin-before: 0vh;
 }
 
-div.keyboard_key > h1, div.keyboard_key > h4, div.keyboard_row > .keyboard_key:last-child > *, div.keyboard_row > .keyboard_key:first-child > * {
+div.keyboard_key > h1,
+div.keyboard_key > h4,
+div.keyboard_row > .keyboard_key:last-child > *,
+div.keyboard_row > .keyboard_key:first-child > * {
     position: relative;
     top: 0.278vh;
     font-size: 2.4vh;
 }
 
-div.keyboard_row:not(:nth-child(4)) > .keyboard_key:last-child > *, div.keyboard_row > .keyboard_key:first-child > *, div.keyboard_row:last-child > .keyboard_key > *, div.keyboard_row:nth-child(4) > .keyboard_key:nth-last-child(2) > * {
+div.keyboard_row:not(:nth-child(4)) > .keyboard_key:last-child > *,
+div.keyboard_row > .keyboard_key:first-child > *,
+div.keyboard_row:last-child > .keyboard_key > *,
+div.keyboard_row:nth-child(4) > .keyboard_key:nth-last-child(2) > * {
     font-size: 1.85vh;
 }
 
-div.keyboard_row:last-child > .keyboard_key:nth-last-child(-n+3) > * {
+div.keyboard_row:last-child > .keyboard_key:nth-last-child(-n + 3) > * {
     font-size: 2.4vh;
 }
 
 div.keyboard_key > svg {
     width: calc(100% - 1vh);
     height: calc(100% - 1vh);
-    top: .5vh !important;
+    top: 0.5vh !important;
     opacity: 1 !important;
     fill: rgb(var(--color_r), var(--color_g), var(--color_b));
 }
@@ -138,12 +161,15 @@ div.keyboard_key > h5 {
     right: 0.278vh;
 }
 
-div.keyboard_key > h4, div.keyboard_row > .keyboard_key:last-child > *:not(h1), div.keyboard_row > .keyboard_key:first-child > *:not(h1) {
+div.keyboard_key > h4,
+div.keyboard_row > .keyboard_key:last-child > *:not(h1),
+div.keyboard_row > .keyboard_key:first-child > *:not(h1) {
     opacity: 0;
     position: absolute;
 }
 
-div.keyboard_row:not(:nth-child(4)):not(:last-child) > .keyboard_key:last-child, div.keyboard_row > .keyboard_key:first-child {
+div.keyboard_row:not(:nth-child(4)):not(:last-child) > .keyboard_key:last-child,
+div.keyboard_row > .keyboard_key:first-child {
     width: 8.33vh;
     min-width: 8.33vh;
 }
@@ -171,7 +197,8 @@ div.keyboard_row#row_2 > div.keyboard_enter {
     right: -1vh;
 }
 
-div.keyboard_row#row_2 > div.keyboard_enter:active, div.keyboard_row#row_2 > div.keyboard_enter.active {
+div.keyboard_row#row_2 > div.keyboard_enter:active,
+div.keyboard_row#row_2 > div.keyboard_enter.active {
     border-top: 0.3vh solid rgb(var(--color_r), var(--color_g), var(--color_b));
 }
 
@@ -186,7 +213,7 @@ div.keyboard_row:nth-child(4) > div.keyboard_key:last-child {
     top: 0.278vh;
 }
 
-div.keyboard_row:last-child > div.keyboard_key:nth-last-child(-n+3) {
+div.keyboard_row:last-child > div.keyboard_key:nth-last-child(-n + 3) {
     margin: 0vh;
     position: relative;
     bottom: 0.278vh;
@@ -197,19 +224,22 @@ section#keyboard[data-is-caps-lck-on="true"] div.keyboard_key[data-cmd="ESCAPED|
     color: var(--color_black);
 }
 
-section#keyboard[data-is-shift-on="true"] > div.keyboard_row > div.keyboard_key > h2:not(:empty), section#keyboard[data-is-caps-lck-on="true"] > div.keyboard_row > div.keyboard_key > h2:not(:empty) {
+section#keyboard[data-is-shift-on="true"] > div.keyboard_row > div.keyboard_key > h2:not(:empty),
+section#keyboard[data-is-caps-lck-on="true"] > div.keyboard_row > div.keyboard_key > h2:not(:empty) {
     position: relative;
     top: 0.278vh;
     font-size: 2.4vh;
     margin: 0vh 0.46vh;
 }
 
-section#keyboard[data-is-shift-on="true"] > div.keyboard_row:first-child > div.keyboard_key:last-child > h2, section#keyboard[data-is-caps-lck-on="true"] > div.keyboard_row:first-child > div.keyboard_key:last-child > h2 {
+section#keyboard[data-is-shift-on="true"] > div.keyboard_row:first-child > div.keyboard_key:last-child > h2,
+section#keyboard[data-is-caps-lck-on="true"] > div.keyboard_row:first-child > div.keyboard_key:last-child > h2 {
     font-size: 1.85vh;
     opacity: 1;
 }
 
-section#keyboard[data-is-shift-on="true"] > div.keyboard_row > div.keyboard_key > h2:not(:empty) + h1, section#keyboard[data-is-caps-lck-on="true"] > div.keyboard_row > div.keyboard_key > h2:not(:empty) + h1 {
+section#keyboard[data-is-shift-on="true"] > div.keyboard_row > div.keyboard_key > h2:not(:empty) + h1,
+section#keyboard[data-is-caps-lck-on="true"] > div.keyboard_row > div.keyboard_key > h2:not(:empty) + h1 {
     margin: 0vh;
     font-size: 1.67vh;
     position: absolute;
@@ -217,10 +247,10 @@ section#keyboard[data-is-shift-on="true"] > div.keyboard_row > div.keyboard_key 
     left: 0.278vh;
 }
 
-section#keyboard[data-is-shift-on="true"] > div.keyboard_row:first-child > div.keyboard_key:last-child > h2 + h1, section#keyboard[data-is-caps-lck-on="true"] > div.keyboard_row:first-child > div.keyboard_key:last-child > h2 + h1 {
+section#keyboard[data-is-shift-on="true"] > div.keyboard_row:first-child > div.keyboard_key:last-child > h2 + h1,
+section#keyboard[data-is-caps-lck-on="true"] > div.keyboard_row:first-child > div.keyboard_key:last-child > h2 + h1 {
     opacity: 0;
 }
-
 
 section#keyboard[data-is-fn-on="true"] div.keyboard_key[data-cmd="ESCAPED|-- FN: ON"] {
     background-color: rgb(var(--color_r), var(--color_g), var(--color_b));
@@ -235,7 +265,9 @@ section#keyboard[data-is-fn-on="true"] > div.keyboard_row > div.keyboard_key > h
     opacity: 1;
 }
 
-section#keyboard[data-is-fn-on="true"] > div.keyboard_row > div.keyboard_key > h4:not(:empty) + h3, section#keyboard[data-is-fn-on="true"] > div.keyboard_row > div.keyboard_key > h4:not(:empty) + h3 + h2, section#keyboard[data-is-fn-on="true"] > div.keyboard_row > div.keyboard_key > h4:not(:empty) + h3 + h2 + h1 {
+section#keyboard[data-is-fn-on="true"] > div.keyboard_row > div.keyboard_key > h4:not(:empty) + h3,
+section#keyboard[data-is-fn-on="true"] > div.keyboard_row > div.keyboard_key > h4:not(:empty) + h3 + h2,
+section#keyboard[data-is-fn-on="true"] > div.keyboard_row > div.keyboard_key > h4:not(:empty) + h3 + h2 + h1 {
     position: absolute;
     opacity: 0;
 }
