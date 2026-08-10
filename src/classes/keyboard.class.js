@@ -2,7 +2,15 @@ class Keyboard {
     constructor(opts) {
         if (!opts.layout || !opts.container) throw "Missing options";
 
-        const layout = JSON.parse(require("fs").readFileSync(opts.layout, { encoding: "utf-8" }));
+        // Layout files are now loaded through the main process (see
+        // ipc-handlers.js), which is inherently async - callers should
+        // `await keyboard.ready` before relying on the on-screen keyboard
+        // being fully built.
+        this.ready = this._init(opts);
+    }
+
+    async _init(opts) {
+        const layout = await window.eDEX.config.getKeyboardLayout(opts.layout);
         this.ctrlseq = ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""];
         this.container = document.getElementById(opts.container);
 

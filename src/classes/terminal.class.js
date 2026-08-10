@@ -3,12 +3,12 @@ class Terminal {
         if (opts.role === "client") {
             if (!opts.parentId) throw "Missing options";
 
-            this.xTerm = require("@xterm/xterm").Terminal;
-            const { AttachAddon } = require("@xterm/addon-attach");
-            const { FitAddon } = require("@xterm/addon-fit");
-            const { LigaturesAddon } = require("@xterm/addon-ligatures");
-            const { WebglAddon } = require("@xterm/addon-webgl");
-            this.Ipc = require("electron").ipcRenderer;
+            this.xTerm = window.XTerm.Terminal;
+            const { AttachAddon } = window.XTermAddonAttach;
+            const { FitAddon } = window.XTermAddonFit;
+            const { LigaturesAddon } = window.XTermAddonLigatures;
+            const { WebglAddon } = window.XTermAddonWebgl;
+            this.Ipc = window.eDEX.ipc;
 
             this.port = opts.port || 3000;
             this.cwd = "";
@@ -311,8 +311,8 @@ class Terminal {
                     this.term.clearSelection();
                     this.clipboard.didCopy = true;
                 },
-                paste: () => {
-                    this.write(remote.clipboard.readText());
+                paste: async () => {
+                    this.write(await window.eDEX.clipboard.readText());
                     this.clipboard.didCopy = false;
                 },
                 didCopy: false,

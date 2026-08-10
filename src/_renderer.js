@@ -36,56 +36,12 @@ window.onerror = (msg, path, line, col, error) => {
     document.getElementById("boot_screen").innerHTML += `${error} :  ${msg}<br/>==> at ${path}  ${line}:${col}`;
 };
 
-const path = require("path");
-const fs = require("fs");
-const electron = require("electron");
-const remote = require("@electron/remote");
-const ipc = electron.ipcRenderer;
+const eDEX = window.eDEX;
+const ipc = eDEX.ipc;
+const path = eDEX.path;
 
-const settingsDir = remote.app.getPath("userData");
-const themesDir = path.join(settingsDir, "themes");
-const keyboardsDir = path.join(settingsDir, "keyboards");
-const fontsDir = path.join(settingsDir, "fonts");
-const settingsFile = path.join(settingsDir, "settings.json");
-const shortcutsFile = path.join(settingsDir, "shortcuts.json");
-const lastWindowStateFile = path.join(settingsDir, "lastWindowState.json");
-
-// Load config
-window.settings = require(settingsFile);
-window.shortcuts = require(shortcutsFile);
-window.lastWindowState = require(lastWindowStateFile);
-
-// Load CLI parameters
-if (remote.process.argv.includes("--nointro")) {
-    window.settings.nointroOverride = true;
-} else {
-    window.settings.nointroOverride = false;
-}
-if (remote.process.argv.includes("--nocursor")) {
-    window.settings.nocursorOverride = true;
-} else {
-    window.settings.nocursorOverride = false;
-}
-
-// Retrieve theme override (hotswitch)
-ipc.once("getThemeOverride", (e, theme) => {
-    if (theme !== null) {
-        window.settings.theme = theme;
-        window.settings.nointroOverride = true;
-        _loadTheme(require(path.join(themesDir, window.settings.theme + ".json")));
-    } else {
-        _loadTheme(require(path.join(themesDir, window.settings.theme + ".json")));
-    }
-});
-ipc.send("getThemeOverride");
-// Same for keyboard override/hotswitch
-ipc.once("getKbOverride", (e, layout) => {
-    if (layout !== null) {
-        window.settings.keyboard = layout;
-        window.settings.nointroOverride = true;
-    }
-});
-ipc.send("getKbOverride");
+let settingsDir, themesDir, keyboardsDir, fontsDir, settingsFile, shortcutsFile, lastWindowStateFile;
+let appVersion;
 
 // Load UI theme
 window._loadTheme = (theme) => {
@@ -215,55 +171,30 @@ function initSystemInformationProxy() {
     );
 }
 
-// Init audio
-window.audioManager = new AudioManager();
-
-// See #223
-remote.app.focus();
-
-let i = 0;
-if (window.settings.nointro || window.settings.nointroOverride) {
-    initGraphicalErrorHandling();
-    initSystemInformationProxy();
-    document.getElementById("boot_screen").remove();
-    document.body.setAttribute("class", "");
-    waitForFonts().then(initUI);
-} else {
-    displayLine();
-}
-
 // Startup boot log
+let bootLogLines = [];
+let isArchUser = false;
+let i = 0;
+
 function displayLine() {
     let bootScreen = document.getElementById("boot_screen");
-    let log = fs
-        .readFileSync(path.join(__dirname, "assets", "misc", "boot_log.txt"))
-        .toString()
-        .split("\n");
 
-    function isArchUser() {
-        return (
-            require("os").platform() === "linux" &&
-            fs.existsSync("/etc/os-release") &&
-            fs.readFileSync("/etc/os-release").toString().includes("arch")
-        );
-    }
-
-    if (typeof log[i] === "undefined") {
+    if (typeof bootLogLines[i] === "undefined") {
         setTimeout(displayTitleScreen, 300);
         return;
     }
 
-    if (log[i] === "Boot Complete") {
+    if (bootLogLines[i] === "Boot Complete") {
         window.audioManager.granted.play();
     } else {
         window.audioManager.stdout.play();
     }
-    bootScreen.innerHTML += log[i] + "<br/>";
+    bootScreen.innerHTML += bootLogLines[i] + "<br/>";
     i++;
 
     switch (true) {
         case i === 2:
-            bootScreen.innerHTML += `eDEX-UI Kernel version ${remote.app.getVersion()} boot at ${Date().toString()}; root:xnu-1699.22.73~1/RELEASE_X86_64`;
+            bootScreen.innerHTML += `eDEX-UI Kernel version ${appVersion} boot at ${Date().toString()}; root:xnu-1699.22.73~1/RELEASE_X86_64`;
         // falls through
         case i === 4:
             setTimeout(displayLine, 500);
@@ -281,10 +212,10 @@ function displayLine() {
             setTimeout(displayLine, 25);
             break;
         case i === 83:
-            if (isArchUser()) bootScreen.innerHTML += "btw i use arch<br/>";
+            if (isArchUser) bootScreen.innerHTML += "btw i use arch<br/>";
             setTimeout(displayLine, 25);
             break;
-        case i >= log.length - 2 && i < log.length:
+        case i >= bootLogLines.length - 2 && i < bootLogLines.length:
             setTimeout(displayLine, 300);
             break;
         default:
@@ -352,11 +283,11 @@ async function displayTitleScreen() {
 
 // Returns the user's desired display name
 async function getDisplayName() {
-    let user = settings.username || null;
+    let user = window.settings.username || null;
     if (user) return user;
 
     try {
-        user = await (await import("username")).username();
+        user = await eDEX.username();
     } catch {
         // Fall back to null - the greeting simply won't include a username.
     }
@@ -368,8 +299,17 @@ async function getDisplayName() {
 async function initUI() {
     // "color" and "pretty-bytes" are ESM-only and can't be require()'d from this
     // CJS renderer; preload them here so they're ready by the time they're used.
-    window.Color = (await import("color")).default;
-    window.PrettyBytes = (await import("pretty-bytes")).default;
+    // Bare-specifier dynamic import() only resolves via Node's own module
+    // resolution, which isn't available with nodeIntegration disabled -
+    // use relative paths instead (resolved against ui.html's URL).
+    window.Color = (await import("./node_modules/color/index.js")).default;
+    window.PrettyBytes = (await import("./node_modules/pretty-bytes/index.js")).default;
+    window.XTerm = await import("./node_modules/@xterm/xterm/lib/xterm.mjs");
+    window.XTermAddonAttach = await import("./node_modules/@xterm/addon-attach/lib/addon-attach.mjs");
+    window.XTermAddonFit = await import("./node_modules/@xterm/addon-fit/lib/addon-fit.mjs");
+    window.XTermAddonLigatures = await import("./node_modules/@xterm/addon-ligatures/lib/addon-ligatures.mjs");
+    window.XTermAddonWebgl = await import("./node_modules/@xterm/addon-webgl/lib/addon-webgl.mjs");
+    window.FileIcons = await (await fetch("assets/icons/file-icons.json")).json();
 
     document.body.innerHTML += `<section class="mod_column" id="mod_column_left">
         <h3 class="title"><p>PANEL</p><p>SYSTEM</p></h3>
@@ -401,9 +341,10 @@ async function initUI() {
     <section id="keyboard" style="opacity:0;">
     </section>`;
     window.keyboard = new Keyboard({
-        layout: path.join(keyboardsDir, settings.keyboard + ".json"),
+        layout: window.settings.keyboard,
         container: "keyboard",
     });
+    await window.keyboard.ready;
 
     await _delay(10);
 
@@ -517,9 +458,7 @@ async function initUI() {
         if (window.keyboard.linkedToTerm) window.term[window.currentTerm].term.focus();
     };
     window.term[0].term.writeln(
-        "\033[1m" +
-            `Welcome to eDEX-UI v${remote.app.getVersion()} - Electron v${process.versions.electron}` +
-            "\033[0m"
+        "\033[1m" + `Welcome to eDEX-UI v${appVersion} - Electron v${process.versions.electron}` + "\033[0m"
     );
 
     await _delay(100);
@@ -552,7 +491,7 @@ window.themeChanger = (theme) => {
 window.remakeKeyboard = (layout) => {
     document.getElementById("keyboard").innerHTML = "";
     window.keyboard = new Keyboard({
-        layout: path.join(keyboardsDir, layout + ".json" || settings.keyboard + ".json"),
+        layout: layout || window.settings.keyboard,
         container: "keyboard",
     });
     ipc.send("setKbOverride", layout);
@@ -623,20 +562,24 @@ window.openSettings = async () => {
     if (document.getElementById("settingsEditor")) return;
 
     // Build lists of available keyboards, themes, monitors
-    let keyboards, themes, monitors, ifaces;
-    fs.readdirSync(keyboardsDir).forEach((kb) => {
+    let keyboards = "",
+        themes = "",
+        monitors = "",
+        ifaces = "";
+    (await eDEX.fs.readdir(keyboardsDir)).forEach((kb) => {
         if (!kb.endsWith(".json")) return;
         kb = kb.replace(".json", "");
         if (kb === window.settings.keyboard) return;
         keyboards += `<option>${kb}</option>`;
     });
-    fs.readdirSync(themesDir).forEach((th) => {
+    (await eDEX.fs.readdir(themesDir)).forEach((th) => {
         if (!th.endsWith(".json")) return;
         th = th.replace(".json", "");
         if (th === window.settings.theme) return;
         themes += `<option>${th}</option>`;
     });
-    for (let i = 0; i < remote.screen.getAllDisplays().length; i++) {
+    let displays = await eDEX.screen.getAllDisplays();
+    for (let i = 0; i < displays.length; i++) {
         if (i !== window.settings.monitor) monitors += `<option>${i}</option>`;
     }
     let nets = await window.si.networkInterfaces();
@@ -650,7 +593,7 @@ window.openSettings = async () => {
     new Modal(
         {
             type: "custom",
-            title: `Settings <i>(v${remote.app.getVersion()})</i>`,
+            title: `Settings <i>(v${appVersion})</i>`,
             html: `<table id="settingsEditor">
                     <tr>
                         <th>Key</th>
@@ -835,11 +778,11 @@ window.openSettings = async () => {
             buttons: [
                 {
                     label: "Open in External Editor",
-                    action: `electron.shell.openPath('${settingsFile}');electronWin.minimize();`,
+                    action: `window.eDEX.shell.openPath('${settingsFile}');window.eDEX.win.minimize();`,
                 },
                 { label: "Save to Disk", action: "window.writeSettingsFile()" },
                 { label: "Reload UI", action: "window.location.reload(true);" },
-                { label: "Restart eDEX", action: "remote.app.relaunch();remote.app.quit();" },
+                { label: "Restart eDEX", action: "window.eDEX.app.relaunch();" },
             ],
         },
         () => {
@@ -853,7 +796,7 @@ window.openSettings = async () => {
 };
 
 window.writeFile = (path) => {
-    fs.writeFile(path, document.getElementById("fileEdit").value, "utf-8", () => {
+    eDEX.fs.writeFile(path, document.getElementById("fileEdit").value).then(() => {
         document.getElementById("fedit-status").innerHTML = "<i>File saved.</i>";
     });
 };
@@ -894,19 +837,19 @@ window.writeSettingsFile = () => {
         }
     });
 
-    fs.writeFileSync(settingsFile, JSON.stringify(window.settings, "", 4));
+    eDEX.config.writeSettings(window.settings);
     document.getElementById("settingsEditorStatus").innerText =
         "New values written to settings.json file at " + new Date().toTimeString();
 };
 
-window.toggleFullScreen = () => {
-    let useFullscreen = electronWin.isFullScreen() ? false : true;
-    electronWin.setFullScreen(useFullscreen);
+window.toggleFullScreen = async () => {
+    let useFullscreen = (await eDEX.win.isFullScreen()) ? false : true;
+    eDEX.win.setFullScreen(useFullscreen);
 
     //Update settings
     window.lastWindowState["useFullscreen"] = useFullscreen;
 
-    fs.writeFileSync(lastWindowStateFile, JSON.stringify(window.lastWindowState, "", 4));
+    eDEX.fs.writeFile(lastWindowStateFile, JSON.stringify(window.lastWindowState, "", 4));
 };
 
 // Display available keyboard shortcuts and custom shortcuts helper
@@ -962,7 +905,7 @@ window.openShortcutsHelp = () => {
     new Modal(
         {
             type: "custom",
-            title: `Available Keyboard Shortcuts <i>(v${remote.app.getVersion()})</i>`,
+            title: `Available Keyboard Shortcuts <i>(v${appVersion})</i>`,
             html: `<h5>Using either the on-screen or a physical keyboard, you can use the following shortcuts:</h5>
                 <details open id="shortcutsHelpAccordeon1">
                     <summary>Emulator shortcuts</summary>
@@ -991,7 +934,7 @@ window.openShortcutsHelp = () => {
             buttons: [
                 {
                     label: "Open Shortcuts File",
-                    action: `electron.shell.openPath('${shortcutsFile}');electronWin.minimize();`,
+                    action: `window.eDEX.shell.openPath('${shortcutsFile}');window.eDEX.win.minimize();`,
                 },
                 { label: "Reload UI", action: "window.location.reload(true);" },
             ],
@@ -1084,7 +1027,7 @@ window.useAppShortcut = (action) => {
             window.keyboard.togglePasswordMode();
             return true;
         case "DEV_DEBUG":
-            remote.getCurrentWindow().webContents.toggleDevTools();
+            eDEX.win.toggleDevTools();
             return true;
         case "DEV_RELOAD":
             window.location.reload(true);
@@ -1096,8 +1039,18 @@ window.useAppShortcut = (action) => {
 };
 
 // Global keyboard shortcuts
-const globalShortcut = remote.globalShortcut;
-globalShortcut.unregisterAll();
+eDEX.globalShortcut.unregisterAll();
+eDEX.globalShortcut.onTriggered((e, id) => {
+    if (id.startsWith("shell:")) {
+        let cut = JSON.parse(id.slice(6));
+        let fn = cut.linebreak ? "writelr" : "write";
+        window.term[window.currentTerm][fn](cut.action);
+    } else if (id.startsWith("tab:")) {
+        window.useAppShortcut(`TAB_${id.slice(4)}`);
+    } else {
+        window.useAppShortcut(id);
+    }
+});
 
 window.registerKeyboardShortcuts = () => {
     window.shortcuts.forEach((cut) => {
@@ -1107,21 +1060,13 @@ window.registerKeyboardShortcuts = () => {
             if (cut.action === "TAB_X") {
                 for (let i = 1; i <= 5; i++) {
                     let trigger = cut.trigger.replace("X", i);
-                    let dfn = () => {
-                        window.useAppShortcut(`TAB_${i}`);
-                    };
-                    globalShortcut.register(trigger, dfn);
+                    eDEX.globalShortcut.register(trigger, `tab:${i}`);
                 }
             } else {
-                globalShortcut.register(cut.trigger, () => {
-                    window.useAppShortcut(cut.action);
-                });
+                eDEX.globalShortcut.register(cut.trigger, cut.action);
             }
         } else if (cut.type === "shell") {
-            globalShortcut.register(cut.trigger, () => {
-                let fn = cut.linebreak ? "writelr" : "write";
-                window.term[window.currentTerm][fn](cut.action);
-            });
+            eDEX.globalShortcut.register(cut.trigger, `shell:${JSON.stringify(cut)}`);
         } else {
             console.warn(`${cut.trigger} has unknown type`);
         }
@@ -1135,7 +1080,7 @@ window.addEventListener("focus", () => {
 });
 
 window.addEventListener("blur", () => {
-    globalShortcut.unregisterAll();
+    eDEX.globalShortcut.unregisterAll();
 });
 
 // Prevent showing menu, exiting fullscreen or app with keyboard shortcuts
@@ -1146,7 +1091,7 @@ document.addEventListener("keydown", (e) => {
     if (e.code.startsWith("Alt") && e.ctrlKey && e.shiftKey) {
         e.preventDefault();
     }
-    if (e.key === "F11" && !settings.allowWindowed) {
+    if (e.key === "F11" && !window.settings.allowWindowed) {
         e.preventDefault();
     }
     if (e.code === "KeyD" && e.ctrlKey) {
@@ -1159,13 +1104,13 @@ document.addEventListener("keydown", (e) => {
 
 // Fix #265
 window.addEventListener("keyup", (e) => {
-    if (require("os").platform() === "win32" && e.key === "F4" && e.altKey === true) {
-        remote.app.quit();
+    if (eDEX.platform === "win32" && e.key === "F4" && e.altKey === true) {
+        eDEX.app.quit();
     }
 });
 
 // Fix double-tap zoom on touchscreens
-electron.webFrame.setVisualZoomLevelLimits(1, 1);
+eDEX.webFrame.setVisualZoomLevelLimits(1, 1);
 
 // Resize terminal with window
 window.onresize = () => {
@@ -1178,29 +1123,93 @@ window.onresize = () => {
 
 // See #413
 window.resizeTimeout = null;
-let electronWin = remote.getCurrentWindow();
-electronWin.on("resize", () => {
-    if (settings.keepGeometry === false) return;
+eDEX.win.onResize(async () => {
+    if (window.settings.keepGeometry === false) return;
     clearTimeout(window.resizeTimeout);
-    window.resizeTimeout = setTimeout(() => {
-        let win = remote.getCurrentWindow();
-        if (win.isFullScreen()) return false;
-        if (win.isMaximized()) {
-            win.unmaximize();
-            win.setFullScreen(true);
+    window.resizeTimeout = setTimeout(async () => {
+        if (await eDEX.win.isFullScreen()) return false;
+        if (await eDEX.win.isMaximized()) {
+            eDEX.win.unmaximize();
+            eDEX.win.setFullScreen(true);
             return false;
         }
 
-        let size = win.getSize();
+        let size = await eDEX.win.getSize();
 
         if (size[0] >= size[1]) {
-            win.setSize(size[0], parseInt((size[0] * 9) / 16));
+            eDEX.win.setSize(size[0], parseInt((size[0] * 9) / 16));
         } else {
-            win.setSize(size[1], parseInt((size[1] * 9) / 16));
+            eDEX.win.setSize(size[1], parseInt((size[1] * 9) / 16));
         }
     }, 100);
 });
 
-electronWin.on("leave-full-screen", () => {
-    remote.getCurrentWindow().setSize(960, 540);
+eDEX.win.onLeaveFullScreen(() => {
+    eDEX.win.setSize(960, 540);
 });
+
+// ---- Boot sequence ----
+(async () => {
+    const paths = await eDEX.config.getPaths();
+    settingsDir = paths.userData;
+    themesDir = paths.themesDir;
+    keyboardsDir = paths.kblayoutsDir;
+    fontsDir = paths.fontsDir;
+    settingsFile = paths.settingsFile;
+    shortcutsFile = paths.shortcutsFile;
+    lastWindowStateFile = paths.lastWindowStateFile;
+
+    appVersion = await eDEX.app.getVersion();
+
+    // Load config
+    window.settings = await eDEX.config.getSettings();
+    window.shortcuts = await eDEX.config.getShortcuts();
+    window.lastWindowState = await eDEX.config.getLastWindowState();
+
+    // Load CLI parameters
+    let argv = await eDEX.app.getArgv();
+    window.settings.nointroOverride = argv.includes("--nointro");
+    window.settings.nocursorOverride = argv.includes("--nocursor");
+
+    // Retrieve theme override (hotswitch)
+    ipc.once("getThemeOverride", async (e, theme) => {
+        if (theme !== null) {
+            window.settings.theme = theme;
+            window.settings.nointroOverride = true;
+        }
+        _loadTheme(await eDEX.config.getTheme(window.settings.theme));
+    });
+    ipc.send("getThemeOverride");
+    // Same for keyboard override/hotswitch
+    ipc.once("getKbOverride", (e, layout) => {
+        if (layout !== null) {
+            window.settings.keyboard = layout;
+            window.settings.nointroOverride = true;
+        }
+    });
+    ipc.send("getKbOverride");
+
+    // Init audio
+    window.audioManager = new AudioManager();
+
+    // See #223
+    eDEX.app.focus();
+
+    // Pre-compute the boot log content and the Arch Linux easter egg check
+    // before the (synchronous, setTimeout-driven) boot animation starts.
+    bootLogLines = (await (await fetch("assets/misc/boot_log.txt")).text()).split("\n");
+    isArchUser =
+        eDEX.platform === "linux" &&
+        (await eDEX.fs.exists("/etc/os-release")) &&
+        (await eDEX.fs.readFile("/etc/os-release", "utf-8")).includes("arch");
+
+    if (window.settings.nointro || window.settings.nointroOverride) {
+        initGraphicalErrorHandling();
+        initSystemInformationProxy();
+        document.getElementById("boot_screen").remove();
+        document.body.setAttribute("class", "");
+        waitForFonts().then(initUI);
+    } else {
+        displayLine();
+    }
+})();
