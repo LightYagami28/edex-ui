@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld("eDEX", {
     // ---- App / window info & controls (replaces @electron/remote) ----
     app: {
         getVersion: () => ipcRenderer.invoke("app:getVersion"),
+        getElectronVersion: () => ipcRenderer.invoke("app:getElectronVersion"),
         getPath: (name) => ipcRenderer.invoke("app:getPath", name),
         getArgv: () => ipcRenderer.invoke("app:getArgv"),
         focus: () => ipcRenderer.send("app:focus"),
