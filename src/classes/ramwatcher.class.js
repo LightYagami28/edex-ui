@@ -10,7 +10,7 @@ class RAMwatcher {
                 <div id="mod_ramwatcher_pointmap">`;
 
         for (let i = 0; i < 440; i++) {
-            ramwatcherDOM += `<div class="mod_ramwatcher_point free"></div>`;
+            ramwatcherDOM += "<div class=\"mod_ramwatcher_point free\"></div>";
         }
 
         ramwatcherDOM += `</div>

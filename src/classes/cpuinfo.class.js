@@ -61,8 +61,8 @@ class Cpuinfo {
                     responsive: true,
                     millisPerPixel: 50,
                     grid:{
-                        fillStyle:'transparent',
-                        strokeStyle:'transparent',
+                        fillStyle:"transparent",
+                        strokeStyle:"transparent",
                         verticalSections:0,
                         borderVisible:false
                     },
@@ -142,7 +142,7 @@ class Cpuinfo {
 
                 try {
                     document.getElementById(`mod_cpuinfo_usagecounter${i}`).innerText = `Avg. ${average[i]}%`;
-                } catch(e) {
+                } catch {
                     // Fail silently, DOM element is probably getting refreshed (new theme, etc)
                 }
             });
@@ -153,19 +153,19 @@ class Cpuinfo {
         window.si.cpuTemperature().then(data => {
             try {
                 document.getElementById("mod_cpuinfo_temp").innerText = `${data.max}°C`;
-            } catch(e) {
+            } catch {
                 // See above notice
             }
         });
     }
     updateCPUspeed() {
         if (this.updatingCPUspeed) return;
-        this.updatingCPUspeed = true
+        this.updatingCPUspeed = true;
         window.si.cpu().then(data => {
             try {
                 document.getElementById("mod_cpuinfo_speed_min").innerText = `${data.speed}GHz`;
                 document.getElementById("mod_cpuinfo_speed_max").innerText = `${data.speedMax}GHz`;
-            } catch(e) {
+            } catch {
                 // See above notice
             }
             this.updatingCPUspeed = false;
@@ -177,7 +177,7 @@ class Cpuinfo {
         window.si.processes().then(data => {
             try {
                 document.getElementById("mod_cpuinfo_tasks").innerText = `${data.all}`;
-            } catch(e) {
+            } catch {
                 // See above notice
             }
             this.updatingCPUtasks = false;

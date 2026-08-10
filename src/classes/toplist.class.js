@@ -122,50 +122,50 @@ class Toplist {
                 currentlyUpdating = false;
                 let list = data.list.sort((a, b) => {
                     switch (sortKey) {
-                        case "PID":
-                            if (ascending) return a.pid - b.pid;
-                            else return b.pid - a.pid;
-                        case "Name":
-                            if (ascending) {
-                                if (a.name > b.name) return -1;
-                                if (a.name < b.name) return 1;
-                                return 0;
-                            }
-                            else {
-                                if (a.name < b.name) return -1;
-                                if (a.name > b.name) return 1;
-                                return 0;
-                            }
-                        case "User":
-                            if (ascending) {
-                                if (a.user > b.user) return -1;
-                                if (a.user < b.user) return 1;
-                                return 0;
-                            }
-                            else {
-                                if (a.user < b.user) return -1;
-                                if (a.user > b.user) return 1;
-                                return 0;
-                            }
-                        case "CPU":
-                            if (ascending) return a.cpu - b.cpu;
-                            else return b.cpu - a.cpu;
-                        case "Memory":
-                            if (ascending) return a.mem - b.mem;
-                            else return b.mem - a.mem;
-                        case "State":
-                            if (a.state < b.state) return -1;
-                            if (a.state > b.state) return 1;
+                    case "PID":
+                        if (ascending) return a.pid - b.pid;
+                        else return b.pid - a.pid;
+                    case "Name":
+                        if (ascending) {
+                            if (a.name > b.name) return -1;
+                            if (a.name < b.name) return 1;
                             return 0;
-                        case "Started":
-                            if (ascending) return Date.parse(a.started) - Date.parse(b.started);
-                            else return Date.parse(b.started) - Date.parse(a.started);
-                        case "Runtime":
-                            if (ascending) return a.runtime - b.runtime;
-                            else return b.runtime - a.runtime;
-                        default:
-                            // default to the same sorting as the toplist
-                            return ((b.cpu - a.cpu) * 100 + b.mem - a.mem);
+                        }
+                        else {
+                            if (a.name < b.name) return -1;
+                            if (a.name > b.name) return 1;
+                            return 0;
+                        }
+                    case "User":
+                        if (ascending) {
+                            if (a.user > b.user) return -1;
+                            if (a.user < b.user) return 1;
+                            return 0;
+                        }
+                        else {
+                            if (a.user < b.user) return -1;
+                            if (a.user > b.user) return 1;
+                            return 0;
+                        }
+                    case "CPU":
+                        if (ascending) return a.cpu - b.cpu;
+                        else return b.cpu - a.cpu;
+                    case "Memory":
+                        if (ascending) return a.mem - b.mem;
+                        else return b.mem - a.mem;
+                    case "State":
+                        if (a.state < b.state) return -1;
+                        if (a.state > b.state) return 1;
+                        return 0;
+                    case "Started":
+                        if (ascending) return Date.parse(a.started) - Date.parse(b.started);
+                        else return Date.parse(b.started) - Date.parse(a.started);
+                    case "Runtime":
+                        if (ascending) return a.runtime - b.runtime;
+                        else return b.runtime - a.runtime;
+                    default:
+                        // default to the same sorting as the toplist
+                        return ((b.cpu - a.cpu) * 100 + b.mem - a.mem);
                     }
                 });
 
@@ -197,7 +197,7 @@ class Toplist {
                 type: "custom",
                 title: "Active Processes",
                 html: `
-<table id=\"processContainer\">
+<table id="processContainer">
     <thead>
         <tr>
             <td class="pid header">PID</td>
@@ -210,7 +210,7 @@ class Toplist {
             <td class="runtime header">Runtime</td>
         </tr>
     </thead>
-    <tbody id=\"processList\">
+    <tbody id="processList">
     </tbody>
   </table>`,
             },
@@ -225,11 +225,11 @@ class Toplist {
             let title = header.textContent;
             header.addEventListener("click", () => {
                 for (let header of headers) {
-                    header.textContent = header.textContent.replace('\u25B2', "").replace('\u25BC', "");
+                    header.textContent = header.textContent.replace("\u25B2", "").replace("\u25BC", "");
                 }
                 setSortKey(title);
                 if (sortKey){
-                    header.textContent = `${title}${ascending ? '\u25B2' : '\u25BC'}`;
+                    header.textContent = `${title}${ascending ? "\u25B2" : "\u25BC"}`;
                 }
             });
         }

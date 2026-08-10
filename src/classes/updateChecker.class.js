@@ -22,22 +22,22 @@ class UpdateChecker {
             }
         }, res => {
             switch(res.statusCode) {
-                case 200:
-                    break;
-                case 404:
-                    this._fail("Got 404 (Not Found) response from server");
-                    break;
-                default:
-                    this._willfail = true;
+            case 200:
+                break;
+            case 404:
+                this._fail("Got 404 (Not Found) response from server");
+                break;
+            default:
+                this._willfail = true;
             }
 
             let rawData = "";
 
-            res.on('data', chunk => {
+            res.on("data", chunk => {
                 rawData += chunk;
             });
 
-            res.on('end', () => {
+            res.on("end", () => {
                 let d = rawData;
                 if (this._failed === true) {
                     // Do nothing, it already failed
@@ -63,7 +63,7 @@ class UpdateChecker {
                     }
                 }
             });
-        }).on('error', e => {
+        }).on("error", e => {
             this._fail(e);
         });
     }
