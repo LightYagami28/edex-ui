@@ -243,6 +243,4 @@ class Toplist {
     }
 }
 
-module.exports = {
-    Toplist,
-};
+window.Toplist = Toplist;

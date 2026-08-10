@@ -4,7 +4,7 @@ class Sysinfo {
 
         // See #255
         let os;
-        switch (require("os").platform()) {
+        switch (window.eDEX.platform) {
             case "darwin":
                 os = "macOS";
                 break;
@@ -12,7 +12,7 @@ class Sysinfo {
                 os = "win";
                 break;
             default:
-                os = require("os").platform();
+                os = window.eDEX.platform;
         }
 
         // Create DOM
@@ -97,9 +97,9 @@ class Sysinfo {
             this.updateDate();
         }, timeToNewDay);
     }
-    updateUptime() {
+    async updateUptime() {
         let uptime = {
-            raw: Math.floor(require("os").uptime()),
+            raw: Math.floor(await window.eDEX.uptime()),
             days: 0,
             hours: 0,
             minutes: 0,
@@ -139,6 +139,4 @@ class Sysinfo {
     }
 }
 
-module.exports = {
-    Sysinfo,
-};
+window.Sysinfo = Sysinfo;

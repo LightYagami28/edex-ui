@@ -18,9 +18,9 @@ class Conninfo {
         this.total = document.querySelector("#mod_conninfo_innercontainer > h2 > i");
         this._pb = window.PrettyBytes;
 
-        // Init Smoothie
-        let TimeSeries = require("smoothie").TimeSeries;
-        let SmoothieChart = require("smoothie").SmoothieChart;
+        // Init Smoothie (loaded as a classic <script> in ui.html, sets window.TimeSeries/window.SmoothieChart)
+        let TimeSeries = window.TimeSeries;
+        let SmoothieChart = window.SmoothieChart;
 
         // Set chart options
         let chartOptions = [
@@ -103,6 +103,4 @@ class Conninfo {
     }
 }
 
-module.exports = {
-    Conninfo,
-};
+window.Conninfo = Conninfo;

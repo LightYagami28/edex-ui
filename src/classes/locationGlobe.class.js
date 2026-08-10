@@ -242,6 +242,4 @@ class LocationGlobe {
     }
 }
 
-module.exports = {
-    LocationGlobe,
-};
+window.LocationGlobe = LocationGlobe;
