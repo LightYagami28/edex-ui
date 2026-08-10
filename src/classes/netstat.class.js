@@ -45,16 +45,19 @@ class Netstat {
         this.geoLookup = {
             get: () => null
         };
-        let geolite2 = require("geolite2-redist");
         let maxmind = require("maxmind");
-        geolite2.downloadDbs(require("path").join(require("@electron/remote").app.getPath("userData"), "geoIPcache")).then(() => {
-           geolite2.open('GeoLite2-City', path => {
-                return maxmind.open(path);
-            }).catch(e => {throw e}).then(lookup => {
-                this.geoLookup = lookup;
-                this.lastconn.finished = true;
+        let geoIPcachePath = require("path").join(require("@electron/remote").app.getPath("userData"), "geoIPcache");
+        // "geolite2-redist" is ESM-only, so it can't be require()'d from this CJS renderer.
+        import("geolite2-redist").then(geolite2 => {
+            return geolite2.downloadDbs({path: geoIPcachePath}).then(() => {
+                return geolite2.open('GeoLite2-City', path => {
+                    return maxmind.open(path);
+                }, geoIPcachePath);
             });
-        });
+        }).then(lookup => {
+            this.geoLookup = lookup;
+            this.lastconn.finished = true;
+        }).catch(e => {throw e});
     }
     updateInfo() {
         window.si.networkInterfaces().then(async data => {

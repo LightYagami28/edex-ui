@@ -1,6 +1,6 @@
 const cluster = require("cluster");
 
-if (cluster.isMaster) {
+if (cluster.isPrimary) {
     const electron = require("electron");
     const ipc = electron.ipcMain;
     const signale = require("signale");
@@ -11,7 +11,7 @@ if (cluster.isMaster) {
 
     const si = require("systeminformation");
 
-    cluster.setupMaster({
+    cluster.setupPrimary({
         exec: require("path").join(__dirname, "_multithread.js")
     });
 
@@ -26,7 +26,7 @@ if (cluster.isMaster) {
 
     signale.success("Multithreaded controller ready");
 
-    var lastID = 0;
+    let lastID = 0;
 
     function dispatch(type, id, arg) {
         let selectedID = lastID+1;
@@ -41,7 +41,7 @@ if (cluster.isMaster) {
         lastID = selectedID;
     }
 
-    var queue = {};
+    let queue = {};
     ipc.on("systeminformation-call", (e, type, id, ...args) => {
         if (!si[type]) {
             signale.warn("Illegal request for systeminformation");

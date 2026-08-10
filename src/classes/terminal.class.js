@@ -72,7 +72,7 @@ class Terminal {
                 });
             }
 
-            let color = require("color");
+            let color = window.Color;
             let colorify;
             if (doCustomFilter) {
                 colorify = (base, target) => {
@@ -194,7 +194,7 @@ class Terminal {
                 let d = Date.now();
 
                 if (d - this.lastSoundFX > 30) {
-                    if(window.passwordMode == "false")
+                    if (window.passwordMode === "false")
                         window.audioManager.stdout.play();
                     this.lastSoundFX = d;
                 }
@@ -254,7 +254,7 @@ class Terminal {
                 let y = 0;
 
                 function gcd(a, b) {
-                    return (b == 0) ? a : gcd(b, a%b);
+                    return (b === 0) ? a : gcd(b, a%b);
                 }
                 let d = gcd(w, h);
 
@@ -317,7 +317,9 @@ class Terminal {
             this._disableCWDtracking = false;
             this._getTtyCWD = tty => {
                 return new Promise((resolve, reject) => {
-                    let pid = tty._pid;
+                    // Coerce to a plain integer before shell interpolation below (defense in depth).
+                    let pid = Number.parseInt(tty._pid, 10);
+                    if (!Number.isSafeInteger(pid)) return reject(new Error("Invalid TTY pid"));
                     switch(require("os").type()) {
                         case "Linux":
                             require("fs").readlink(`/proc/${pid}/cwd`, (e, cwd) => {
@@ -344,7 +346,9 @@ class Terminal {
             };
             this._getTtyProcess = tty => {
                 return new Promise((resolve, reject) => {
-                    let pid = tty._pid;
+                    // Coerce to a plain integer before shell interpolation below (defense in depth).
+                    let pid = Number.parseInt(tty._pid, 10);
+                    if (!Number.isSafeInteger(pid)) return reject(new Error("Invalid TTY pid"));
                     switch(require("os").type()) {
                         case "Linux":
                         case "Darwin":
