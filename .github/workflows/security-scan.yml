@@ -137,7 +137,11 @@ jobs:
           project: 'edex-ui'
           path: '.'
           format: 'ALL'
-          args: >
+          # NOTE: this action's own input at this pinned version is called
+          # "others", not "args" (that's the name on the action's default
+          # branch, which has since diverged from this release) - verified
+          # against action.yml at the exact pinned SHA.
+          others: >
             --enableRetired
             --enableExperimental
             --scan ./package-lock.json
