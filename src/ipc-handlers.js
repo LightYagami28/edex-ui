@@ -2,11 +2,11 @@
 // Registered once from _boot.js after `app` is ready and config paths are known.
 
 const { app, ipcMain, shell, clipboard, screen, globalShortcut } = require("electron");
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
-const https = require("https");
-const net = require("net");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const https = require("node:https");
+const net = require("node:net");
 
 function register({ win, paths }) {
     const { settingsFile, shortcutsFile, lastWindowStateFile, themesDir, kblayoutsDir } = paths;
@@ -40,7 +40,24 @@ function register({ win, paths }) {
 
     ipcMain.handle("clipboard:readText", () => clipboard.readText());
 
-    ipcMain.on("shell:openExternal", (e, url) => shell.openExternal(url));
+    // Restrict to http(s): shell.openExternal with an unvalidated scheme can
+    // be abused via crafted file:// or custom-protocol-handler URLs on some
+    // platforms. The only caller (updateChecker.class.js) only ever passes
+    // a github.com release URL from GitHub's own API response.
+    ipcMain.on("shell:openExternal", (e, url) => {
+        try {
+            const parsed = new URL(url);
+            if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return;
+        } catch {
+            return;
+        }
+        shell.openExternal(url);
+    });
+    // shell:openPath/fs:* intentionally accept arbitrary paths - see note
+    // below. This app bundles a real terminal (a real shell, via node-pty),
+    // so a user (or anything already running in that terminal) already has
+    // unrestricted OS-level file access; these handlers don't grant new
+    // capability beyond what the embedded terminal already provides.
     ipcMain.on("shell:openPath", (e, filePath) => shell.openPath(filePath));
 
     ipcMain.handle("screen:getAllDisplays", () => screen.getAllDisplays());
