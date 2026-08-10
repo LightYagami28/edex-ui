@@ -143,6 +143,59 @@ class FilesystemDisplay {
             }
         };
 
+        // Builds the {name, path, type, category, hidden, ...} entry for one
+        // file/dir in the current directory listing. Extracted out of readFS()
+        // to keep its cognitive complexity down.
+        this._classifyEntry = async (file, tcwd, reject) => {
+            let fstat = await eDEX.fs.lstat(path.join(tcwd, file)).catch((e) => {
+                if (!e.message.includes("EPERM") && !e.message.includes("EBUSY")) {
+                    reject(e);
+                }
+            });
+
+            let e = {
+                name: window._escapeHtml(file),
+                path: path.resolve(tcwd, file),
+                type: "other",
+                category: "other",
+                hidden: false,
+            };
+
+            if (fstat !== undefined) {
+                e.lastAccessed = fstat.mtimeMs;
+
+                if (fstat.isDirectory) {
+                    e.category = "dir";
+                    e.type = "dir";
+                }
+                if (e.category === "dir" && tcwd === settingsDir && file === "themes") e.type = "edex-themesDir";
+                if (e.category === "dir" && tcwd === settingsDir && file === "keyboards") e.type = "edex-kblayoutsDir";
+
+                if (fstat.isSymbolicLink) {
+                    e.category = "symlink";
+                    e.type = "symlink";
+                }
+
+                if (fstat.isFile) {
+                    e.category = "file";
+                    e.type = "file";
+                    e.size = fstat.size;
+                }
+            } else {
+                e.type = "system";
+                e.hidden = true;
+            }
+
+            if (e.category === "file" && tcwd === themesDir && file.endsWith(".json")) e.type = "edex-theme";
+            if (e.category === "file" && tcwd === keyboardsDir && file.endsWith(".json")) e.type = "edex-kblayout";
+            if (e.category === "file" && tcwd === settingsDir && file === "settings.json") e.type = "edex-settings";
+            if (e.category === "file" && tcwd === settingsDir && file === "shortcuts.json") e.type = "edex-shortcuts";
+
+            if (file.startsWith(".")) e.hidden = true;
+
+            return e;
+        };
+
         this.readFS = async (dir) => {
             if (this.failed === true || this._reading) return false;
             this._reading = true;
@@ -178,57 +231,7 @@ class FilesystemDisplay {
                 if (content.length === 0) resolve();
 
                 content.forEach(async (file, i) => {
-                    let fstat = await eDEX.fs.lstat(path.join(tcwd, file)).catch((e) => {
-                        if (!e.message.includes("EPERM") && !e.message.includes("EBUSY")) {
-                            reject(e);
-                        }
-                    });
-
-                    let e = {
-                        name: window._escapeHtml(file),
-                        path: path.resolve(tcwd, file),
-                        type: "other",
-                        category: "other",
-                        hidden: false,
-                    };
-
-                    if (fstat !== undefined) {
-                        e.lastAccessed = fstat.mtimeMs;
-
-                        if (fstat.isDirectory) {
-                            e.category = "dir";
-                            e.type = "dir";
-                        }
-                        if (e.category === "dir" && tcwd === settingsDir && file === "themes")
-                            e.type = "edex-themesDir";
-                        if (e.category === "dir" && tcwd === settingsDir && file === "keyboards")
-                            e.type = "edex-kblayoutsDir";
-
-                        if (fstat.isSymbolicLink) {
-                            e.category = "symlink";
-                            e.type = "symlink";
-                        }
-
-                        if (fstat.isFile) {
-                            e.category = "file";
-                            e.type = "file";
-                            e.size = fstat.size;
-                        }
-                    } else {
-                        e.type = "system";
-                        e.hidden = true;
-                    }
-
-                    if (e.category === "file" && tcwd === themesDir && file.endsWith(".json")) e.type = "edex-theme";
-                    if (e.category === "file" && tcwd === keyboardsDir && file.endsWith(".json"))
-                        e.type = "edex-kblayout";
-                    if (e.category === "file" && tcwd === settingsDir && file === "settings.json")
-                        e.type = "edex-settings";
-                    if (e.category === "file" && tcwd === settingsDir && file === "shortcuts.json")
-                        e.type = "edex-shortcuts";
-
-                    if (file.startsWith(".")) e.hidden = true;
-
+                    const e = await this._classifyEntry(file, tcwd, reject);
                     this.cwd.push(e);
                     if (i === content.length - 1) resolve();
                 });
@@ -289,6 +292,191 @@ class FilesystemDisplay {
             this.render(devices, true);
         };
 
+        // Determines the onclick "cmd" body for one file-manager entry, based
+        // on its type and whether we're tracking the terminal's cwd. Extracted
+        // out of render() to keep its cognitive complexity down.
+        this._buildEntryCmd = (e, blockIndex) => {
+            if (!this._noTracking) {
+                if (e.type === "dir" || e.type.endsWith("Dir")) {
+                    return `window.term[window.currentTerm].writelr("cd \\""+fsDisp.cwd[${blockIndex}].name+"\\"")`;
+                } else if (e.type === "up") {
+                    return 'window.term[window.currentTerm].writelr("cd ..")';
+                } else if (e.type === "disk" || e.type === "rom" || e.type === "usb") {
+                    if (eDEX.platform === "win32") {
+                        return `window.term[window.currentTerm].writelr("${e.path.replaceAll("\\", "")}")`;
+                    }
+                    return `window.term[window.currentTerm].writelr("cd \\"${e.path.replaceAll("\\", "")}\\"")`;
+                }
+                return `window.term[window.currentTerm].write("\\""+fsDisp.cwd[${blockIndex}].path+"\\"")`;
+            }
+            if (e.type === "dir" || e.type.endsWith("Dir")) {
+                return `window.fsDisp.readFS(fsDisp.cwd[${blockIndex}].path)`;
+            } else if (e.type === "up") {
+                return 'window.fsDisp.readFS(window.eDEX.path.resolve(window.fsDisp.dirpath, ".."))';
+            } else if (e.type === "disk" || e.type === "rom" || e.type === "usb") {
+                return `window.fsDisp.readFS("${e.path.replaceAll("\\", "")}")`;
+            }
+            return `window.term[window.currentTerm].write("\\""+fsDisp.cwd[${blockIndex}].path+"\\"")`;
+        };
+
+        // Picks the icon and type label for one file-manager entry based on
+        // its type. Extracted out of render() to keep its cognitive
+        // complexity down.
+        this._resolveEntryIcon = (e) => {
+            let icon;
+            let type = "";
+            switch (e.type) {
+                case "showDisks":
+                    icon = this.icons.showDisks;
+                    type = "--";
+                    e.category = "showDisks";
+                    break;
+                case "up":
+                    icon = this.icons.up;
+                    type = "--";
+                    e.category = "up";
+                    break;
+                case "symlink":
+                    icon = this.icons.symlink;
+                    break;
+                case "disk":
+                    icon = this.icons.disk;
+                    break;
+                case "rom":
+                    icon = this.icons.rom;
+                    break;
+                case "usb":
+                    icon = this.icons.usb;
+                    break;
+                case "edex-theme":
+                    icon = this.edexIcons.theme;
+                    type = "eDEX-UI theme";
+                    break;
+                case "edex-kblayout":
+                    icon = this.edexIcons.kblayout;
+                    type = "eDEX-UI keyboard layout";
+                    break;
+                case "edex-settings":
+                case "edex-shortcuts":
+                    icon = this.edexIcons.settings;
+                    type = "eDEX-UI config file";
+                    break;
+                case "system":
+                    icon = this.edexIcons.settings;
+                    break;
+                case "edex-themesDir":
+                    icon = this.edexIcons.themesDir;
+                    type = "eDEX-UI themes folder";
+                    break;
+                case "edex-kblayoutsDir":
+                    icon = this.edexIcons.kblayoutsDir;
+                    type = "eDEX-UI keyboards folder";
+                    break;
+                default: {
+                    let iconName = this.fileIconsMatcher(e.name);
+                    icon = this.icons[iconName];
+
+                    if (icon === undefined) {
+                        if (e.type === "file") icon = this.icons.file;
+                        if (e.type === "dir") {
+                            icon = this.icons.dir;
+                            type = "folder";
+                        }
+                        if (icon === undefined) icon = this.icons.other;
+                    } else if (e.category !== "dir") {
+                        type = iconName.replace("icon-", "");
+                    } else {
+                        type = "special folder";
+                    }
+                    break;
+                }
+            }
+            return { icon, type };
+        };
+
+        // Builds the HTML for one file-manager entry (icon, cmd, labels).
+        // Extracted out of render() to keep its cognitive complexity down.
+        this._renderEntry = (e, blockIndex) => {
+            let hidden = e.hidden ? " hidden" : "";
+
+            let cmdPrefix = `if (window.keyboard.container.dataset.isCtrlOn === "true") {
+                            window.eDEX.shell.openPath(fsDisp.cwd[${blockIndex}].path);
+                            window.eDEX.win.minimize();
+                        } else if (window.keyboard.container.dataset.isShiftOn === "true") {
+                            window.term[window.currentTerm].write("\\""+fsDisp.cwd[${blockIndex}].path+"\\"");
+                        } else {
+                      `.replace(/\n+ */g, ""); // Minify
+
+            let cmdSuffix = "}";
+
+            let cmd = this._buildEntryCmd(e, blockIndex);
+
+            if (e.type === "file") {
+                cmd = `window.fsDisp.openFile(${blockIndex})`;
+            }
+
+            if (e.type === "system") {
+                cmd = "";
+            }
+
+            if (e.type === "showDisks") {
+                cmd = "window.fsDisp.readDevices()";
+                cmdPrefix = "";
+                cmdSuffix = "";
+            }
+
+            if (e.type === "up") {
+                // cmd is OS-specific and defined above
+                cmdPrefix = "";
+                cmdSuffix = "";
+            }
+
+            if (e.type === "edex-theme") {
+                cmd = `window.themeChanger("${e.name.slice(0, -5)}")`;
+            }
+            if (e.type === "edex-kblayout") {
+                cmd = `window.remakeKeyboard("${e.name.slice(0, -5)}")`;
+            }
+            if (e.type === "edex-settings") {
+                cmd = "window.openSettings()";
+            }
+            if (e.type === "edex-shortcuts") {
+                cmd = "window.openShortcutsHelp()";
+            }
+
+            let { icon, type } = this._resolveEntryIcon(e);
+
+            if (type === "") type = e.type;
+            e.type = type;
+
+            // Handle displayable media
+            if (e.type === "video" || e.type === "audio" || e.type === "image") {
+                this.cwd[blockIndex].type = e.type;
+                cmd = `window.fsDisp.openMedia(${blockIndex})`;
+            }
+
+            if (typeof e.size === "number") {
+                e.size = this._formatBytes(e.size);
+            } else {
+                e.size = "--";
+            }
+            if (typeof e.lastAccessed === "number") {
+                e.lastAccessed = new Date(e.lastAccessed).toLocaleString();
+            } else {
+                e.lastAccessed = "--";
+            }
+
+            return `<div class="fs_disp_${e.type}${hidden} animationWait" onclick='${cmdPrefix + cmd + cmdSuffix}'>
+                            <svg viewBox="0 0 ${icon.width} ${icon.height}" fill="${this.iconcolor}">
+                                ${icon.svg}
+                            </svg>
+                            <h3>${e.name}</h3>
+                            <h4>${type}</h4>
+                            <h4>${e.size}</h4>
+                            <h4>${e.lastAccessed}</h4>
+                        </div>`;
+        };
+
         this.render = async (originBlockList, isDiskView) => {
             // Work on a clone of the blocklist to avoid altering fsDisp.cwd
             let blockList = structuredClone(originBlockList);
@@ -309,174 +497,7 @@ class FilesystemDisplay {
 
             let filesDOM = "";
             blockList.forEach((e, blockIndex) => {
-                let hidden = e.hidden ? " hidden" : "";
-
-                let cmdPrefix = `if (window.keyboard.container.dataset.isCtrlOn === "true") {
-                                window.eDEX.shell.openPath(fsDisp.cwd[${blockIndex}].path);
-                                window.eDEX.win.minimize();
-                            } else if (window.keyboard.container.dataset.isShiftOn === "true") {
-                                window.term[window.currentTerm].write("\\""+fsDisp.cwd[${blockIndex}].path+"\\"");
-                            } else {
-                          `.replace(/\n+ */g, ""); // Minify
-
-                let cmdSuffix = "}";
-
-                let cmd;
-
-                if (!this._noTracking) {
-                    if (e.type === "dir" || e.type.endsWith("Dir")) {
-                        cmd = `window.term[window.currentTerm].writelr("cd \\""+fsDisp.cwd[${blockIndex}].name+"\\"")`;
-                    } else if (e.type === "up") {
-                        cmd = 'window.term[window.currentTerm].writelr("cd ..")';
-                    } else if (e.type === "disk" || e.type === "rom" || e.type === "usb") {
-                        if (eDEX.platform === "win32") {
-                            cmd = `window.term[window.currentTerm].writelr("${e.path.replaceAll("\\", "")}")`;
-                        } else {
-                            cmd = `window.term[window.currentTerm].writelr("cd \\"${e.path.replaceAll("\\", "")}\\"")`;
-                        }
-                    } else {
-                        cmd = `window.term[window.currentTerm].write("\\""+fsDisp.cwd[${blockIndex}].path+"\\"")`;
-                    }
-                } else if (e.type === "dir" || e.type.endsWith("Dir")) {
-                    cmd = `window.fsDisp.readFS(fsDisp.cwd[${blockIndex}].path)`;
-                } else if (e.type === "up") {
-                    cmd = 'window.fsDisp.readFS(window.eDEX.path.resolve(window.fsDisp.dirpath, ".."))';
-                } else if (e.type === "disk" || e.type === "rom" || e.type === "usb") {
-                    cmd = `window.fsDisp.readFS("${e.path.replaceAll("\\", "")}")`;
-                } else {
-                    cmd = `window.term[window.currentTerm].write("\\""+fsDisp.cwd[${blockIndex}].path+"\\"")`;
-                }
-
-                if (e.type === "file") {
-                    cmd = `window.fsDisp.openFile(${blockIndex})`;
-                }
-
-                if (e.type === "system") {
-                    cmd = "";
-                }
-
-                if (e.type === "showDisks") {
-                    cmd = "window.fsDisp.readDevices()";
-                    cmdPrefix = "";
-                    cmdSuffix = "";
-                }
-
-                if (e.type === "up") {
-                    // cmd is OS-specific and defined above
-                    cmdPrefix = "";
-                    cmdSuffix = "";
-                }
-
-                if (e.type === "edex-theme") {
-                    cmd = `window.themeChanger("${e.name.slice(0, -5)}")`;
-                }
-                if (e.type === "edex-kblayout") {
-                    cmd = `window.remakeKeyboard("${e.name.slice(0, -5)}")`;
-                }
-                if (e.type === "edex-settings") {
-                    cmd = "window.openSettings()";
-                }
-                if (e.type === "edex-shortcuts") {
-                    cmd = "window.openShortcutsHelp()";
-                }
-
-                let icon;
-                let type = "";
-                switch (e.type) {
-                    case "showDisks":
-                        icon = this.icons.showDisks;
-                        type = "--";
-                        e.category = "showDisks";
-                        break;
-                    case "up":
-                        icon = this.icons.up;
-                        type = "--";
-                        e.category = "up";
-                        break;
-                    case "symlink":
-                        icon = this.icons.symlink;
-                        break;
-                    case "disk":
-                        icon = this.icons.disk;
-                        break;
-                    case "rom":
-                        icon = this.icons.rom;
-                        break;
-                    case "usb":
-                        icon = this.icons.usb;
-                        break;
-                    case "edex-theme":
-                        icon = this.edexIcons.theme;
-                        type = "eDEX-UI theme";
-                        break;
-                    case "edex-kblayout":
-                        icon = this.edexIcons.kblayout;
-                        type = "eDEX-UI keyboard layout";
-                        break;
-                    case "edex-settings":
-                    case "edex-shortcuts":
-                        icon = this.edexIcons.settings;
-                        type = "eDEX-UI config file";
-                        break;
-                    case "system":
-                        icon = this.edexIcons.settings;
-                        break;
-                    case "edex-themesDir":
-                        icon = this.edexIcons.themesDir;
-                        type = "eDEX-UI themes folder";
-                        break;
-                    case "edex-kblayoutsDir":
-                        icon = this.edexIcons.kblayoutsDir;
-                        type = "eDEX-UI keyboards folder";
-                        break;
-                    default: {
-                        let iconName = this.fileIconsMatcher(e.name);
-                        icon = this.icons[iconName];
-                        if (icon === undefined) {
-                            if (e.type === "file") icon = this.icons.file;
-                            if (e.type === "dir") {
-                                icon = this.icons.dir;
-                                type = "folder";
-                            }
-                            if (icon === undefined) icon = this.icons.other;
-                        } else if (e.category !== "dir") {
-                            type = iconName.replace("icon-", "");
-                        } else {
-                            type = "special folder";
-                        }
-                        break;
-                    }
-                }
-
-                if (type === "") type = e.type;
-                e.type = type;
-
-                // Handle displayable media
-                if (e.type === "video" || e.type === "audio" || e.type === "image") {
-                    this.cwd[blockIndex].type = e.type;
-                    cmd = `window.fsDisp.openMedia(${blockIndex})`;
-                }
-
-                if (typeof e.size === "number") {
-                    e.size = this._formatBytes(e.size);
-                } else {
-                    e.size = "--";
-                }
-                if (typeof e.lastAccessed === "number") {
-                    e.lastAccessed = new Date(e.lastAccessed).toLocaleString();
-                } else {
-                    e.lastAccessed = "--";
-                }
-
-                filesDOM += `<div class="fs_disp_${e.type}${hidden} animationWait" onclick='${cmdPrefix + cmd + cmdSuffix}'>
-                                <svg viewBox="0 0 ${icon.width} ${icon.height}" fill="${this.iconcolor}">
-                                    ${icon.svg}
-                                </svg>
-                                <h3>${e.name}</h3>
-                                <h4>${type}</h4>
-                                <h4>${e.size}</h4>
-                                <h4>${e.lastAccessed}</h4>
-                            </div>`;
+                filesDOM += this._renderEntry(e, blockIndex);
             });
             this.filesContainer.innerHTML = filesDOM;
 
