@@ -56,8 +56,11 @@ class AudioManager {
             Howler.volume(0.0);
         }
 
-        // Return a proxy to avoid errors if sounds aren't loaded
-        return new Proxy(this, {
+        // Unlike a primitive return, a constructor returning an object DOES
+        // override `this` per the JS spec - required here so every unloaded
+        // sound falls back to a no-op .play() instead of throwing.
+        // prettier-ignore
+        return new Proxy(this, { // NOSONAR
             get: (target, sound) => {
                 if (sound in target) {
                     return target[sound];
