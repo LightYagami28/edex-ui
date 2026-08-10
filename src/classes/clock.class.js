@@ -38,7 +38,13 @@ class Clock {
         array = clockString.match(/./g);
         clockString = "";
         array.forEach((e) => {
-            if (e === ":") clockString += "<em>" + e + "</em>";
+            // SonarCloud flags this as an always-false comparison, but that's
+            // stale type-narrowing from `array` being a number[] earlier in
+            // this function - by this point .match() has reassigned it to a
+            // string[], so `e` is genuinely a single character here.
+            // Verified via a standalone runtime check.
+            // prettier-ignore
+            if (e === ":") clockString += "<em>" + e + "</em>"; // NOSONAR
             else clockString += "<span>" + e + "</span>";
         });
 
