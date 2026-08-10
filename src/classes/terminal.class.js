@@ -1,3 +1,9 @@
+// A single 0-255 octet, factored out and reused for all 4 positions instead
+// of repeating the range logic inline 4 times - see #397, used below to spot
+// IPv4 addresses printed to the terminal for the connections globe.
+const IPV4_OCTET = String.raw`(25[0-5]|2[0-4]\d|[01]?\d\d?)`;
+const IPV4_REGEX = new RegExp(String.raw`(${IPV4_OCTET}\.){3}${IPV4_OCTET}`, "g");
+
 class Terminal {
     constructor(opts) {
         if (opts.role === "client") {
@@ -164,7 +170,7 @@ class Terminal {
 
                 // See #397
                 if (!window.settings.experimentalGlobeFeatures) return;
-                let ips = e.data.match(/((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)/g);
+                let ips = e.data.match(IPV4_REGEX);
                 if (ips !== null && ips.length >= 1) {
                     ips = ips.filter((val, index, self) => {
                         return self.indexOf(val) === index;
