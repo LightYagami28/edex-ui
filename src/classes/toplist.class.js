@@ -33,48 +33,38 @@ function dedupeProcesses(list) {
         });
 }
 
+// String comparator matching this file's "ascending" convention (which, for
+// historical reasons, sorts a > b first when ascending is true - see below).
+function compareByString(a, b, ascending) {
+    if (a === b) return 0;
+    if (ascending) return a > b ? -1 : 1;
+    return a < b ? -1 : 1;
+}
+
 // The sort comparator backing processList()'s sortable column headers.
 function compareProcesses(a, b, sortKey, ascending) {
     switch (sortKey) {
         case "PID":
-            if (ascending) return a.pid - b.pid;
-            else return b.pid - a.pid;
+            return ascending ? a.pid - b.pid : b.pid - a.pid;
         case "Name":
-            if (ascending) {
-                if (a.name > b.name) return -1;
-                if (a.name < b.name) return 1;
-                return 0;
-            } else {
-                if (a.name < b.name) return -1;
-                if (a.name > b.name) return 1;
-                return 0;
-            }
+            return compareByString(a.name, b.name, ascending);
         case "User":
-            if (ascending) {
-                if (a.user > b.user) return -1;
-                if (a.user < b.user) return 1;
-                return 0;
-            } else {
-                if (a.user < b.user) return -1;
-                if (a.user > b.user) return 1;
-                return 0;
-            }
+            return compareByString(a.user, b.user, ascending);
         case "CPU":
-            if (ascending) return a.cpu - b.cpu;
-            else return b.cpu - a.cpu;
+            return ascending ? a.cpu - b.cpu : b.cpu - a.cpu;
         case "Memory":
-            if (ascending) return a.mem - b.mem;
-            else return b.mem - a.mem;
+            return ascending ? a.mem - b.mem : b.mem - a.mem;
         case "State":
-            if (a.state < b.state) return -1;
-            if (a.state > b.state) return 1;
-            return 0;
+            // Note: State's sort direction never respects `ascending` -
+            // matches the original behavior (likely an existing oversight,
+            // left as-is since this is a pure complexity refactor).
+            return compareByString(a.state, b.state, false);
         case "Started":
-            if (ascending) return Date.parse(a.started) - Date.parse(b.started);
-            else return Date.parse(b.started) - Date.parse(a.started);
+            return ascending
+                ? Date.parse(a.started) - Date.parse(b.started)
+                : Date.parse(b.started) - Date.parse(a.started);
         case "Runtime":
-            if (ascending) return a.runtime - b.runtime;
-            else return b.runtime - a.runtime;
+            return ascending ? a.runtime - b.runtime : b.runtime - a.runtime;
         default:
             // default to the same sorting as the toplist
             return (b.cpu - a.cpu) * 100 + b.mem - a.mem;
