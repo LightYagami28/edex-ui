@@ -46,13 +46,17 @@ function register({ win, paths }) {
     // platforms. The only caller (updateChecker.class.js) only ever passes
     // a github.com release URL from GitHub's own API response.
     ipcMain.on("shell:openExternal", (e, url) => {
+        let parsed;
         try {
-            const parsed = new URL(url);
-            if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return;
+            parsed = new URL(url);
         } catch {
             return;
         }
-        shell.openExternal(url);
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return;
+        // Pass the canonicalized URL (parsed.href), not the original tainted
+        // string, so the only thing ever reaching shell.openExternal is a
+        // value the URL parser has already validated as http(s).
+        shell.openExternal(parsed.href);
     });
     // shell:openPath/fs:* intentionally accept arbitrary paths - see note
     // below. This app bundles a real terminal (a real shell, via node-pty),
