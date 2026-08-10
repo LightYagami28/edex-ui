@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer, webFrame } = require("electron");
-const path = require("path");
-const os = require("os");
+const path = require("node:path");
+const os = require("node:os");
 
 // Channels the renderer is allowed to send/listen on through ipc.send/on below.
 // Keeps this bridge from becoming a generic "call anything over IPC" hole.

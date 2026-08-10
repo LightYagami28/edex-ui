@@ -190,7 +190,8 @@ function displayLine() {
     } else {
         window.audioManager.stdout.play();
     }
-    bootScreen.innerHTML += bootLogLines[i] + "<br/>";
+    bootScreen.appendChild(document.createTextNode(bootLogLines[i]));
+    bootScreen.appendChild(document.createElement("br"));
     i++;
 
     switch (true) {

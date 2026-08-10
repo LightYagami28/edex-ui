@@ -46,6 +46,7 @@ src/node_modules
 # VS Code SonarLint
 .sonarlint/
 .vscode/
+.scannerwork/
 # Snyk
 .snyk
 .github/instructions
