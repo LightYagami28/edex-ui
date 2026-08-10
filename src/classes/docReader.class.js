@@ -78,7 +78,10 @@ class DocReader {
             canvas.style.zoom = zoom + "%";
         };
 
-        document.getElementById(modalElementId).querySelector(".previous_page").addEventListener("click", this.onPrevPage);
+        document
+            .getElementById(modalElementId)
+            .querySelector(".previous_page")
+            .addEventListener("click", this.onPrevPage);
         document.getElementById(modalElementId).querySelector(".next_page").addEventListener("click", this.onNextPage);
         document.getElementById(modalElementId).querySelector(".zoom_in").addEventListener("click", this.zoomIn);
         document.getElementById(modalElementId).querySelector(".zoom_out").addEventListener("click", this.zoomOut);
@@ -92,5 +95,5 @@ class DocReader {
 }
 
 module.exports = {
-    DocReader
+    DocReader,
 };

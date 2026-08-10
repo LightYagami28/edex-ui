@@ -21,63 +21,67 @@ function writeMinified(path, data) {
 }
 
 async function recursiveMinify(dirPath) {
-    try { var files = fs.readdirSync(dirPath); }
-    catch { return; }
+    try {
+        var files = fs.readdirSync(dirPath);
+    } catch {
+        return;
+    }
     if (files.length > 0) {
         for (let i = 0; i < files.length; i++) {
             let filePath = dirPath + "/" + files[i];
             if (fs.statSync(filePath).isFile()) {
-
                 // Do not process grid.json because it's heavy and pre-minified, and themes and keyboard files to leave them in a human-readable state
                 if (filePath.endsWith(".json") && !filePath.endsWith("icons.json")) continue;
                 // See #446
                 if (filePath.endsWith("file-icons-match.js")) continue;
-                await stdout.write(filePath.slice(filePath.indexOf("prebuild-src/")+13)+"...");
+                await stdout.write(filePath.slice(filePath.indexOf("prebuild-src/") + 13) + "...");
 
                 switch (filePath.split(".").pop()) {
-                case "js": {
-                    let minified = await UglifyJS.minify(fs.readFileSync(filePath, {encoding: "utf-8"}), {
-                        compress: {
-                            dead_code: false,
-                            unused: false,
-                            warnings: true
-                        },
-                        output: {
-                            beautify: false,
-                            ecma: 6
+                    case "js": {
+                        let minified = await UglifyJS.minify(fs.readFileSync(filePath, { encoding: "utf-8" }), {
+                            compress: {
+                                dead_code: false,
+                                unused: false,
+                                warnings: true,
+                            },
+                            output: {
+                                beautify: false,
+                                ecma: 6,
+                            },
+                        });
+                        if (!minified.error) {
+                            await writeMinified(filePath, minified.code);
+                        } else {
+                            stdout.write(" -  ❌\n\n\n");
+                            throw minified.error;
                         }
-                    });
-                    if (!minified.error) {
-                        await writeMinified(filePath, minified.code);
-                    } else {
-                        stdout.write(" -  ❌\n\n\n");
-                        throw minified.error;
+                        break;
                     }
-                    break;
-                }
-                case "css": {
-                    let output = new CleanCSS({level:2}).minify(fs.readFileSync(filePath, {encoding:"utf-8"}));
-                    if (output.errors.length >= 1) {
-                        stdout.write(" -  ❌\n\n\n");
-                        throw output.errors;
-                    } else {
-                        await writeMinified(filePath, output.styles);
+                    case "css": {
+                        let output = new CleanCSS({ level: 2 }).minify(
+                            fs.readFileSync(filePath, { encoding: "utf-8" })
+                        );
+                        if (output.errors.length >= 1) {
+                            stdout.write(" -  ❌\n\n\n");
+                            throw output.errors;
+                        } else {
+                            await writeMinified(filePath, output.styles);
+                        }
+                        break;
                     }
-                    break;
-                }
-                case "json": {
-                    let out;
-                    try {
-                        out = JSON.minify(fs.readFileSync(filePath, {encoding:"utf-8"}));
-                    } catch(err) {
-                        stdout.write(" -  ❌\n\n\n");
-                        throw err;
+                    case "json": {
+                        let out;
+                        try {
+                            out = JSON.minify(fs.readFileSync(filePath, { encoding: "utf-8" }));
+                        } catch (err) {
+                            stdout.write(" -  ❌\n\n\n");
+                            throw err;
+                        }
+                        await writeMinified(filePath, out);
+                        break;
                     }
-                    await writeMinified(filePath, out);
-                    break;
-                }
-                default:
-                    stdout.write("\n");
+                    default:
+                        stdout.write("\n");
                 }
             } else {
                 await recursiveMinify(filePath);

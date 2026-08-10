@@ -45,8 +45,12 @@ section#boot_screen h1.glitch {
 }
 
 @keyframes fadeInTitle {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
 
 section#boot_screen h1::before {
@@ -73,8 +77,12 @@ section#boot_screen h1.glitch::before {
 }
 
 @keyframes derezzer_top {
-    from {transform: translateY(100%) translateX(-1%);}
-    to {transform: translateY(100%) translateX(-5%);}
+    from {
+        transform: translateY(100%) translateX(-1%);
+    }
+    to {
+        transform: translateY(100%) translateX(-5%);
+    }
 }
 
 section#boot_screen h1::after {
@@ -101,6 +109,10 @@ section#boot_screen h1.glitch::after {
 }
 
 @keyframes derezzer_bottom {
-    from {transform: translateY(-100%) translateX(1%);}
-    to {transform: translateY(-100%) translateX(3%);}
+    from {
+        transform: translateY(-100%) translateX(1%);
+    }
+    to {
+        transform: translateY(-100%) translateX(3%);
+    }
 }

@@ -7,16 +7,16 @@ if (cluster.isPrimary) {
     // Also, leave a core available for the renderer process
     const osCPUs = require("os").cpus().length - 1;
     // See #904
-    const numCPUs = (osCPUs > 7) ? 7 : osCPUs;
+    const numCPUs = osCPUs > 7 ? 7 : osCPUs;
 
     const si = require("systeminformation");
 
     cluster.setupPrimary({
-        exec: require("path").join(__dirname, "_multithread.js")
+        exec: require("path").join(__dirname, "_multithread.js"),
     });
 
     let workers = [];
-    cluster.on("fork", worker => {
+    cluster.on("fork", (worker) => {
         workers.push(worker.id);
     });
 
@@ -29,14 +29,16 @@ if (cluster.isPrimary) {
     let lastID = 0;
 
     function dispatch(type, id, arg) {
-        let selectedID = lastID+1;
-        if (selectedID > numCPUs-1) selectedID = 0;
+        let selectedID = lastID + 1;
+        if (selectedID > numCPUs - 1) selectedID = 0;
 
-        cluster.workers[workers[selectedID]].send(JSON.stringify({
-            id,
-            type,
-            arg
-        }));
+        cluster.workers[workers[selectedID]].send(
+            JSON.stringify({
+                id,
+                type,
+                arg,
+            })
+        );
 
         lastID = selectedID;
     }
@@ -49,9 +51,9 @@ if (cluster.isPrimary) {
         }
 
         if (args.length > 1 || workers.length <= 0) {
-            si[type](...args).then(res => {
+            si[type](...args).then((res) => {
                 if (e.sender) {
-                    e.sender.send("systeminformation-reply-"+id, res);
+                    e.sender.send("systeminformation-reply-" + id, res);
                 }
             });
         } else {
@@ -64,7 +66,7 @@ if (cluster.isPrimary) {
         msg = JSON.parse(msg);
         try {
             if (!queue[msg.id].isDestroyed()) {
-                queue[msg.id].send("systeminformation-reply-"+msg.id, msg.res);
+                queue[msg.id].send("systeminformation-reply-" + msg.id, msg.res);
                 delete queue[msg.id];
             }
         } catch {
@@ -75,15 +77,17 @@ if (cluster.isPrimary) {
     const signale = require("signale");
     const si = require("systeminformation");
 
-    signale.info("Multithread worker started at "+process.pid);
+    signale.info("Multithread worker started at " + process.pid);
 
-    process.on("message", msg => {
+    process.on("message", (msg) => {
         msg = JSON.parse(msg);
-        si[msg.type](msg.arg).then(res => {
-            process.send(JSON.stringify({
-                id: msg.id,
-                res
-            }));
+        si[msg.type](msg.arg).then((res) => {
+            process.send(
+                JSON.stringify({
+                    id: msg.id,
+                    res,
+                })
+            );
         });
     });
 }

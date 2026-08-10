@@ -45,12 +45,12 @@ div#mod_conninfo h2 {
     margin: 0vh;
     margin-bottom: -0.7vh;
     width: 98%;
-    opacity: .5;
+    opacity: 0.5;
 }
 
 div#mod_conninfo i {
     font-style: normal;
-    font-size: 1.20vh;
+    font-size: 1.2vh;
     opacity: 0.5;
     text-align: right;
     display: inline-block;

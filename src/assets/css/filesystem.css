@@ -6,7 +6,7 @@ section#filesystem {
     margin-right: 0.5vw;
 
     opacity: 0;
-    transition: opacity .5s cubic-bezier(0.4, 0, 1, 1);
+    transition: opacity 0.5s cubic-bezier(0.4, 0, 1, 1);
 }
 
 section#filesystem > h3.title {
@@ -26,7 +26,7 @@ h2#fs_disp_error {
 
 div#fs_disp_container {
     position: relative;
-    left: .35vw;
+    left: 0.35vw;
     top: 1.5vh;
     height: 25.5vh;
     width: 43vw;
@@ -49,7 +49,7 @@ div#fs_disp_container > * {
     justify-content: center;
     cursor: pointer;
     opacity: 1;
-    transition: opacity .2s linear;
+    transition: opacity 0.2s linear;
 }
 
 div#fs_disp_container > *.animationWait {
@@ -59,13 +59,19 @@ div#fs_disp_container > *.animationWait {
 div#fs_disp_container > *:active {
     animation-name: blink;
     animation-iteration-count: infinite;
-    animation-duration: .1s;
+    animation-duration: 0.1s;
 }
 
 @keyframes blink {
-    0% {background-color: rgba(var(--color_r), var(--color_g), var(--color_b), 0.0);}
-    50% {background-color: rgba(var(--color_r), var(--color_g), var(--color_b), 1);}
-    100% {background-color: rgba(var(--color_r), var(--color_g), var(--color_b), 0.0);}
+    0% {
+        background-color: rgba(var(--color_r), var(--color_g), var(--color_b), 0);
+    }
+    50% {
+        background-color: rgba(var(--color_r), var(--color_g), var(--color_b), 1);
+    }
+    100% {
+        background-color: rgba(var(--color_r), var(--color_g), var(--color_b), 0);
+    }
 }
 
 div#fs_disp_container > *.hidden {
@@ -91,7 +97,7 @@ div#fs_disp_container > * > h3 {
     max-width: 100%;
     max-height: 30%;
     margin: 0px;
-    padding-top: .5vh;
+    padding-top: 0.5vh;
     box-sizing: border-box;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -103,7 +109,7 @@ section#filesystem:not(.list-view) > div#fs_disp_container > div > h4 {
 }
 
 div#fs_disp_container.disks > div > h4 {
-	  display: none;
+    display: none;
 }
 
 section#filesystem.list-view > div#fs_disp_container {
@@ -129,7 +135,7 @@ section#filesystem.list-view > div#fs_disp_container:not(.disks) > div > svg {
 
 section#filesystem.list-view > div#fs_disp_container:not(.disks) > div > h3 {
     max-height: unset;
-    padding-top: .2vh;
+    padding-top: 0.2vh;
     text-align: left;
     width: 32%;
 }
@@ -137,16 +143,22 @@ section#filesystem.list-view > div#fs_disp_container:not(.disks) > div > h3 {
 section#filesystem.list-view > div#fs_disp_container:not(.disks) > div > h4 {
     font-size: 1.3vh;
     font-weight: normal;
-    padding-top: .2vh;
+    padding-top: 0.2vh;
     text-align: right;
     overflow: hidden;
 }
 
-section#filesystem.list-view > div#fs_disp_container:not(.disks) > div > h4:nth-of-type(1) { width: 15%; }
+section#filesystem.list-view > div#fs_disp_container:not(.disks) > div > h4:nth-of-type(1) {
+    width: 15%;
+}
 
-section#filesystem.list-view > div#fs_disp_container:not(.disks) > div > h4:nth-of-type(2) { width: 10%; }
+section#filesystem.list-view > div#fs_disp_container:not(.disks) > div > h4:nth-of-type(2) {
+    width: 10%;
+}
 
-section#filesystem.list-view > div#fs_disp_container:not(.disks) > div > h4:nth-of-type(3) { width: 38%; }
+section#filesystem.list-view > div#fs_disp_container:not(.disks) > div > h4:nth-of-type(3) {
+    width: 38%;
+}
 
 div#fs_disp_container.disks {
     display: flex;
@@ -160,7 +172,8 @@ div#fs_disp_container.disks > * {
     max-width: 8vw;
 }
 
-section#filesystem:not(.list-view) div.fs_disp_showDisks > svg, section#filesystem:not(.list-view) div.fs_disp_up > svg {
+section#filesystem:not(.list-view) div.fs_disp_showDisks > svg,
+section#filesystem:not(.list-view) div.fs_disp_up > svg {
     width: 4vh !important;
     margin-bottom: 0.5vh;
     margin-top: 0.5vh;
@@ -180,7 +193,7 @@ div.fs_disp_other > h3 {
 div#fs_space_bar {
     position: relative;
     top: 1.5vh;
-    left: .15vw;
+    left: 0.15vw;
 }
 
 div#fs_space_bar > h1 {
@@ -190,8 +203,8 @@ div#fs_space_bar > h1 {
     height: 3.2vh;
     width: 100%;
     position: relative;
-    bottom: .7vh;
-    left: .3vh;
+    bottom: 0.7vh;
+    left: 0.3vh;
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
@@ -203,10 +216,10 @@ div#fs_space_bar > h1 {
     cursor: pointer;
 }
 
-div#fs_disp_container.disks+div#fs_space_bar > h1 {
+div#fs_disp_container.disks + div#fs_space_bar > h1 {
     display: flex;
 }
-div#fs_disp_container.disks+div#fs_space_bar > *:not(h1) {
+div#fs_disp_container.disks + div#fs_space_bar > *:not(h1) {
     display: none;
 }
 
@@ -218,22 +231,22 @@ div#fs_space_bar > h3 {
     font-weight: normal;
     white-space: nowrap;
     position: relative;
-    bottom: .4vh;
+    bottom: 0.4vh;
 }
 
 div#fs_space_bar > progress {
     width: 70%;
     height: 2.2vh;
-    padding-top: .5vh;
+    padding-top: 0.5vh;
     -webkit-appearance: none;
 }
 
 div#fs_space_bar > progress::after {
     content: "";
     position: absolute;
-    right: -.1vh;
-    top: .45vh;
-    width: .1vh;
+    right: -0.1vh;
+    top: 0.45vh;
+    width: 0.1vh;
     height: 1.7vh;
     background: rgba(var(--color_r), var(--color_g), var(--color_b), 0.8);
 }
@@ -244,23 +257,27 @@ div#fs_space_bar > progress:not([value])::after {
 }
 
 @keyframes space_bar_working {
-    0% { right: 0%; }
-    100% { right: 70%; }
+    0% {
+        right: 0%;
+    }
+    100% {
+        right: 70%;
+    }
 }
 
 div#fs_space_bar > progress::-webkit-progress-bar {
     background: rgba(var(--color_r), var(--color_g), var(--color_b), 0.4);
-    height: .7vh;
+    height: 0.7vh;
     position: relative;
-    top: .7vh;
+    top: 0.7vh;
 }
 
 div#fs_space_bar > progress::-webkit-progress-value {
     background: rgb(var(--color_r), var(--color_g), var(--color_b));
-    height: .7vh;
+    height: 0.7vh;
     position: relative;
-    bottom: .7vh;
-    transition: width .5s cubic-bezier(0.4, 0, 1, 1);
+    bottom: 0.7vh;
+    transition: width 0.5s cubic-bezier(0.4, 0, 1, 1);
 }
 
 .pdf_container {

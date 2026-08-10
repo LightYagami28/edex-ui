@@ -39,7 +39,9 @@ class MediaPlayer {
         };
 
         this.setFullscreenData = (state) => {
-            if (fullscreen === null) { return; }
+            if (fullscreen === null) {
+                return;
+            }
             mediaContainer.setAttribute("data-fullscreen", !!state);
             fullscreen.setAttribute("data-state", state ? "cancel-fullscreen" : "go-fullscreen");
             const buttonIcon = state ? "fullscreen-exit" : "fullscreen";
@@ -98,9 +100,16 @@ class MediaPlayer {
             seconds = seconds % 3600;
             const minutes = parseInt(seconds / 60);
             seconds = seconds % 60;
-            return (hours < 10 ? "0" : "") + hours + ":" +
-                (minutes < 10 ? "0" : "") + minutes + ":" +
-                (seconds < 10 ? "0" : "") + seconds;
+            return (
+                (hours < 10 ? "0" : "") +
+                hours +
+                ":" +
+                (minutes < 10 ? "0" : "") +
+                minutes +
+                ":" +
+                (seconds < 10 ? "0" : "") +
+                seconds
+            );
         };
 
         this.updateVolume = (x) => {
@@ -111,13 +120,13 @@ class MediaPlayer {
             if (vol < 0) {
                 vol = 0;
             }
-            volumeBar.style.clip = "rect(0px, " + ((vol * 100) / 20) + "vw,2vh,0px)";
+            volumeBar.style.clip = "rect(0px, " + (vol * 100) / 20 + "vw,2vh,0px)";
             media.volume = vol;
             this.updateVolumeIcon(vol);
         };
 
         this.updateVolumeIcon = (vol) => {
-            let icon = (vol > 0) ? "volume" : "mute";
+            let icon = vol > 0 ? "volume" : "mute";
             volumeIcon.innerHTML = `<svg viewBox="0 0 ${icons[icon].width} ${icons[icon].height}" fill="${iconcolor}">
                                         ${icons[icon].svg}
                                     </svg>`;
@@ -126,8 +135,20 @@ class MediaPlayer {
         media.addEventListener("loadedmetadata", () => {
             mediaTime.textContent = "00:00:00";
         });
-        media.addEventListener("play", () => { this.changeButtonState("playpause"); }, false);
-        media.addEventListener("pause", () => { this.changeButtonState("playpause"); }, false);
+        media.addEventListener(
+            "play",
+            () => {
+                this.changeButtonState("playpause");
+            },
+            false
+        );
+        media.addEventListener(
+            "pause",
+            () => {
+                this.changeButtonState("playpause");
+            },
+            false
+        );
         media.addEventListener("timeupdate", () => {
             progressBar.style.width = Math.floor((media.currentTime / media.duration) * 100) + "%";
             mediaTime.textContent = this.mediaTimeToHMS(media.currentTime);
@@ -151,17 +172,20 @@ class MediaPlayer {
             }
         });
 
-        progress.addEventListener("click", function(e) {
+        progress.addEventListener("click", function (e) {
             const pos = (e.pageX - (this.offsetLeft + this.offsetParent.offsetLeft)) / this.offsetWidth;
             media.currentTime = pos * media.duration;
         });
         playpause.addEventListener("click", () => {
-            (media.paused || media.ended) ? media.play(): media.pause();
+            media.paused || media.ended ? media.play() : media.pause();
         });
-        if (fullscreen) fullscreen.addEventListener("click", () => { this.handleFullscreen(); });
+        if (fullscreen)
+            fullscreen.addEventListener("click", () => {
+                this.handleFullscreen();
+            });
 
         document.addEventListener("fullscreenchange", () => {
-            this.setFullscreenData(!!(document.fullscreenElement));
+            this.setFullscreenData(!!document.fullscreenElement);
         });
         document.addEventListener("mouseup", (e) => {
             if (volumeDrag) {
@@ -178,5 +202,5 @@ class MediaPlayer {
 }
 
 module.exports = {
-    MediaPlayer
+    MediaPlayer,
 };

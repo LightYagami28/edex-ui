@@ -10,8 +10,8 @@ module.exports = [
             "file-icons/**",
             // Vendored third-party bundle and a generated data/lookup table - not maintained here.
             "src/assets/vendor/**",
-            "src/assets/misc/file-icons-match.js"
-        ]
+            "src/assets/misc/file-icons-match.js",
+        ],
     },
     js.configs.recommended,
     {
@@ -55,16 +55,14 @@ module.exports = [
                 _escapeHtml: "readonly",
                 _loadTheme: "readonly",
                 // Loaded via the pdf.mjs module bridge in ui.html
-                pdfjsLib: "readonly"
-            }
+                pdfjsLib: "readonly",
+            },
         },
         rules: {
-            indent: ["warn", 4],
-            "linebreak-style": ["warn", "unix"],
-            quotes: ["warn", "double"],
-            semi: ["warn", "always"],
+            // Formatting (indent, quotes, semi, ...) is owned by Prettier, not ESLint -
+            // ESLint's own stylistic rules were deprecated in favor of dedicated formatters.
             "no-unused-vars": ["warn"],
-            "no-console": "off"
-        }
-    }
+            "no-console": "off",
+        },
+    },
 ];

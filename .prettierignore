@@ -4,3 +4,6 @@ prebuild-src/
 file-icons/
 *.lock
 package-lock.json
+# Vendored third-party bundle and a generated data/lookup table - not maintained here.
+src/assets/vendor/
+src/assets/misc/file-icons-match.js
