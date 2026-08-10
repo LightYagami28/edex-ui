@@ -452,37 +452,44 @@ class Keyboard {
             return true;
         }
 
+        this._writeCmd(cmd);
+    }
+    // Writes the given resolved (already accent/modifier/shortcut-processed)
+    // cmd into the linked terminal, or into the currently focused input field
+    // if the keyboard isn't linked to a terminal. Extracted out of pressKey()
+    // to keep its cognitive complexity down.
+    _writeCmd(cmd) {
         if (window.keyboard.linkedToTerm) {
             window.term[window.currentTerm].write(cmd);
-        } else {
-            let isDelete = false;
-            if (document.activeElement.value !== undefined) {
-                switch (cmd) {
-                    case "":
-                        document.activeElement.value = document.activeElement.value.slice(0, -1);
-                        isDelete = true;
-                        break;
-                    case "OD":
-                        document.activeElement.selectionStart--;
-                        document.activeElement.selectionEnd = document.activeElement.selectionStart;
-                        break;
-                    case "OC":
-                        document.activeElement.selectionEnd++;
-                        document.activeElement.selectionStart = document.activeElement.selectionEnd;
-                        break;
-                    default:
-                        if (this.ctrlseq.includes(cmd.slice(0, 1))) {
-                            // Prevent trying to write other control sequences
-                        } else {
-                            document.activeElement.value = document.activeElement.value + cmd;
-                        }
-                }
-            }
-            // Emulate oninput events
-            document.activeElement.dispatchEvent(new CustomEvent("input", { detail: isDelete ? "delete" : "insert" }));
-            document.activeElement.focus();
+            return;
         }
+
+        let isDelete = false;
+        if (document.activeElement.value !== undefined) {
+            switch (cmd) {
+                case "":
+                    document.activeElement.value = document.activeElement.value.slice(0, -1);
+                    isDelete = true;
+                    break;
+                case "OD":
+                    document.activeElement.selectionStart--;
+                    document.activeElement.selectionEnd = document.activeElement.selectionStart;
+                    break;
+                case "OC":
+                    document.activeElement.selectionEnd++;
+                    document.activeElement.selectionStart = document.activeElement.selectionEnd;
+                    break;
+                default:
+                    if (!this.ctrlseq.includes(cmd.slice(0, 1))) {
+                        document.activeElement.value = document.activeElement.value + cmd;
+                    }
+            }
+        }
+        // Emulate oninput events
+        document.activeElement.dispatchEvent(new CustomEvent("input", { detail: isDelete ? "delete" : "insert" }));
+        document.activeElement.focus();
     }
+
     // Checks the current keyboard-shortcuts category (Ctrl/Alt/Shift combo)
     // for a matching, enabled shortcut and triggers it. Extracted out of
     // pressKey() to keep its cognitive complexity down.
