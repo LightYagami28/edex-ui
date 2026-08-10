@@ -47,6 +47,11 @@ src/node_modules
 .sonarlint/
 .vscode/
 .scannerwork/
+.sonar/
+.sonar_token
+sonar-token*
+# Kilo AI
+.kilo/
 # Snyk
 .snyk
 .github/instructions
