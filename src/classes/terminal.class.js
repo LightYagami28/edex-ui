@@ -549,6 +549,11 @@ class Terminal {
     }
 }
 
-module.exports = {
-    Terminal,
-};
+// This file is dual-role: required by Node in the main process (server
+// role) but also loaded as a classic <script> in the renderer (client
+// role), where `module` doesn't exist since nodeIntegration is off.
+if (typeof module !== "undefined") {
+    module.exports = {
+        Terminal,
+    };
+}

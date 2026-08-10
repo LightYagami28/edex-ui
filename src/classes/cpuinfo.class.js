@@ -8,9 +8,9 @@ class Cpuinfo {
         </div>`;
         this.container = document.getElementById("mod_cpuinfo");
 
-        // Init Smoothie
-        let TimeSeries = require("smoothie").TimeSeries;
-        let SmoothieChart = require("smoothie").SmoothieChart;
+        // Init Smoothie (loaded as a classic <script> in ui.html, sets window.TimeSeries/window.SmoothieChart)
+        let TimeSeries = window.TimeSeries;
+        let SmoothieChart = window.SmoothieChart;
 
         this.series = [];
         this.charts = [];
@@ -37,8 +37,8 @@ class Cpuinfo {
                 </div>
                 <div>
                     <div>
-                        <h1>${process.platform === "win32" ? "CORES" : "TEMP"}<br>
-                        <i id="mod_cpuinfo_temp">${process.platform === "win32" ? data.cores : "--°C"}</i></h1>
+                        <h1>${window.eDEX.platform === "win32" ? "CORES" : "TEMP"}<br>
+                        <i id="mod_cpuinfo_temp">${window.eDEX.platform === "win32" ? data.cores : "--°C"}</i></h1>
                     </div>
                     <div>
                         <h1>SPD<br>
@@ -101,7 +101,7 @@ class Cpuinfo {
             // Init updater
             this.updatingCPUload = false;
             this.updateCPUload();
-            if (process.platform !== "win32") {
+            if (window.eDEX.platform !== "win32") {
                 this.updateCPUtemp();
             }
             this.updatingCPUspeed = false;
@@ -111,7 +111,7 @@ class Cpuinfo {
             this.loadUpdater = setInterval(() => {
                 this.updateCPUload();
             }, 500);
-            if (process.platform !== "win32") {
+            if (window.eDEX.platform !== "win32") {
                 this.tempUpdater = setInterval(() => {
                     this.updateCPUtemp();
                 }, 2000);
@@ -189,6 +189,4 @@ class Cpuinfo {
     }
 }
 
-module.exports = {
-    Cpuinfo,
-};
+window.Cpuinfo = Cpuinfo;

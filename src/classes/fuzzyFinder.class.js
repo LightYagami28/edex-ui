@@ -137,6 +137,4 @@ class FuzzyFinder {
     }
 }
 
-module.exports = {
-    FuzzyFinder,
-};
+window.FuzzyFinder = FuzzyFinder;

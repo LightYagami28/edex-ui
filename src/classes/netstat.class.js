@@ -146,6 +146,4 @@ class Netstat {
     }
 }
 
-module.exports = {
-    Netstat,
-};
+window.Netstat = Netstat;

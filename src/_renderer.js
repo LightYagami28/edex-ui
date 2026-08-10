@@ -1,5 +1,5 @@
 // Disable eval()
-window.eval = global.eval = function () {
+window.eval = function () {
     throw new Error("eval() is disabled for security reasons.");
 };
 // Security helper :)
@@ -40,6 +40,7 @@ const eDEX = window.eDEX;
 const ipc = eDEX.ipc;
 const path = eDEX.path;
 
+// eslint-disable-next-line no-unused-vars -- settingsDir is read by filesystem.class.js via the shared classic-script top-level scope
 let settingsDir, themesDir, keyboardsDir, fontsDir, settingsFile, shortcutsFile, lastWindowStateFile;
 let appVersion;
 

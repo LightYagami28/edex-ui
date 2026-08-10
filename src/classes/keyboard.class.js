@@ -1341,6 +1341,4 @@ class Keyboard {
     }
 }
 
-module.exports = {
-    Keyboard,
-};
+window.Keyboard = Keyboard;
