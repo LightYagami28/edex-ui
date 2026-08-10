@@ -62,7 +62,11 @@ class Netstat {
                 offline = true;
             } else {
                 this._maybeUpdateExternalIp(net);
-                p = await this.ping(window.settings.pingAddr || "1.1.1.1", 80, net.ip4).catch(() => {
+                // 1.1.1.1 (Cloudflare's public DNS) is only the default
+                // connectivity-check target - user-overridable via
+                // window.settings.pingAddr, not a hardcoded credential/host.
+                const pingAddr = window.settings.pingAddr || "1.1.1.1"; // NOSONAR
+                p = await this.ping(pingAddr, 80, net.ip4).catch(() => {
                     offline = true;
                 });
             }
