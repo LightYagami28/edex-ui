@@ -40,7 +40,7 @@ div#mod_toplist h1 {
 
 div#mod_toplist i {
     font-style: normal;
-    font-size: 1.20vh;
+    font-size: 1.2vh;
     opacity: 0.5;
     text-align: right;
     display: inline-block;
@@ -57,7 +57,7 @@ table#mod_toplist_table {
 }
 
 table#mod_toplist_table td {
-    font-size: 1.50vh;
+    font-size: 1.5vh;
 }
 
 table#mod_toplist_table td:nth-child(2) {
@@ -68,8 +68,9 @@ table#mod_toplist_table td:nth-child(2) {
     white-space: nowrap;
 }
 
-table#mod_toplist_table td:nth-child(3), table#mod_toplist_table td:nth-child(4) {
+table#mod_toplist_table td:nth-child(3),
+table#mod_toplist_table td:nth-child(4) {
     text-align: right;
-        max-width: 2.4vw;
+    max-width: 2.4vw;
     min-width: 2.4vw;
 }

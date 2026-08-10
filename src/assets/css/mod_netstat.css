@@ -36,7 +36,7 @@ div#mod_netstat_inner > h1:first-child {
 
 div#mod_netstat_inner > h1:first-child > i {
     font-style: normal;
-    font-size: 1.20vh;
+    font-size: 1.2vh;
     opacity: 0.5;
     text-align: right;
     display: inline-block;

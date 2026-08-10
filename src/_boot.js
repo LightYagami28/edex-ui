@@ -1,14 +1,14 @@
 const signale = require("signale");
-const {app, BrowserWindow, dialog, shell} = require("electron");
+const { app, BrowserWindow, dialog, shell } = require("electron");
 
-process.on("uncaughtException", e => {
+process.on("uncaughtException", (e) => {
     signale.fatal(e);
     dialog.showErrorBox("eDEX-UI crashed", e.message || "Cannot retrieve error message.");
     if (tty) {
         tty.close();
     }
     if (extraTtys) {
-        Object.keys(extraTtys).forEach(key => {
+        Object.keys(extraTtys).forEach((key) => {
             if (extraTtys[key] !== null) {
                 extraTtys[key].close();
             }
@@ -72,56 +72,77 @@ try {
 }
 // Create default settings file
 if (!fs.existsSync(settingsFile)) {
-    fs.writeFileSync(settingsFile, JSON.stringify({
-        shell: (process.platform === "win32") ? "powershell.exe" : "bash",
-        shellArgs: "",
-        cwd: electron.app.getPath("userData"),
-        keyboard: "en-US",
-        theme: "tron",
-        termFontSize: 15,
-        audio: true,
-        audioVolume: 1.0,
-        disableFeedbackAudio: false,
-        clockHours: 24,
-        pingAddr: "1.1.1.1",
-        port: 3000,
-        nointro: false,
-        nocursor: false,
-        forceFullscreen: true,
-        allowWindowed: false,
-        excludeThreadsFromToplist: true,
-        hideDotfiles: false,
-        fsListView: false,
-        experimentalGlobeFeatures: false,
-        experimentalFeatures: false
-    }, "", 4));
+    fs.writeFileSync(
+        settingsFile,
+        JSON.stringify(
+            {
+                shell: process.platform === "win32" ? "powershell.exe" : "bash",
+                shellArgs: "",
+                cwd: electron.app.getPath("userData"),
+                keyboard: "en-US",
+                theme: "tron",
+                termFontSize: 15,
+                audio: true,
+                audioVolume: 1.0,
+                disableFeedbackAudio: false,
+                clockHours: 24,
+                pingAddr: "1.1.1.1",
+                port: 3000,
+                nointro: false,
+                nocursor: false,
+                forceFullscreen: true,
+                allowWindowed: false,
+                excludeThreadsFromToplist: true,
+                hideDotfiles: false,
+                fsListView: false,
+                experimentalGlobeFeatures: false,
+                experimentalFeatures: false,
+            },
+            "",
+            4
+        )
+    );
     signale.info(`Default settings written to ${settingsFile}`);
 }
 // Create default shortcuts file
 if (!fs.existsSync(shortcutsFile)) {
-    fs.writeFileSync(shortcutsFile, JSON.stringify([
-        { type: "app", trigger: "Ctrl+Shift+C", action: "COPY", enabled: true },
-        { type: "app", trigger: "Ctrl+Shift+V", action: "PASTE", enabled: true },
-        { type: "app", trigger: "Ctrl+Tab", action: "NEXT_TAB", enabled: true },
-        { type: "app", trigger: "Ctrl+Shift+Tab", action: "PREVIOUS_TAB", enabled: true },
-        { type: "app", trigger: "Ctrl+X", action: "TAB_X", enabled: true },
-        { type: "app", trigger: "Ctrl+Shift+S", action: "SETTINGS", enabled: true },
-        { type: "app", trigger: "Ctrl+Shift+K", action: "SHORTCUTS", enabled: true },
-        { type: "app", trigger: "Ctrl+Shift+F", action: "FUZZY_SEARCH", enabled: true },
-        { type: "app", trigger: "Ctrl+Shift+L", action: "FS_LIST_VIEW", enabled: true },
-        { type: "app", trigger: "Ctrl+Shift+H", action: "FS_DOTFILES", enabled: true },
-        { type: "app", trigger: "Ctrl+Shift+P", action: "KB_PASSMODE", enabled: true },
-        { type: "app", trigger: "Ctrl+Shift+I", action: "DEV_DEBUG", enabled: false },
-        { type: "app", trigger: "Ctrl+Shift+F5", action: "DEV_RELOAD", enabled: true },
-        { type: "shell", trigger: "Ctrl+Shift+Alt+Space", action: "neofetch", linebreak: true, enabled: false }
-    ], "", 4));
+    fs.writeFileSync(
+        shortcutsFile,
+        JSON.stringify(
+            [
+                { type: "app", trigger: "Ctrl+Shift+C", action: "COPY", enabled: true },
+                { type: "app", trigger: "Ctrl+Shift+V", action: "PASTE", enabled: true },
+                { type: "app", trigger: "Ctrl+Tab", action: "NEXT_TAB", enabled: true },
+                { type: "app", trigger: "Ctrl+Shift+Tab", action: "PREVIOUS_TAB", enabled: true },
+                { type: "app", trigger: "Ctrl+X", action: "TAB_X", enabled: true },
+                { type: "app", trigger: "Ctrl+Shift+S", action: "SETTINGS", enabled: true },
+                { type: "app", trigger: "Ctrl+Shift+K", action: "SHORTCUTS", enabled: true },
+                { type: "app", trigger: "Ctrl+Shift+F", action: "FUZZY_SEARCH", enabled: true },
+                { type: "app", trigger: "Ctrl+Shift+L", action: "FS_LIST_VIEW", enabled: true },
+                { type: "app", trigger: "Ctrl+Shift+H", action: "FS_DOTFILES", enabled: true },
+                { type: "app", trigger: "Ctrl+Shift+P", action: "KB_PASSMODE", enabled: true },
+                { type: "app", trigger: "Ctrl+Shift+I", action: "DEV_DEBUG", enabled: false },
+                { type: "app", trigger: "Ctrl+Shift+F5", action: "DEV_RELOAD", enabled: true },
+                { type: "shell", trigger: "Ctrl+Shift+Alt+Space", action: "neofetch", linebreak: true, enabled: false },
+            ],
+            "",
+            4
+        )
+    );
     signale.info(`Default keymap written to ${shortcutsFile}`);
 }
 //Create default window state file
-if(!fs.existsSync(lastWindowStateFile)) {
-    fs.writeFileSync(lastWindowStateFile, JSON.stringify({
-        useFullscreen: true
-    }, "", 4));
+if (!fs.existsSync(lastWindowStateFile)) {
+    fs.writeFileSync(
+        lastWindowStateFile,
+        JSON.stringify(
+            {
+                useFullscreen: true,
+            },
+            "",
+            4
+        )
+    );
     signale.info(`Default last window state written to ${lastWindowStateFile}`);
 }
 
@@ -132,23 +153,26 @@ try {
 } catch {
     // Folder already exists
 }
-fs.readdirSync(innerThemesDir).forEach(e => {
-    fs.writeFileSync(path.join(themesDir, e), fs.readFileSync(path.join(innerThemesDir, e), {encoding:"utf-8"}));
+fs.readdirSync(innerThemesDir).forEach((e) => {
+    fs.writeFileSync(path.join(themesDir, e), fs.readFileSync(path.join(innerThemesDir, e), { encoding: "utf-8" }));
 });
 try {
     fs.mkdirSync(kblayoutsDir);
 } catch {
     // Folder already exists
 }
-fs.readdirSync(innerKblayoutsDir).forEach(e => {
-    fs.writeFileSync(path.join(kblayoutsDir, e), fs.readFileSync(path.join(innerKblayoutsDir, e), {encoding:"utf-8"}));
+fs.readdirSync(innerKblayoutsDir).forEach((e) => {
+    fs.writeFileSync(
+        path.join(kblayoutsDir, e),
+        fs.readFileSync(path.join(innerKblayoutsDir, e), { encoding: "utf-8" })
+    );
 });
 try {
     fs.mkdirSync(fontsDir);
 } catch {
     // Folder already exists
 }
-fs.readdirSync(innerFontsDir).forEach(e => {
+fs.readdirSync(innerFontsDir).forEach((e) => {
     fs.writeFileSync(path.join(fontsDir, e), fs.readFileSync(path.join(innerFontsDir, e)));
 });
 
@@ -159,12 +183,12 @@ let version = app.getVersion();
 if (typeof versionHistory[version] === "undefined") {
     versionHistory[version] = {
         firstSeen: Date.now(),
-        lastSeen: Date.now()
+        lastSeen: Date.now(),
     };
 } else {
     versionHistory[version].lastSeen = Date.now();
 }
-fs.writeFileSync(versionHistoryPath, JSON.stringify(versionHistory, 0, 2), {encoding:"utf-8"});
+fs.writeFileSync(versionHistoryPath, JSON.stringify(versionHistory, 0, 2), { encoding: "utf-8" });
 
 function createWindow(settings) {
     signale.info("Creating window...");
@@ -175,8 +199,9 @@ function createWindow(settings) {
     } else {
         display = electron.screen.getPrimaryDisplay();
     }
-    let {x, y, width, height} = display.bounds;
-    width++; height++;
+    let { x, y, width, height } = display.bounds;
+    width++;
+    height++;
     win = new BrowserWindow({
         title: "eDEX-UI",
         x,
@@ -198,17 +223,19 @@ function createWindow(settings) {
             nodeIntegration: true,
             nodeIntegrationInSubFrames: false,
             allowRunningInsecureContent: false,
-            experimentalFeatures: settings.experimentalFeatures || false
-        }
+            experimentalFeatures: settings.experimentalFeatures || false,
+        },
     });
 
     require("@electron/remote/main").enable(win.webContents);
 
-    win.loadURL(url.format({
-        pathname: path.join(__dirname, "ui.html"),
-        protocol: "file:",
-        slashes: true
-    }));
+    win.loadURL(
+        url.format({
+            pathname: path.join(__dirname, "ui.html"),
+            protocol: "file:",
+            slashes: true,
+        })
+    );
 
     signale.complete("Frontend window created!");
     win.show();
@@ -225,7 +252,9 @@ app.on("ready", async () => {
     signale.pending("Loading settings file...");
     let settings = require(settingsFile);
     signale.pending("Resolving shell path...");
-    settings.shell = await which(settings.shell).catch(e => { throw(e); });
+    settings.shell = await which(settings.shell).catch((e) => {
+        throw e;
+    });
     signale.info(`Shell found at ${settings.shell}`);
     signale.success("Settings loaded!");
 
@@ -233,14 +262,20 @@ app.on("ready", async () => {
 
     // See #366
     // "shell-env" is ESM-only, so it can't be require()'d from this CJS main process.
-    let cleanEnv = await (await import("shell-env")).shellEnv(settings.shell).catch(e => { throw e; });
+    let cleanEnv = await (await import("shell-env")).shellEnv(settings.shell).catch((e) => {
+        throw e;
+    });
 
-    Object.assign(cleanEnv, {
-        TERM: "xterm-256color",
-        COLORTERM: "truecolor",
-        TERM_PROGRAM: "eDEX-UI",
-        TERM_PROGRAM_VERSION: app.getVersion()
-    }, settings.env);
+    Object.assign(
+        cleanEnv,
+        {
+            TERM: "xterm-256color",
+            COLORTERM: "truecolor",
+            TERM_PROGRAM: "eDEX-UI",
+            TERM_PROGRAM_VERSION: app.getVersion(),
+        },
+        settings.env
+    );
 
     signale.pending(`Creating new terminal process on port ${settings.port || "3000"}`);
     tty = new Terminal({
@@ -249,7 +284,7 @@ app.on("ready", async () => {
         params: settings.shellArgs || "",
         cwd: settings.cwd,
         env: cleanEnv,
-        port: settings.port || 3000
+        port: settings.port || 3000,
     });
     signale.success("Terminal back-end initialized!");
     tty.onclosed = (code, signal) => {
@@ -281,12 +316,12 @@ app.on("ready", async () => {
     basePort = Number(basePort) + 2;
 
     for (let i = 0; i < 4; i++) {
-        extraTtys[basePort+i] = null;
+        extraTtys[basePort + i] = null;
     }
 
-    ipc.on("ttyspawn", e => {
+    ipc.on("ttyspawn", (e) => {
         let port = null;
-        Object.keys(extraTtys).forEach(key => {
+        Object.keys(extraTtys).forEach((key) => {
             if (extraTtys[key] === null && port === null) {
                 extraTtys[key] = {};
                 port = key;
@@ -304,7 +339,7 @@ app.on("ready", async () => {
                 params: settings.shellArgs || "",
                 cwd: tty.tty._cwd || settings.cwd,
                 env: cleanEnv,
-                port: port
+                port: port,
             });
             signale.success(`New terminal back-end initialized at ${port}`);
             term.onclosed = (code, signal) => {
@@ -314,7 +349,7 @@ app.on("ready", async () => {
                 extraTtys[term.port] = null;
                 term = null;
             };
-            term.onopened = pid => {
+            term.onopened = (pid) => {
                 signale.success(`TTY ${port} connected to frontend (process PID ${pid})`);
             };
             term.onresized = () => {};
@@ -327,17 +362,17 @@ app.on("ready", async () => {
             };
 
             extraTtys[port] = term;
-            e.sender.send("ttyspawn-reply", "SUCCESS: "+port);
+            e.sender.send("ttyspawn-reply", "SUCCESS: " + port);
         }
     });
 
     // Backend support for theme and keyboard hotswitch
     let themeOverride = null;
     let kbOverride = null;
-    ipc.on("getThemeOverride", e => {
+    ipc.on("getThemeOverride", (e) => {
         e.sender.send("getThemeOverride", themeOverride);
     });
-    ipc.on("getKbOverride", e => {
+    ipc.on("getKbOverride", (e) => {
         e.sender.send("getKbOverride", kbOverride);
     });
     ipc.on("setThemeOverride", (e, arg) => {
@@ -368,7 +403,7 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", () => {
     tty.close();
-    Object.keys(extraTtys).forEach(key => {
+    Object.keys(extraTtys).forEach((key) => {
         if (extraTtys[key] !== null) {
             extraTtys[key].close();
         }

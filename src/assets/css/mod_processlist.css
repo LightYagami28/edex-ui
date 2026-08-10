@@ -32,10 +32,9 @@ table#processContainer td.cpu {
     text-align: center;
 }
 
-table#processContainer td.mem{
+table#processContainer td.mem {
     width: 3vw;
     text-align: center;
-
 }
 table#processContainer td.state {
     width: 6vw;
@@ -43,10 +42,8 @@ table#processContainer td.state {
 }
 table#processContainer td.started {
     width: 11vw;
-
 }
 
 table#processContainer td.runtime {
     width: 5vw;
 }
-

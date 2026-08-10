@@ -1,4 +1,4 @@
-.media_container[data-fullscreen=true] .media {
+.media_container[data-fullscreen="true"] .media {
     height: 95%;
     width: 100%;
     max-width: none;
@@ -10,7 +10,7 @@
     background: var(--color_light_black);
 }
 
-.media_controls>div {
+.media_controls > div {
     text-align: center;
     display: inline-block;
     vertical-align: middle;
@@ -89,7 +89,9 @@
 .fullscreen_hidden {
     visibility: hidden;
     opacity: 0;
-    transition: visibility 0s 2s, opacity 2s linear;
+    transition:
+        visibility 0s 2s,
+        opacity 2s linear;
 }
 
 .volume_icon:hover {

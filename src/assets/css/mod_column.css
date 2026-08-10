@@ -12,7 +12,7 @@ section.mod_column {
     justify-content: space-between;
 
     opacity: 0;
-    transition: opacity .5s cubic-bezier(0.4, 0, 1, 1);
+    transition: opacity 0.5s cubic-bezier(0.4, 0, 1, 1);
 }
 
 section.mod_column.activated {
@@ -28,7 +28,7 @@ section.mod_column > div {
     width: 100%;
     opacity: 0;
     animation-name: fadeIn;
-    animation-duration: .5s;
+    animation-duration: 0.5s;
     animation-timing-function: cubic-bezier(0.4, 0, 1, 1);
     animation-delay: 0s;
     animation-iteration-count: 1;
@@ -37,8 +37,12 @@ section.mod_column > div {
 }
 
 @keyframes fadeIn {
-    from {opacity: 0;}
-    to {opacity: 1;}
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
 
 section#mod_column_left {

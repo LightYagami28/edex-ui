@@ -32,7 +32,7 @@
         width: 17.5%;
     }
     div#mod_toplist i {
-        font-size: 1.10vh;
+        font-size: 1.1vh;
     }
     table#mod_toplist_table {
         padding-left: 0.2vh;
@@ -50,7 +50,8 @@
     }
 }
 
-@media (aspect-ratio: 64/27) { /* Commercial name of 64/27 ratio is 21:9 */
+@media (aspect-ratio: 64/27) {
+    /* Commercial name of 64/27 ratio is 21:9 */
     div.keyboard_row#row_1 > div.keyboard_enter {
         height: 2.1vw;
         margin-top: 0.2vh;
@@ -93,7 +94,7 @@
 
     div.keyboard_row#row_1 > div.keyboard_enter {
         height: 4.9vh;
-        left: 0.1vh
+        left: 0.1vh;
     }
     section#keyboard div.keyboard_key {
         margin: 0vh 1vh;
@@ -156,8 +157,9 @@
     div#mod_netstat_innercontainer {
         grid-template-columns: 1fr 1fr;
         grid-template-rows: 1fr 1fr;
-        grid-template-areas: "state ping"
-                             "ip ip";
+        grid-template-areas:
+            "state ping"
+            "ip ip";
     }
     div#mod_netstat_innercontainer div:nth-child(1) {
         grid-area: state;
@@ -178,11 +180,11 @@
     }
 
     div#mod_globe_innercontainer > h1 > i {
-        opacity: 0
+        opacity: 0;
     }
     div#mod_globe_innercontainer > h2 {
         font-size: 0.9vh;
-        color: rgba(0,0,0,0);
+        color: rgba(0, 0, 0, 0);
     }
     div#mod_globe_innercontainer > h2 > i {
         font-size: 1.1vh;
@@ -195,7 +197,7 @@
     }
     div#mod_conninfo_innercontainer > h2 {
         font-size: 0.9vh;
-        color: rgba(0,0,0,0);
+        color: rgba(0, 0, 0, 0);
     }
     div#mod_conninfo_innercontainer > h2 > i {
         font-size: 1.1vh;

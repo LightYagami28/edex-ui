@@ -321,7 +321,7 @@
         {
             "name": "Y",
             "cmd": "y",
-	    "shift_name": "Y",
+            "shift_name": "Y",
             "shift_cmd": "Y",
             "ctrl_cmd": "~~~CTRLSEQ17~~~",
             "alt_cmd": "~~~CTRLSEQ1~~~z"

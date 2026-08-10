@@ -386,7 +386,7 @@
             "shift_cmd": "Z",
             "ctrl_cmd": "~~~CTRLSEQ17~~~",
             "alt_cmd": "~~~CTRLSEQ1~~~z"
-	},
+        },
         {
             "name": "SHIFT",
             "cmd": "ESCAPED|-- SHIFT: RIGHT"

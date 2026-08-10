@@ -29,7 +29,8 @@ div#mod_clock h1 {
     font-size: 4vh;
 }
 
-div#mod_clock span, div#mod_clock em {
+div#mod_clock span,
+div#mod_clock em {
     display: inline-block;
     text-align: center;
 }
