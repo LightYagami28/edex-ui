@@ -176,8 +176,6 @@ function waitForFonts() {
 
 // A proxy function used to add multithreading to systeminformation calls - see backend process manager @ _multithread.js
 function initSystemInformationProxy() {
-    const { nanoid } = require("nanoid/non-secure");
-
     window.si = new Proxy({}, {
         apply: () => {throw new Error("Cannot use sysinfo proxy directly as a function")},
         set: () => {throw new Error("Cannot set a property on the sysinfo proxy")},
@@ -186,7 +184,7 @@ function initSystemInformationProxy() {
                 let callback = (typeof args[args.length - 1] === "function") ? true : false;
 
                 return new Promise((resolve, reject) => {
-                    let id = nanoid();
+                    let id = crypto.randomUUID();
                     ipc.once("systeminformation-reply-"+id, (e, res) => {
                         if (callback) {
                             args[args.length - 1](res);
@@ -334,7 +332,7 @@ async function getDisplayName() {
         return user;
 
     try {
-        user = await require("username")();
+        user = await (await import("username")).username();
     } catch (e) {}
 
     return user;
@@ -342,6 +340,11 @@ async function getDisplayName() {
 
 // Create the UI's html structure and initialize the terminal client and the keyboard
 async function initUI() {
+    // "color" and "pretty-bytes" are ESM-only and can't be require()'d from this
+    // CJS renderer; preload them here so they're ready by the time they're used.
+    window.Color = (await import("color")).default;
+    window.PrettyBytes = (await import("pretty-bytes")).default;
+
     document.body.innerHTML += `<section class="mod_column" id="mod_column_left">
         <h3 class="title"><p>PANEL</p><p>SYSTEM</p></h3>
     </section>

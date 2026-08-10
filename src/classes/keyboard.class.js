@@ -139,7 +139,7 @@ class Keyboard {
 
                         // Keep focus on the terminal
                         if (window.keyboard.linkedToTerm) window.term[window.currentTerm].term.focus();
-                        if (this.container.dataset.passwordMode == "false")
+                        if (this.container.dataset.passwordMode === "false")
                             window.audioManager.granted.play();
                         e.preventDefault();
                     };
@@ -180,7 +180,7 @@ class Keyboard {
 
                         // Keep focus on the terminal
                         if (window.keyboard.linkedToTerm) window.term[window.currentTerm].term.focus();
-                        if(this.container.dataset.passwordMode == "false")
+                        if(this.container.dataset.passwordMode === "false")
                             window.audioManager.stdin.play();
                         e.preventDefault();
                     };
@@ -312,7 +312,7 @@ class Keyboard {
 
             // See #516
             if (e.repeat === false || (e.repeat === true && !e.code.startsWith('Shift') && !e.code.startsWith('Alt') && !e.code.startsWith('Control') && !e.code.startsWith('Caps'))) {
-                if(this.container.dataset.passwordMode == "false")
+                if(this.container.dataset.passwordMode === "false")
                     window.audioManager.stdin.play();
             }
         };
@@ -346,7 +346,7 @@ class Keyboard {
                 }, 100);
             }
 
-            if(this.container.dataset.passwordMode == "false" && e.key === "Enter")
+            if(this.container.dataset.passwordMode === "false" && e.key === "Enter")
                 window.audioManager.granted.play();
         };
 

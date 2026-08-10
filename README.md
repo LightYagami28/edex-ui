@@ -6,15 +6,21 @@
   <a href="#featured-in"><img alt="undefined" src="https://img.shields.io/github/downloads/lightyagami28/edex-ui/total.svg?style=popout"></a>
   <a href="https://github.com/lightyagami28/edex-ui/blob/master/LICENSE"><img alt="undefined" src="https://img.shields.io/github/license/lightyagami28/edex-ui.svg?style=popout"></a>
   <br>
-  <a href="https://github.com/lightyagami28/edex-ui/releases/download/v2.2.8/eDEX-UI-Windows.exe" target="_blank"><img alt="undefined" src="https://badgen.net/badge/Download/Windows/?color=blue&icon=windows&label"></a>
-  <a href="https://github.com/lightyagami28/edex-ui/releases/download/v2.2.8/eDEX-UI-macOS.dmg" target="_blank"><img alt="undefined" src="https://badgen.net/badge/Download/macOS/?color=grey&icon=apple&label"></a>
-  <a href="https://github.com/lightyagami28/edex-ui/releases/download/v2.2.8/eDEX-UI-Linux-x86_64.AppImage" target="_blank"><img alt="undefined" src="https://badgen.net/badge/Download/Linux64/?color=orange&icon=terminal&label"></a>
-  <a href="https://github.com/lightyagami28/edex-ui/releases/download/v2.2.8/eDEX-UI-Linux-arm64-AppImage" target="_blank"><img alt="undefined" src="https://badgen.net/badge/Download/LinuxArm64/?color=orange&icon=terminal&label"></a>
+  <a href="https://github.com/lightyagami28/edex-ui/actions/workflows/build-binaries.yaml"><img alt="Build status" src="https://github.com/lightyagami28/edex-ui/actions/workflows/build-binaries.yaml/badge.svg"></a>
+  <a href="https://github.com/lightyagami28/edex-ui/actions/workflows/vulnerability-scan.yml"><img alt="Vulnerability scan status" src="https://github.com/lightyagami28/edex-ui/actions/workflows/vulnerability-scan.yml/badge.svg"></a>
+  <a href="https://github.com/lightyagami28/edex-ui/actions/workflows/codeql-analysis.yml"><img alt="CodeQL status" src="https://github.com/lightyagami28/edex-ui/actions/workflows/codeql-analysis.yml/badge.svg"></a>
+  <br><br>
+  <a href="https://github.com/lightyagami28/edex-ui/releases/latest/download/eDEX-UI-Windows.exe" target="_blank"><img alt="undefined" src="https://badgen.net/badge/Download/Windows/?color=blue&icon=windows&label"></a>
+  <a href="https://github.com/lightyagami28/edex-ui/releases/latest/download/eDEX-UI-macOS.dmg" target="_blank"><img alt="undefined" src="https://badgen.net/badge/Download/macOS/?color=grey&icon=apple&label"></a>
+  <a href="https://github.com/lightyagami28/edex-ui/releases/latest/download/eDEX-UI-Linux-x86_64.AppImage" target="_blank"><img alt="undefined" src="https://badgen.net/badge/Download/Linux64/?color=orange&icon=terminal&label"></a>
+  <a href="https://github.com/lightyagami28/edex-ui/releases/latest/download/eDEX-UI-Linux-arm64.AppImage" target="_blank"><img alt="undefined" src="https://badgen.net/badge/Download/LinuxArm64/?color=orange&icon=terminal&label"></a>
   <a href="https://aur.archlinux.org/packages/edex-ui" target="_blank"><img alt="undefined" src="https://badgen.net/badge/AUR/Package/cyan"></a>
   <br><br><br>
 </p>
 
 eDEX-UI is a fullscreen, cross-platform terminal emulator and system monitor that looks and feels like a sci-fi computer interface.
+
+> **This is an actively maintained fork** of the archived [GitSquared/edex-ui](https://github.com/GitSquared/edex-ui). Dependencies, CI/CD pipelines and security scanning are kept current here — see [Security & Dependency Monitoring](#security--dependency-monitoring).
 
 ---
 
@@ -34,7 +40,7 @@ It might or might not be a joke taken too seriously.
 ---
 
 <p align="center">
-  <em>Jump to: <br><a href="#features">Features</a> — <a href="#screenshots">Screenshots</a> — <a href="#qa">Questions & Answers</a> — <strong><a href="#how-do-i-get-it">Download</a></strong> — <a href="#featured-in">Featured In</a> — <a href="#useful-commands-for-the-nerds">Contributor Instructions</a> — <a href="#credits">Credits</a></em>
+  <em>Jump to: <br><a href="#features">Features</a> — <a href="#screenshots">Screenshots</a> — <a href="#qa">Questions & Answers</a> — <strong><a href="#how-do-i-get-it">Download</a></strong> — <a href="#security--dependency-monitoring">Security</a> — <a href="#featured-in">Featured In</a> — <a href="#useful-commands-for-the-nerds">Contributor Instructions</a> — <a href="#credits">Credits</a></em>
 </p>
 
 ## Sponsor
@@ -47,9 +53,10 @@ Click the banner below and sign up to **Bytes**, the only newsletter cool enough
 
 ## Features
 - Fully featured terminal emulator with tabs, colors, mouse events, and support for `curses` and `curses`-like applications.
-- Real-time system (CPU, RAM, swap, processes) and network (GeoIP, active connections, transfer rates) monitoring.
+- Real-time system (CPU, RAM, swap, processes, hardware info) and network (GeoIP, active connections, transfer rates) monitoring.
 - Full support for touch-enabled displays, including an on-screen keyboard.
-- Directory viewer that follows the CWD (current working directory) of the terminal.
+- Directory viewer that follows the CWD (current working directory) of the terminal, with a fuzzy-search file finder.
+- Built-in PDF viewer and audio/video player, opened straight from the directory viewer.
 - Advanced customization using themes, on-screen keyboard layouts, CSS injections. See the [wiki](https://github.com/GitSquared/edex-ui/wiki) for more info.
 - Optional sound effects made by a talented sound designer for maximum hollywood hacking vibe.
 
@@ -158,7 +165,7 @@ on Windows:
 - `npm run start`
 
 #### Building
-Note: Due to native modules, you can only build targets for the host OS you are using.
+Note: Due to native modules, you can only build targets for the host OS you are using without cross-compilation tooling (the CI pipeline in [`.github/workflows/build-binaries.yaml`](.github/workflows/build-binaries.yaml) handles Linux arm64 through Docker + QEMU).
 
 - `npm install` (NOT `install-linux` or `install-windows`)
 - `npm run build-linux` or `build-windows` or `build-darwin`
