@@ -1,7 +1,11 @@
 class FuzzyFinder {
     constructor() {
         if (document.getElementById("fuzzyFinder") || document.getElementById("settingsEditor")) {
-            return false;
+            // A constructor's non-object return is a no-op per the JS spec
+            // (`new FuzzyFinder()` still yields `this`) - this is a
+            // deliberate early-abort guard for "a modal is already open",
+            // not an attempt to override the constructed value.
+            return false; // NOSONAR
         }
 
         window.keyboard.detach();

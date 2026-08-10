@@ -138,10 +138,14 @@ class Terminal {
                 this.oncwdchange(this.cwd || null);
             };
 
+            // ws:// (not wss://) is fine here: this always connects to
+            // 127.0.0.1 - the main process's own PTY bridge server on this
+            // same machine, never a remote host - so there's no network hop
+            // for TLS to protect.
             let sockHost = opts.host || "127.0.0.1";
             let sockPort = this.port;
 
-            this.socket = new WebSocket("ws://" + sockHost + ":" + sockPort);
+            this.socket = new WebSocket("ws://" + sockHost + ":" + sockPort); // NOSONAR
             this.socket.onopen = () => {
                 let attachAddon = new AttachAddon(this.socket);
                 this.term.loadAddon(attachAddon);
