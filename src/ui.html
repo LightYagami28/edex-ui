@@ -40,6 +40,10 @@
             import * as pdfjsLib from "./node_modules/pdfjs-dist/build/pdf.mjs";
             window.pdfjsLib = pdfjsLib;
         </script>
+        <!-- Vendored/generated helpers that classes below depend on as
+             window globals (can't be require()'d without nodeIntegration) -->
+        <script src="assets/misc/file-icons-match.js"></script>
+        <script src="assets/vendor/encom-globe.js"></script>
         <!-- Load main modules classes -->
         <script src="classes/modal.class.js"></script>
         <script src="classes/terminal.class.js"></script>

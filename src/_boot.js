@@ -30,7 +30,6 @@ if (!gotLock) {
 signale.time("Startup");
 
 const electron = require("electron");
-require("@electron/remote/main").initialize();
 const ipc = electron.ipcMain;
 const path = require("path");
 const url = require("url");
@@ -217,17 +216,29 @@ function createWindow(settings) {
         backgroundColor: "#000000",
         webPreferences: {
             devTools: true,
-            contextIsolation: false,
+            contextIsolation: true,
             backgroundThrottling: false,
             webSecurity: true,
-            nodeIntegration: true,
+            nodeIntegration: false,
             nodeIntegrationInSubFrames: false,
             allowRunningInsecureContent: false,
             experimentalFeatures: settings.experimentalFeatures || false,
+            preload: path.join(__dirname, "preload.js"),
         },
     });
 
-    require("@electron/remote/main").enable(win.webContents);
+    require("./ipc-handlers.js").register({
+        win,
+        paths: {
+            userData: electron.app.getPath("userData"),
+            settingsFile,
+            shortcutsFile,
+            lastWindowStateFile,
+            themesDir,
+            kblayoutsDir,
+            fontsDir,
+        },
+    });
 
     win.loadURL(
         url.format({

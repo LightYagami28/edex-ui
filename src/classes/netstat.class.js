@@ -2,6 +2,8 @@ class Netstat {
     constructor(parentId) {
         if (!parentId) throw "Missing parameters";
 
+        const eDEX = window.eDEX;
+
         // Create DOM
         this.parent = document.getElementById(parentId);
         this.parent.innerHTML += `<div id="mod_netstat">
@@ -25,50 +27,25 @@ class Netstat {
         </div>`;
 
         this.offline = false;
-        this.lastconn = { finished: false }; // Prevent geoip lookup attempt until maxminddb is loaded
+        // GeoIP lookups (and thus external IP tracking) live in the main
+        // process now; nothing here needs to wait on the database anymore.
+        this._extIpLookupPending = false;
         this.iface = null;
         this.failedAttempts = {};
         this.runsBeforeGeoIPUpdate = 0;
 
-        this._httpsAgent = new require("https").Agent({
-            keepAlive: false,
-            maxSockets: 10,
-        });
+        this.geoLookup = {
+            get: (ip) => eDEX.geoip.lookup(ip),
+        };
 
         // Init updaters
         this.updateInfo();
         this.infoUpdater = setInterval(() => {
             this.updateInfo();
         }, 2000);
-
-        // Init GeoIP integrated backend
-        this.geoLookup = {
-            get: () => null,
-        };
-        let maxmind = require("maxmind");
-        let geoIPcachePath = require("path").join(require("@electron/remote").app.getPath("userData"), "geoIPcache");
-        // "geolite2-redist" is ESM-only, so it can't be require()'d from this CJS renderer.
-        import("geolite2-redist")
-            .then((geolite2) => {
-                return geolite2.downloadDbs({ path: geoIPcachePath }).then(() => {
-                    return geolite2.open(
-                        "GeoLite2-City",
-                        (path) => {
-                            return maxmind.open(path);
-                        },
-                        geoIPcachePath
-                    );
-                });
-            })
-            .then((lookup) => {
-                this.geoLookup = lookup;
-                this.lastconn.finished = true;
-            })
-            .catch((e) => {
-                throw e;
-            });
     }
     updateInfo() {
+        const eDEX = window.eDEX;
         window.si.networkInterfaces().then(async (data) => {
             let offline = false;
 
@@ -120,53 +97,28 @@ class Netstat {
             if (net.ip4 === "127.0.0.1") {
                 offline = true;
             } else {
-                if (this.runsBeforeGeoIPUpdate === 0 && this.lastconn.finished) {
-                    this.lastconn = require("https")
-                        .get(
-                            {
-                                host: "myexternalip.com",
-                                port: 443,
-                                path: "/json",
-                                localAddress: net.ip4,
-                                agent: this._httpsAgent,
-                            },
-                            (res) => {
-                                let rawData = "";
-                                res.on("data", (chunk) => {
-                                    rawData += chunk;
-                                });
-                                res.on("end", () => {
-                                    try {
-                                        let data = JSON.parse(rawData);
-                                        this.ipinfo = {
-                                            ip: data.ip,
-                                            geo: this.geoLookup.get(data.ip).location,
-                                        };
+                if (this.runsBeforeGeoIPUpdate === 0 && !this._extIpLookupPending) {
+                    this._extIpLookupPending = true;
+                    eDEX.net
+                        .getExternalIp(net.ip4)
+                        .then(async (ip) => {
+                            let geo = await eDEX.geoip.lookup(ip);
+                            this.ipinfo = { ip, geo: geo && geo.location };
 
-                                        let ip = this.ipinfo.ip;
-                                        document.querySelector(
-                                            "#mod_netstat_innercontainer > div:nth-child(2) > h2"
-                                        ).innerHTML = window._escapeHtml(ip);
+                            document.querySelector("#mod_netstat_innercontainer > div:nth-child(2) > h2").innerHTML =
+                                window._escapeHtml(ip);
 
-                                        this.runsBeforeGeoIPUpdate = 10;
-                                    } catch (e) {
-                                        this.failedAttempts[e] = (this.failedAttempts[e] || 0) + 1;
-                                        if (this.failedAttempts[e] > 2) return false;
-                                        console.warn(e);
-                                        console.info(rawData.toString());
-                                        let electron = require("electron");
-                                        electron.ipcRenderer.send(
-                                            "log",
-                                            "note",
-                                            "NetStat: Error parsing data from myexternalip.com"
-                                        );
-                                        electron.ipcRenderer.send("log", "debug", `Error: ${e}`);
-                                    }
-                                });
-                            }
-                        )
-                        .on("error", () => {
-                            // Drop it
+                            this.runsBeforeGeoIPUpdate = 10;
+                        })
+                        .catch((e) => {
+                            this.failedAttempts[e] = (this.failedAttempts[e] || 0) + 1;
+                            if (this.failedAttempts[e] > 2) return;
+                            console.warn(e);
+                            eDEX.ipc.send("log", "note", "NetStat: Error fetching data from myexternalip.com");
+                            eDEX.ipc.send("log", "debug", `Error: ${e}`);
+                        })
+                        .finally(() => {
+                            this._extIpLookupPending = false;
                         });
                 } else if (this.runsBeforeGeoIPUpdate !== 0) {
                     this.runsBeforeGeoIPUpdate = this.runsBeforeGeoIPUpdate - 1;
@@ -190,33 +142,7 @@ class Netstat {
         });
     }
     ping(target, port, local) {
-        return new Promise((resolve, reject) => {
-            let s = new require("net").Socket();
-            let start = process.hrtime();
-
-            s.connect(
-                {
-                    port,
-                    host: target,
-                    localAddress: local,
-                    family: 4,
-                },
-                () => {
-                    let time_arr = process.hrtime(start);
-                    let time = (time_arr[0] * 1e9 + time_arr[1]) / 1e6;
-                    resolve(time);
-                    s.destroy();
-                }
-            );
-            s.on("error", (e) => {
-                s.destroy();
-                reject(e);
-            });
-            s.setTimeout(1900, function () {
-                s.destroy();
-                reject(new Error("Socket timeout"));
-            });
-        });
+        return window.eDEX.net.ping(target, port, local);
     }
 }
 
