@@ -3,7 +3,7 @@ const cluster = require("node:cluster");
 if (cluster.isPrimary) {
     const electron = require("electron");
     const ipc = electron.ipcMain;
-    const signale = require("signale");
+    const signale = require("./logger.js");
     // Also, leave a core available for the renderer process
     const osCPUs = require("node:os").cpus().length - 1;
     // See #904
@@ -74,7 +74,7 @@ if (cluster.isPrimary) {
         }
     });
 } else if (cluster.isWorker) {
-    const signale = require("signale");
+    const signale = require("./logger.js");
     const si = require("systeminformation");
 
     signale.info("Multithread worker started at " + process.pid);
