@@ -1,6 +1,6 @@
 class Conninfo {
     constructor(parentId) {
-        if (!parentId) throw "Missing parameters";
+        if (!parentId) throw new Error("Missing parameters");
 
         // Create DOM
         this.parent = document.getElementById(parentId);
@@ -43,7 +43,7 @@ class Conninfo {
                 },
             },
         ];
-        chartOptions.push(Object.assign({}, chartOptions[0])); // Deep copy object, see http://jsben.ch/bWfk9
+        chartOptions.push({ ...chartOptions[0] }); // Deep copy object, see http://jsben.ch/bWfk9
         chartOptions[0].minValue = 0;
         chartOptions[1].maxValue = 0;
 
@@ -70,13 +70,12 @@ class Conninfo {
         }, 1000);
     }
     updateInfo() {
-        let time = new Date().getTime();
+        let time = Date.now();
 
         if (window.mods.netstat.offline || window.mods.netstat.iface === null) {
             this.series[0].append(time, 0);
             this.series[1].append(time, 0);
             document.querySelector("div#mod_conninfo").setAttribute("class", "offline");
-            return;
         } else {
             document.querySelector("div#mod_conninfo").setAttribute("class", "");
             window.si.networkStats(window.mods.netstat.iface).then((data) => {
@@ -95,9 +94,9 @@ class Conninfo {
                     `${this._pb(data[0].tx_bytes)} OUT, ${this._pb(data[0].rx_bytes)} IN`.toUpperCase();
                 this.current.innerText =
                     "UP " +
-                    parseFloat(data[0].tx_sec / 125000).toFixed(2) +
+                    Number.parseFloat(data[0].tx_sec / 125000).toFixed(2) +
                     " DOWN " +
-                    parseFloat(data[0].rx_sec / 125000).toFixed(2);
+                    Number.parseFloat(data[0].rx_sec / 125000).toFixed(2);
             });
         }
     }

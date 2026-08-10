@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 const stdout = process.stdout;
 const UglifyJS = require("terser");
 const CleanCSS = require("clean-css");
@@ -21,20 +21,21 @@ function writeMinified(path, data) {
 }
 
 async function recursiveMinify(dirPath) {
+    let files;
     try {
-        var files = fs.readdirSync(dirPath);
+        files = fs.readdirSync(dirPath);
     } catch {
         return;
     }
     if (files.length > 0) {
-        for (let i = 0; i < files.length; i++) {
-            let filePath = dirPath + "/" + files[i];
+        for (const file of files) {
+            let filePath = dirPath + "/" + file;
             if (fs.statSync(filePath).isFile()) {
                 // Do not process grid.json because it's heavy and pre-minified, and themes and keyboard files to leave them in a human-readable state
                 if (filePath.endsWith(".json") && !filePath.endsWith("icons.json")) continue;
                 // See #446
                 if (filePath.endsWith("file-icons-match.js")) continue;
-                await stdout.write(filePath.slice(filePath.indexOf("prebuild-src/") + 13) + "...");
+                stdout.write(filePath.slice(filePath.indexOf("prebuild-src/") + 13) + "...");
 
                 switch (filePath.split(".").pop()) {
                     case "js": {

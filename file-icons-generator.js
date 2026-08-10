@@ -9,11 +9,11 @@
 // - npm run init-file-icons
 // You can then use `npm run update-file-icons` which will pull the git submodules and run this script.
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 const CSON = require("cson-parser");
 
-var fileIconsObject = {};
+let fileIconsObject = {};
 // Get file icons from fontawesome
 fs.readdirSync(path.join(__dirname, "file-icons", "font-awesome", "svgs", "brands")).forEach((icon) => {
     let iconName = icon.replace(".svg", "");
@@ -22,11 +22,11 @@ fs.readdirSync(path.join(__dirname, "file-icons", "font-awesome", "svgs", "brand
         encoding: "utf8",
     });
 
-    let width = text.substr(text.indexOf('viewBox="0 0 ') + 13);
+    let width = text.slice(text.indexOf('viewBox="0 0 ') + 13);
     width = Number(width.slice(0, width.indexOf(" ")));
-    let height = text.substr(text.indexOf('viewBox="0 0 ') + 13 + width.toString().length + 1);
+    let height = text.slice(text.indexOf('viewBox="0 0 ') + 13 + width.toString().length + 1);
     height = Number(height.slice(0, height.indexOf('"')));
-    let svg = text.substr(text.indexOf(">") + 1);
+    let svg = text.slice(text.indexOf(">") + 1);
     svg = svg.replace("</svg>", "");
 
     if (width === null || height === null) console.log(icon);
@@ -43,11 +43,11 @@ fs.readdirSync(path.join(__dirname, "file-icons", "source", "svg")).forEach((ico
 
     let text = fs.readFileSync(path.join(__dirname, "file-icons", "source", "svg", icon), { encoding: "utf8" });
 
-    let width = text.substr(text.indexOf('width="') + 7);
+    let width = text.slice(text.indexOf('width="') + 7);
     width = Number(width.slice(0, width.indexOf("px")));
-    let height = text.substr(text.indexOf('height="') + 8);
+    let height = text.slice(text.indexOf('height="') + 8);
     height = Number(height.slice(0, height.indexOf("px")));
-    let svg = text.substr(text.indexOf(">") + 1);
+    let svg = text.slice(text.indexOf(">") + 1);
     svg = svg.replace("</svg>", "");
 
     if (width === null || height === null) console.log(icon);
@@ -65,11 +65,11 @@ fs.readdirSync(path.join(__dirname, "file-icons", "devopicons", "svg")).forEach(
 
     let text = fs.readFileSync(path.join(__dirname, "file-icons", "devopicons", "svg", icon), { encoding: "utf8" });
 
-    let width = text.substr(text.indexOf('width="') + 7);
+    let width = text.slice(text.indexOf('width="') + 7);
     width = Number(width.slice(0, width.indexOf("px")));
-    let height = text.substr(text.indexOf('height="') + 8);
+    let height = text.slice(text.indexOf('height="') + 8);
     height = Number(height.slice(0, height.indexOf("px")));
-    let svg = text.substr(text.indexOf(">") + 1);
+    let svg = text.slice(text.indexOf(">") + 1);
     svg = svg.replace("</svg>", "");
 
     if (width === null || height === null) console.log(icon);
@@ -87,11 +87,11 @@ fs.readdirSync(path.join(__dirname, "file-icons", "mfixx", "svg")).forEach((icon
 
     let text = fs.readFileSync(path.join(__dirname, "file-icons", "mfixx", "svg", icon), { encoding: "utf8" });
 
-    let width = text.substr(text.indexOf('width="') + 7);
+    let width = text.slice(text.indexOf('width="') + 7);
     width = Number(width.slice(0, width.indexOf("px")));
-    let height = text.substr(text.indexOf('height="') + 8);
+    let height = text.slice(text.indexOf('height="') + 8);
     height = Number(height.slice(0, height.indexOf("px")));
-    let svg = text.substr(text.indexOf(">") + 1);
+    let svg = text.slice(text.indexOf(">") + 1);
     svg = svg.replace("</svg>", "");
 
     if (width === null || height === null) console.log(icon);
@@ -111,11 +111,11 @@ fs.readdirSync(path.join(__dirname, "file-icons", "bytesize-icons", "dist", "ico
         encoding: "utf8",
     });
 
-    let dimensions = text.match(/viewBox="0 0 (\d+) (\d+)"/);
+    let dimensions = /viewBox="0 0 (\d+) (\d+)"/.exec(text);
     let width = dimensions[1];
     let height = dimensions[2];
 
-    let svg = text.substr(text.indexOf(">") + 1);
+    let svg = text.slice(text.indexOf(">") + 1);
     svg = svg.replace("</svg>", "");
 
     if (width === null || height === null) console.log(icon);
@@ -180,7 +180,7 @@ fs.writeFileSync(
 );
 console.log("Wrote file-icons.json");
 
-var fileIconsMatchScript = `/*
+let fileIconsMatchScript = `/*
  * Thanks everyone for pointing out this is probably on of the ugliest source code files on GitHub
  * This is script-generated code, however, so it might disqualify
  * See file-icons-generator.js at root dir of git tree
@@ -193,40 +193,42 @@ let atomConfig = CSON.parse(
 );
 Object.keys(atomConfig.directoryIcons).forEach((key) => {
     let config = atomConfig.directoryIcons[key];
-    if (config.icon.startsWith("_")) config.icon = config.icon.substr(1);
+    if (config.icon.startsWith("_")) config.icon = config.icon.slice(1);
     if (Array.isArray(config.match)) {
         config.match.forEach((key) => {
             let match = key[0];
-            if (typeof match === "string") match = new RegExp(match.replace(/\./g, "\\.") + "$", "i"); // lgtm [js/incomplete-sanitization]
+            if (typeof match === "string") match = new RegExp(match.replaceAll(".", String.raw`\.`) + "$", "i"); // lgtm [js/incomplete-sanitization]
             fileIconsMatchScript += `    if (${match}.test(filename)) { return "${config.icon}"; }\n`;
         });
     } else {
-        if (typeof config.match === "string") config.match = new RegExp(config.match.replace(/\./g, "\\.") + "$", "i"); // lgtm [js/incomplete-sanitization]
+        if (typeof config.match === "string")
+            config.match = new RegExp(config.match.replaceAll(".", String.raw`\.`) + "$", "i"); // lgtm [js/incomplete-sanitization]
         fileIconsMatchScript += `    if (${config.match}.test(filename)) { return "${config.icon}"; }\n`;
 
         if (config.alias) {
             if (typeof config.alias === "string")
-                config.alias = new RegExp(config.alias.replace(/\./g, "\\.") + "$", "i"); // lgtm [js/incomplete-sanitization]
+                config.alias = new RegExp(config.alias.replaceAll(".", String.raw`\.`) + "$", "i"); // lgtm [js/incomplete-sanitization]
             fileIconsMatchScript += `    if (${config.alias}.test(filename)) { return "${config.icon}"; }\n`;
         }
     }
 });
 Object.keys(atomConfig.fileIcons).forEach((key) => {
     let config = atomConfig.fileIcons[key];
-    if (config.icon.startsWith("_")) config.icon = config.icon.substr(1);
+    if (config.icon.startsWith("_")) config.icon = config.icon.slice(1);
     if (Array.isArray(config.match)) {
         config.match.forEach((key) => {
             let match = key[0];
-            if (typeof match === "string") match = new RegExp(match.replace(/\./g, "\\.") + "$", "i"); // lgtm [js/incomplete-sanitization]
+            if (typeof match === "string") match = new RegExp(match.replaceAll(".", String.raw`\.`) + "$", "i"); // lgtm [js/incomplete-sanitization]
             fileIconsMatchScript += `    if (${match}.test(filename)) { return "${config.icon}"; }\n`;
         });
     } else {
-        if (typeof config.match === "string") config.match = new RegExp(config.match.replace(/\./g, "\\.") + "$", "i"); // lgtm [js/incomplete-sanitization]
+        if (typeof config.match === "string")
+            config.match = new RegExp(config.match.replaceAll(".", String.raw`\.`) + "$", "i"); // lgtm [js/incomplete-sanitization]
         fileIconsMatchScript += `    if (${config.match}.test(filename)) { return "${config.icon}"; }\n`;
 
         if (config.alias) {
             if (typeof config.alias === "string")
-                config.alias = new RegExp(config.alias.replace(/\./g, "\\.") + "$", "i"); // lgtm [js/incomplete-sanitization]
+                config.alias = new RegExp(config.alias.replaceAll(".", String.raw`\.`) + "$", "i"); // lgtm [js/incomplete-sanitization]
             fileIconsMatchScript += `    if (${config.alias}.test(filename)) { return "${config.icon}"; }\n`;
         }
     }

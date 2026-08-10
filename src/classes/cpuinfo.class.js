@@ -1,6 +1,6 @@
 class Cpuinfo {
     constructor(parentId) {
-        if (!parentId) throw "Missing parameters";
+        if (!parentId) throw new Error("Missing parameters");
 
         // Create initial DOM
         this.parent = document.getElementById(parentId);
@@ -133,7 +133,7 @@ class Cpuinfo {
             if (!data.cpus) return; // Prevent memleak in rare case where systeminformation takes extra time to retrieve CPU info (see github issue #216)
 
             data.cpus.forEach((e, i) => {
-                this.series[i].append(new Date().getTime(), e.load);
+                this.series[i].append(Date.now(), e.load);
 
                 if (i < this.divide) {
                     average[0].push(e.load);
