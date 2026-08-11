@@ -77,25 +77,27 @@ function register({ win, paths }) {
     // ---- Config file IO ----
     ipcMain.handle("config:getPaths", () => paths);
 
-    ipcMain.handle("config:getSettings", () => JSON.parse(fs.readFileSync(settingsFile, "utf-8")));
-    ipcMain.handle("config:getShortcuts", () => JSON.parse(fs.readFileSync(shortcutsFile, "utf-8")));
-    ipcMain.handle("config:getLastWindowState", () => JSON.parse(fs.readFileSync(lastWindowStateFile, "utf-8")));
+    ipcMain.handle("config:getSettings", async () => JSON.parse(await fs.promises.readFile(settingsFile, "utf-8")));
+    ipcMain.handle("config:getShortcuts", async () => JSON.parse(await fs.promises.readFile(shortcutsFile, "utf-8")));
+    ipcMain.handle("config:getLastWindowState", async () =>
+        JSON.parse(await fs.promises.readFile(lastWindowStateFile, "utf-8"))
+    );
 
     // name comes from settings.json (theme/layout), which a user could hand-edit
     // to contain a path-traversal payload (e.g. "../../../../etc/shadow"); only
     // allow plain filenames so the joined path can never leave its directory.
     const isSafeConfigName = (name) => typeof name === "string" && /^[\w-]+$/.test(name);
 
-    ipcMain.handle("config:getTheme", (e, name) => {
+    ipcMain.handle("config:getTheme", async (e, name) => {
         if (!isSafeConfigName(name)) throw new Error(`Invalid theme name: ${name}`);
-        return JSON.parse(fs.readFileSync(path.join(themesDir, `${name}.json`), "utf-8"));
+        return JSON.parse(await fs.promises.readFile(path.join(themesDir, `${name}.json`), "utf-8"));
     });
-    ipcMain.handle("config:getKeyboardLayout", (e, name) => {
+    ipcMain.handle("config:getKeyboardLayout", async (e, name) => {
         if (!isSafeConfigName(name)) throw new Error(`Invalid keyboard layout name: ${name}`);
-        return JSON.parse(fs.readFileSync(path.join(kblayoutsDir, `${name}.json`), "utf-8"));
+        return JSON.parse(await fs.promises.readFile(path.join(kblayoutsDir, `${name}.json`), "utf-8"));
     });
-    ipcMain.handle("config:writeSettings", (e, settings) => {
-        fs.writeFileSync(settingsFile, JSON.stringify(settings, "", 4));
+    ipcMain.handle("config:writeSettings", async (e, settings) => {
+        await fs.promises.writeFile(settingsFile, JSON.stringify(settings, "", 4));
     });
 
     // ---- Filesystem browsing ----

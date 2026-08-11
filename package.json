@@ -131,5 +131,22 @@
     "allowScripts": {
         "snyk@1.1306.3": true,
         "electron-winstaller@5.4.0": true
+    },
+    "overrides": {
+        "electron-builder": {
+            "app-builder-lib": {
+                "@electron/asar": "4.2.1",
+                "unzipper": "github:LightYagami28/node-unzipper#v0.12.5-lightyagami28.1",
+                "electron-builder-squirrel-windows": {
+                    "electron-winstaller": {
+                        "temp": {
+                            "rimraf": {
+                                "glob": "13.0.6"
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
