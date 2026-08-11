@@ -414,11 +414,18 @@ class Terminal {
                 this.onclosed(code, signal);
             });
 
+            // Bind to loopback only: this server bridges a live PTY (full
+            // shell access) to the renderer's WebSocket client above, which
+            // itself only ever connects to 127.0.0.1. Without an explicit
+            // host, ws/Node's http.Server.listen() binds to ALL network
+            // interfaces, which would expose an unauthenticated shell to
+            // anyone able to reach this port.
             this.wss = new this.Websocket({
+                host: opts.host || "127.0.0.1",
                 port: this.port,
                 clientTracking: true,
                 verifyClient: () => {
-                    return this.wss.clients.length < 1;
+                    return this.wss.clients.size < 1;
                 },
             });
             this.Ipc.on("terminal_channel-" + this.port, (e, ...args) => {
@@ -457,17 +464,7 @@ class Terminal {
                     this.ondisconnected(code, reason);
                 });
                 ws.on("message", (msg) => {
-                    let rawInput = "";
-
-                    if (typeof msg === "string") {
-                        rawInput = msg;
-                    } else if (Buffer.isBuffer(msg)) {
-                        rawInput = msg.toString("utf8");
-                    } else {
-                        return;
-                    }
-
-                    const safeInput = this._sanitizeTerminalInput(rawInput);
+                    const safeInput = this._sanitizeTerminalInput(msg);
                     if (!safeInput) return;
                     this.tty.write(safeInput);
                 });
