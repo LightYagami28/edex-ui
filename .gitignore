@@ -47,7 +47,6 @@ src/node_modules
 .kilo/
 .sonarlint/
 .vscode/
-<<<<<<< HEAD
 .scannerwork/
 .sonar/
 .sonar_token
@@ -57,14 +56,6 @@ sonar-token*
 .claude/
 .git-rewrite/
 
-||||||| merged common ancestors
-=======
-.scannerwork/
-.sonar/
-.sonar_token
-sonar-token*
-
->>>>>>> 7ebae472019c37671ab3c17172d659c155398a98
 # Snyk
 .snyk
 .github/instructions
