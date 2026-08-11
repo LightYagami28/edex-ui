@@ -287,7 +287,7 @@ function createWindow(settings) {
     win.show();
     if (!settings.allowWindowed) {
         win.setResizable(false);
-    } else if (!require(lastWindowStateFile)["useFullscreen"]) {
+    } else if (!JSON.parse(fs.readFileSync(lastWindowStateFile, "utf-8")).useFullscreen) {
         win.setFullScreen(false);
     }
 
@@ -296,7 +296,7 @@ function createWindow(settings) {
 
 app.on("ready", async () => {
     signale.pending("Loading settings file...");
-    let settings = require(settingsFile);
+    let settings = JSON.parse(fs.readFileSync(settingsFile, "utf-8"));
     signale.pending("Resolving shell path...");
     settings.shell = await which(settings.shell).catch((e) => {
         throw e;
@@ -304,7 +304,7 @@ app.on("ready", async () => {
     signale.info(`Shell found at ${settings.shell}`);
     signale.success("Settings loaded!");
 
-    if (!require("node:fs").existsSync(settings.cwd)) throw new Error("Configured cwd path does not exist.");
+    if (!fs.existsSync(settings.cwd)) throw new Error("Configured cwd path does not exist.");
 
     // See #366
     // "shell-env" is ESM-only, so it can't be require()'d from this CJS main process.
@@ -430,10 +430,20 @@ app.on("ready", async () => {
 });
 
 app.on("web-contents-created", (e, contents) => {
-    // Prevent creating more than one window
+    // Prevent creating more than one window. Same http(s)-only validation as
+    // the shell:openExternal IPC handler in ipc-handlers.js: an unvalidated
+    // scheme reaching shell.openExternal can be abused via crafted file://
+    // or custom-protocol-handler URLs on some platforms.
     contents.on("new-window", (e, url) => {
         e.preventDefault();
-        shell.openExternal(url);
+        let parsed;
+        try {
+            parsed = new URL(url);
+        } catch {
+            return;
+        }
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return;
+        shell.openExternal(parsed.href);
     });
 
     // Prevent loading something else than the UI
