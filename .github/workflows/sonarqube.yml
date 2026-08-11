@@ -3,7 +3,7 @@ name: SonarQube Analysis
 on:
   push:
     branches:
-      - master
+      - restart-from-2021
   pull_request:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
