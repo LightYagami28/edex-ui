@@ -56,7 +56,7 @@
         "publish": "github",
         "asar": true,
         "compression": "normal",
-        "copyright": "Copyright © 2017-2021 Gabriel 'Squared' SAILLARD <gabriel@saillard.dev> (https://gaby.dev)",
+        "copyright": "Copyright \u00a9 2017-2021 Gabriel 'Squared' SAILLARD <gabriel@saillard.dev> (https://gaby.dev)",
         "directories": {
             "output": "dist",
             "app": "prebuild-src"
@@ -133,10 +133,10 @@
         "electron-winstaller@5.4.0": true
     },
     "overrides": {
+        "unzipper": "file:vendor/unzipper-patched",
         "electron-builder": {
             "app-builder-lib": {
                 "@electron/asar": "4.2.1",
-                "unzipper": "github:LightYagami28/node-unzipper#v0.12.5-lightyagami28.1",
                 "electron-builder-squirrel-windows": {
                     "electron-winstaller": {
                         "temp": {
