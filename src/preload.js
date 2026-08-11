@@ -14,6 +14,7 @@ const ALLOWED_SEND_CHANNELS = new Set([
 ]);
 const ALLOWED_RECEIVE_PREFIXES = ["terminal_channel-", "systeminformation-reply-"];
 const ALLOWED_RECEIVE_CHANNELS = new Set(["ttyspawn-reply", "getThemeOverride", "getKbOverride"]);
+const ALLOWED_INVOKE_PREFIXES = ["terminal_channel-token-"];
 
 function isAllowedReceiveChannel(channel) {
     return ALLOWED_RECEIVE_CHANNELS.has(channel) || ALLOWED_RECEIVE_PREFIXES.some((p) => channel.startsWith(p));
@@ -146,6 +147,12 @@ contextBridge.exposeInMainWorld("eDEX", {
                 throw new Error(`eDEX bridge: listen on disallowed channel "${channel}"`);
             }
             ipcRenderer.once(channel, listener);
+        },
+        invoke: (channel, ...args) => {
+            if (!ALLOWED_INVOKE_PREFIXES.some((p) => channel.startsWith(p))) {
+                throw new Error(`eDEX bridge: invoke on disallowed channel "${channel}"`);
+            }
+            return ipcRenderer.invoke(channel, ...args);
         },
     },
 });

@@ -138,51 +138,63 @@ class Terminal {
                 this.oncwdchange(this.cwd || null);
             };
 
-            // ws:// (not wss://) is fine here: this always connects to
-            // 127.0.0.1 - the main process's own PTY bridge server on this
-            // same machine, never a remote host - so there's no network hop
-            // for TLS to protect.
+            // ws:// (not wss://) is intentional here, not an oversight:
+            // this only ever connects to 127.0.0.1 - the main process's own
+            // PTY bridge server on this same machine - so there's no
+            // network hop for TLS to protect. What TLS would normally buy
+            // on a real network (proving you're talking to the right
+            // endpoint) is instead provided by a per-session random token:
+            // the server generates it and hands it to us below over
+            // Electron's contextBridge/ipcMain (process-internal, never on
+            // the network), and the server's verifyClient requires it on
+            // every connection attempt. So even though the loopback port
+            // itself is reachable by any local process, only the renderer
+            // holding the current token can open this socket.
             let sockHost = opts.host || "127.0.0.1";
             let sockPort = this.port;
 
-            this.socket = new WebSocket("ws://" + sockHost + ":" + sockPort); // NOSONAR
-            this.socket.onopen = () => {
-                let attachAddon = new AttachAddon(this.socket);
-                this.term.loadAddon(attachAddon);
-                this.fit();
-            };
-            this.socket.onerror = (e) => {
-                throw JSON.stringify(e);
-            };
-            this.socket.onclose = (e) => {
-                if (this.onclose) {
-                    this.onclose(e);
-                }
-            };
-
-            this.lastSoundFX = Date.now();
-            this.socket.addEventListener("message", (e) => {
-                let d = Date.now();
-
-                if (d - this.lastSoundFX > 30) {
-                    if (window.passwordMode === "false") window.audioManager.stdout.play();
-                    this.lastSoundFX = d;
-                }
-                if (d - this.lastRefit > 10000) {
+            window.eDEX.ipc.invoke("terminal_channel-token-" + sockPort).then((token) => {
+                this.socket = new WebSocket(
+                    "ws://" + sockHost + ":" + sockPort + "?token=" + encodeURIComponent(token)
+                );
+                this.socket.onopen = () => {
+                    let attachAddon = new AttachAddon(this.socket);
+                    this.term.loadAddon(attachAddon);
                     this.fit();
-                }
+                };
+                this.socket.onerror = (e) => {
+                    throw JSON.stringify(e);
+                };
+                this.socket.onclose = (e) => {
+                    if (this.onclose) {
+                        this.onclose(e);
+                    }
+                };
 
-                // See #397
-                if (!window.settings.experimentalGlobeFeatures) return;
-                let ips = e.data.match(IPV4_REGEX);
-                if (ips !== null && ips.length >= 1) {
-                    ips = ips.filter((val, index, self) => {
-                        return self.indexOf(val) === index;
-                    });
-                    ips.forEach((ip) => {
-                        window.mods.globe.addTemporaryConnectedMarker(ip);
-                    });
-                }
+                this.lastSoundFX = Date.now();
+                this.socket.addEventListener("message", (e) => {
+                    let d = Date.now();
+
+                    if (d - this.lastSoundFX > 30) {
+                        if (window.passwordMode === "false") window.audioManager.stdout.play();
+                        this.lastSoundFX = d;
+                    }
+                    if (d - this.lastRefit > 10000) {
+                        this.fit();
+                    }
+
+                    // See #397
+                    if (!window.settings.experimentalGlobeFeatures) return;
+                    let ips = e.data.match(IPV4_REGEX);
+                    if (ips !== null && ips.length >= 1) {
+                        ips = ips.filter((val, index, self) => {
+                            return self.indexOf(val) === index;
+                        });
+                        ips.forEach((ip) => {
+                            window.mods.globe.addTemporaryConnectedMarker(ip);
+                        });
+                    }
+                });
             });
 
             let parent = document.getElementById(opts.parentId);
@@ -253,11 +265,13 @@ class Terminal {
             };
 
             this.write = (cmd) => {
-                this.socket.send(cmd);
+                // this.socket is briefly undefined while the handshake
+                // token above is being fetched right after construction.
+                if (this.socket) this.socket.send(cmd);
             };
 
             this.writelr = (cmd) => {
-                this.socket.send(cmd + "\r");
+                if (this.socket) this.socket.send(cmd + "\r");
             };
 
             this.clipboard = {
@@ -277,9 +291,22 @@ class Terminal {
             this.Pty = require("node-pty");
             this.Websocket = require("ws").Server;
             this.Ipc = require("electron").ipcMain;
+            const crypto = require("node:crypto");
 
             this.renderer = null;
             this.port = opts.port || 3000;
+
+            // Per-session random secret gating the WebSocket handshake
+            // below (see verifyClient) - handed to the renderer only over
+            // Electron's contextBridge/ipcMain, never over the network, so
+            // no other local process/user on this machine can open or
+            // hijack this socket even though the loopback port itself is
+            // reachable by anyone on the machine. removeHandler first since
+            // this port may be a reused extra-terminal-tab slot whose
+            // previous instance hasn't finished tearing down yet.
+            this._authToken = crypto.randomBytes(32).toString("hex");
+            this.Ipc.removeHandler("terminal_channel-token-" + this.port);
+            this.Ipc.handle("terminal_channel-token-" + this.port, () => this._authToken);
 
             this._closed = false;
             this.onclosed = () => {};
@@ -411,6 +438,7 @@ class Terminal {
 
             this.tty.onExit((code, signal) => {
                 this._closed = true;
+                this.Ipc.removeHandler("terminal_channel-token-" + this.port);
                 this.onclosed(code, signal);
             });
 
@@ -424,8 +452,21 @@ class Terminal {
                 host: opts.host || "127.0.0.1",
                 port: this.port,
                 clientTracking: true,
-                verifyClient: () => {
-                    return this.wss.clients.size < 1;
+                maxPayload: 16 * 1024,
+                verifyClient: (info) => {
+                    if (this.wss.clients.size >= 1) return false;
+
+                    let providedToken;
+                    try {
+                        providedToken = new URL(info.req.url, "http://127.0.0.1").searchParams.get("token");
+                    } catch {
+                        return false;
+                    }
+                    if (typeof providedToken !== "string") return false;
+
+                    const expected = Buffer.from(this._authToken);
+                    const provided = Buffer.from(providedToken);
+                    return expected.length === provided.length && crypto.timingSafeEqual(expected, provided);
                 },
             });
             this.Ipc.on("terminal_channel-" + this.port, (e, ...args) => {
@@ -481,6 +522,7 @@ class Terminal {
 
             this.close = () => {
                 this.tty.kill();
+                this.Ipc.removeHandler("terminal_channel-token-" + this.port);
                 this._closed = true;
             };
         } else {
