@@ -52,6 +52,10 @@ src/node_modules
 .sonar_token
 sonar-token*
 
+# Claude Code local project state
+.claude/
+.git-rewrite/
+
 # Snyk
 .snyk
 .github/instructions
