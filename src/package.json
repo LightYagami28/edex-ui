@@ -29,7 +29,7 @@
     "geolite2-redist": "^3.0.0",
     "howler": "^2.2.4",
     "maxmind": "^5.0.7",
-    "mime-types": "^2.1.35",
+    "mime-types": "^3.0.2",
     "nanoid": "^6.0.2",
     "node-pty": "^1.1.0",
     "pdfjs-dist": "^5.4.624",
