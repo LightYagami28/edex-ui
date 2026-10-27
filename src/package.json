@@ -33,7 +33,7 @@
     "nanoid": "^6.0.2",
     "node-pty": "^1.1.0",
     "pdfjs-dist": "^5.4.624",
-    "pretty-bytes": "^7.1.0",
+    "pretty-bytes": "^7.2.0",
     "shell-env": "^4.0.3",
     "signale": "^1.4.0",
     "smoothie": "^1.36.1",
