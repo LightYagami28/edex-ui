@@ -108,7 +108,7 @@
     "electron": "^40.4.1",
     "electron-builder": "^26.8.0",
     "mime-types": "^3.0.2",
-    "node-abi": "^4.26.0",
+    "node-abi": "^4.40.0",
     "node-json-minify": "^3.0.0",
     "terser": "^5.37.0"
   },
