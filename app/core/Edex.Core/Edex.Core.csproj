@@ -4,6 +4,9 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Geo/land-1deg.bin" LogicalName="Edex.Core.Geo.land-1deg.bin" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="Edex.Core.Tests" />
   </ItemGroup>
 </Project>
