@@ -81,7 +81,7 @@ class Keyboard {
 
                 // Icon support, overrides previously defined innerHTML
                 // Arrow and other icons
-                let icon = null;
+                let icon;
                 if (keyObj.name.startsWith("ESCAPED|-- ICON: ")) {
                     keyObj.name = keyObj.name.substr(17);
                     switch(keyObj.name) {
@@ -386,7 +386,7 @@ class Keyboard {
                     window.useAppShortcut(cut.action);
                     shortcutsTriggered = true;
                 } else if (cut.type === "shell") {
-                    let fn = (cut.linebreak) ? writelr : write;
+                    let fn = (cut.linebreak) ? "writelr" : "write";
                     window.term[window.currentTerm][fn](cut.action);
                 } else {
                     console.warn(`${cut.trigger} has unknown type`);
