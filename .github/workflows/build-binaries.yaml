@@ -9,9 +9,9 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
     - name: Cache node modules
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
       env:
         cache-name: cache-node-modules
       with:
@@ -19,7 +19,7 @@ jobs:
         path: ~/.npm
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
     - name: Cache Electron binaries
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
       env:
         cache-name: cache-electron-bins
       with:
@@ -32,12 +32,12 @@ jobs:
         sudo apt update
         sudo apt install libc6-dev-i386 gcc-multilib g++-multilib
     - name: Setup Node.js
-      uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
       with:
-        node-version: 22
+        node-version: 24
         cache: 'npm'
     - name: Setup npm
-      run: sudo npm i -g npm@10
+      run: sudo npm i -g npm@latest
     - name: Install build deps
       run: npm install
     - name: Run prebuild script
@@ -46,7 +46,7 @@ jobs:
       run: ./node_modules/.bin/electron-builder build -l --x64
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
       with:
         name: Linux-AppImages
         path: dist/*.AppImage
@@ -55,13 +55,13 @@ jobs:
   build-linux-arm32:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
     - name: Setup QEMU
-      uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
+      uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1
       with:
         platforms: arm
     - name: Cache node modules
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
       env:
         cache-name: cache-node-modules
       with:
@@ -69,7 +69,7 @@ jobs:
         path: ~/.npm
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
     - name: Cache Electron binaries
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
       env:
         cache-name: cache-electron-bins
       with:
@@ -78,14 +78,13 @@ jobs:
         path: ~/.cache/electron
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
     - name: Run prebuild outside of QEMU emulator
-      run: sudo npm i -g npm@10 && npm install && rsync -a --info=progress2 src/ prebuild-src --exclude node_modules && node prebuild-minify.js && rm -rf node_modules
+      run: sudo npm i -g npm@latest && npm install && rsync -a --info=progress2 src/ prebuild-src --exclude node_modules && node prebuild-minify.js && rm -rf node_modules
     - name: Build for arm32v7 (aka armv7l)
-      uses: docker://arm32v7/node:22-bookworm
-      with:
-        args: bash -c "npm i -g npm@10 && npm install && ./node_modules/.bin/electron-builder build -l --armv7l"
+      run: |
+        docker run --rm --platform linux/arm/v7 -e GH_TOKEN -v "$PWD":/work -w /work arm32v7/node:22-bookworm bash -c "npm i -g npm@latest && npm install && ./node_modules/.bin/electron-builder build -l --armv7l"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
       with:
         name: Linux-arm32-AppImage
         path: dist/*.AppImage
@@ -94,13 +93,13 @@ jobs:
   build-linux-arm64:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
     - name: Setup QEMU
-      uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
+      uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1
       with:
         platforms: arm64
     - name: Cache node modules
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
       env:
         cache-name: cache-node-modules
       with:
@@ -108,7 +107,7 @@ jobs:
         path: ~/.npm
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
     - name: Cache Electron binaries
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
       env:
         cache-name: cache-electron-bins
       with:
@@ -117,14 +116,13 @@ jobs:
         path: ~/.cache/electron
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
     - name: Run prebuild outside of QEMU emulator
-      run: sudo npm i -g npm@10 && npm install && rsync -a --info=progress2 src/ prebuild-src --exclude node_modules && node prebuild-minify.js && rm -rf node_modules
+      run: sudo npm i -g npm@latest && npm install && rsync -a --info=progress2 src/ prebuild-src --exclude node_modules && node prebuild-minify.js && rm -rf node_modules
     - name: Build for arm64 (aka arm64v8)
-      uses: docker://arm64v8/node:22-bookworm
-      with:
-        args: bash -c "npm i -g npm@10 && npm install && ./node_modules/.bin/electron-builder build -l --arm64"
+      run: |
+        docker run --rm --platform linux/arm64 -e GH_TOKEN -v "$PWD":/work -w /work arm64v8/node:24-bookworm bash -c "npm i -g npm@latest && npm install && ./node_modules/.bin/electron-builder build -l --arm64"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
       with:
         name: Linux-arm64-AppImage
         path: dist/*.AppImage
@@ -133,14 +131,14 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
     - name: Setup Node.js
-      uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
       with:
-        node-version: 22
+        node-version: 24
         cache: 'npm'
     - name: Cache Electron binaries
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
       env:
         cache-name: cache-electron-bins
       with:
@@ -149,14 +147,14 @@ jobs:
         path: ~/AppData/Local/electron/Cache
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
     - name: Setup npm
-      run: npm i -g npm@10
+      run: npm i -g npm@latest
     - name: npm install
       run: npm install
     - name: npm build
       run: npm run build-windows
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
       with:
         name: Windows-Installer
         path: dist/*.exe
@@ -165,9 +163,9 @@ jobs:
   build-darwin:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
     - name: Cache node modules
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
       env:
         cache-name: cache-node-modules
       with:
@@ -175,7 +173,7 @@ jobs:
         path: ~/.npm
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
     - name: Cache Electron binaries
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
       env:
         cache-name: cache-electron-bins
       with:
@@ -184,18 +182,18 @@ jobs:
         path: ~/Library/Caches/electron
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
     - name: Setup Node.js
-      uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
       with:
-        node-version: 22
+        node-version: 24
     - name: Setup npm
-      run: npm i -g npm@10
+      run: npm i -g npm@latest
     - name: npm install
       run: npm install
     - name: npm build
       run: npm run build-darwin
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
       with:
         name: MacOS-Image
         path: dist/*.dmg
