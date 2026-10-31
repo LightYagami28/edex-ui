@@ -7,12 +7,12 @@ class Terminal {
             const {AttachAddon} = require("@xterm/addon-attach");
             const {FitAddon} = require("@xterm/addon-fit");
             // @xterm/addon-ligatures 0.10 only ships the ES module build (its "main" points to a missing file)
-let LigaturesAddon = null;
-try {
-    ({LigaturesAddon} = require("@xterm/addon-ligatures/lib/addon-ligatures.mjs"));
-} catch (e) {
-    console.warn("Font ligatures disabled:", e.message);
-}
+            let LigaturesAddon = null;
+            try {
+                ({LigaturesAddon} = require("@xterm/addon-ligatures/lib/addon-ligatures.mjs"));
+            } catch (e) {
+                console.warn("Font ligatures disabled:", e.message);
+            }
             const {WebglAddon} = require("@xterm/addon-webgl");
             this.Ipc = require("electron").ipcRenderer;
 

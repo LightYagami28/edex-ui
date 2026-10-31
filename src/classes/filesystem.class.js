@@ -62,7 +62,7 @@ class FilesystemDisplay {
         this._timer = setInterval(() => {
             if (this._runNextTick === true) {
                 this._runNextTick = false;
-                this.readFS(this.dirpath);
+                void this.readFS(this.dirpath);
             }
         }, 1000);
 
@@ -108,10 +108,10 @@ class FilesystemDisplay {
                         this._fsWatcher.close();
                     }
                     if (cwd.startsWith("FALLBACK |-- ")) {
-                        this.readFS(cwd.slice(13));
+                        void this.readFS(cwd.slice(13));
                         this._noTracking = true;
                     } else {
-                        this.readFS(cwd);
+                        void this.readFS(cwd);
                         this.watchFS(cwd);
                     }
                 }
@@ -168,14 +168,14 @@ class FilesystemDisplay {
                 if (this._noTracking === true && this.dirpath) { // #262
                     this.setFailedState();
                     setTimeout(() => {
-                        this.readFS(this.dirpath);
+                        void this.readFS(this.dirpath);
                     }, 1000);
                 } else {
                     this.setFailedState();
                 }
             });
 
-            this.reCalculateDiskUsage(tcwd);
+            void this.reCalculateDiskUsage(tcwd);
 
             this.cwd = [];
 
@@ -260,7 +260,7 @@ class FilesystemDisplay {
             }
 
             this.dirpath = tcwd;
-            this.render(this.cwd);
+            void this.render(this.cwd);
             this._reading = false;
         };
 
@@ -284,7 +284,7 @@ class FilesystemDisplay {
                 }
             });
 
-            this.render(devices, true);
+            void this.render(devices, true);
         };
 
         this.render = async (originBlockList, isDiskView) => {
@@ -514,7 +514,7 @@ class FilesystemDisplay {
                         this.fsBlock = fsBlock;
                     }
                 });
-                this.renderDiskUsage(this.fsBlock);
+                void this.renderDiskUsage(this.fsBlock);
             });
         };
 
@@ -544,7 +544,7 @@ class FilesystemDisplay {
         // ...except if we're hot-reloading, in which case this can mess up the rendering
         // See #392
         if (window.performance.navigation.type === 0) {
-            this.readFS(window.term[window.currentTerm].cwd || window.settings.cwd);
+            void this.readFS(window.term[window.currentTerm].cwd || window.settings.cwd);
         }
 
         this.openFile = (name, path, type) => { //Might add text formatting at some point, not now though - Surge
