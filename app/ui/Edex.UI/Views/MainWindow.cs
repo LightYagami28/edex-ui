@@ -11,6 +11,7 @@ using Avalonia.Media.Immutable;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Edex.Core.Files;
+using Edex.Core.Input;
 using Edex.Core.Monitoring;
 using Edex.Core.Networking;
 using Edex.Core.Pty;
@@ -48,6 +49,8 @@ public sealed class MainWindow : Window
     private TextBlock _netState = null!, _netIface = null!, _netIp = null!, _netGateway = null!, _netPing = null!, _netRates = null!, _netConns = null!;
     private TextBlock _browserTitle = null!;
     private ListBox _fileList = null!;
+    private KeyboardView? _keyboard;
+    private SoundPlayer _sounds = null!;
 
     public MainWindow(PlatformProfile profile, string? smokeTestDirectory)
     {
@@ -68,9 +71,25 @@ public sealed class MainWindow : Window
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
 
         _cpuHistory.FixedMaximum = 100;
+        _sounds = new SoundPlayer(_settings.Sounds && smokeTestDirectory is null, _settings.SoundVolume);
         BuildLayout();
         RefreshFiles();
         Opened += OnOpened;
+        AddHandler(KeyDownEvent, (_, e) =>
+        {
+            // Keys that produce characters are matched through TextInput, which knows the active OS layout.
+            if (e.Key is not (Key.Enter or Key.Back or Key.Tab or Key.Escape or Key.Delete or Key.Up or Key.Down or Key.Left or Key.Right
+                or Key.Home or Key.End or Key.PageUp or Key.PageDown or Key.LeftShift or Key.RightShift or Key.LeftCtrl or Key.RightCtrl
+                or Key.LeftAlt or Key.RightAlt or Key.CapsLock)) return;
+            _keyboard?.Flash(e.Key);
+            if (_settings.KeyboardSounds) _sounds.KeyClick();
+        }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+        AddHandler(TextInputEvent, (_, e) =>
+        {
+            if (string.IsNullOrEmpty(e.Text)) return;
+            _keyboard?.Flash(Key.None, e.Text);
+            if (_settings.KeyboardSounds) _sounds.KeyClick();
+        }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         Closing += (_, _) => Shutdown();
     }
 
@@ -244,7 +263,7 @@ public sealed class MainWindow : Window
     private Control BuildCenter()
     {
         var p = _palette;
-        var grid = new Grid { RowDefinitions = new RowDefinitions("Auto,3*,Auto,2*") };
+        var grid = new Grid { RowDefinitions = new RowDefinitions("Auto,3*,2*") };
 
         var tabBar = new DockPanel { Margin = new Thickness(0, 0, 0, 6) };
         var add = new Button
@@ -280,15 +299,21 @@ public sealed class MainWindow : Window
         Grid.SetRow(terminalFrame, 1);
         grid.Children.Add(terminalFrame);
 
+        var bottom = new Grid { ColumnDefinitions = new ColumnDefinitions(_settings.ShowKeyboard ? "*,1.25*" : "*") };
+        Grid.SetRow(bottom, 2);
+        grid.Children.Add(bottom);
+
+        var files = new DockPanel();
         var browserHeader = new DockPanel { Margin = new Thickness(2, 10, 2, 6) };
+        DockPanel.SetDock(browserHeader, Dock.Top);
         var up = new Button { Content = "↑", Padding = new Thickness(8, 0), Foreground = p.AccentBrush, Background = Brushes.Transparent };
         up.Click += (_, _) => NavigateBrowser(Directory.GetParent(_browserPath)?.FullName ?? _browserPath, syncShell: false);
         DockPanel.SetDock(up, Dock.Right);
         browserHeader.Children.Add(up);
         _browserTitle = Ui.Text("", p.AccentBrush, 12, FontWeight.SemiBold);
+        _browserTitle.TextTrimming = TextTrimming.PathSegmentEllipsis;
         browserHeader.Children.Add(_browserTitle);
-        Grid.SetRow(browserHeader, 2);
-        grid.Children.Add(browserHeader);
+        files.Children.Add(browserHeader);
 
         _fileList = new ListBox
         {
@@ -299,8 +324,21 @@ public sealed class MainWindow : Window
             Padding = new Thickness(4),
         };
         _fileList.ItemsPanel = new Avalonia.Controls.Templates.FuncTemplate<Panel?>(() => new WrapPanel { Orientation = Orientation.Horizontal });
-        Grid.SetRow(_fileList, 3);
-        grid.Children.Add(_fileList);
+        files.Children.Add(_fileList);
+        bottom.Children.Add(files);
+
+        _keyboard = null;
+        if (_settings.ShowKeyboard)
+        {
+            _keyboard = new KeyboardView(p, KeyboardLayout.Find(_settings.KeyboardLayout), () => _active?.Buffer.ApplicationCursorKeys ?? false)
+            {
+                Margin = new Thickness(10, 10, 0, 0),
+            };
+            _keyboard.Output += text => _terminal.SendUserInput(text);
+            _keyboard.KeyClicked += () => _sounds.KeyClick();
+            Grid.SetColumn(_keyboard, 1);
+            bottom.Children.Add(_keyboard);
+        }
 
         if (_active is not null) ShowSession(_active);
         RebuildTabs();
@@ -402,8 +440,7 @@ public sealed class MainWindow : Window
         {
             bool dir = entry.Kind == FileEntryKind.Directory;
             var tile = new StackPanel { Width = 92, Spacing = 2, Margin = new Thickness(2) };
-            tile.Children.Add(Ui.Text(dir ? "▣" : entry.Kind == FileEntryKind.Link ? "⇢" : "▤", dir ? _palette.AccentBrush : _palette.MutedBrush, 22)
-                .Also(t => t.HorizontalAlignment = HorizontalAlignment.Center));
+            tile.Children.Add(CreateFileIcon(entry));
             tile.Children.Add(Ui.Text(entry.Name, _palette.ForegroundBrush, 11).Also(t =>
             {
                 t.HorizontalAlignment = HorizontalAlignment.Center;
@@ -425,6 +462,19 @@ public sealed class MainWindow : Window
             items.Add(tile);
         }
         _fileList.ItemsSource = items;
+    }
+
+    private Control CreateFileIcon(FileEntry entry)
+    {
+        IImage? native = null;
+        try { native = _profile.FileIcons?.Invoke(entry.FullPath, entry.Kind); }
+        catch (Exception e) when (e is not OutOfMemoryException) { }
+        if (native is not null)
+            return new Image { Source = native, Width = 40, Height = 40, HorizontalAlignment = HorizontalAlignment.Center };
+        return new FileIcon(FileTypes.Classify(entry.Name, entry.Kind), FileTypes.Label(entry.Name), _palette.Accent)
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
     }
 
     // ------------------------------------------------------------------ themes
@@ -544,7 +594,7 @@ public sealed class MainWindow : Window
         Directory.CreateDirectory(directory);
         const string marker = "EDEX_SMOKE_OK";
         var started = DateTime.UtcNow;
-        bool ok = false;
+        bool ok = false, typedWithKeyboard = false, selectionHasMarker = false;
         string? error = null;
         try
         {
@@ -553,7 +603,9 @@ public sealed class MainWindow : Window
                 await Task.Delay(200);
             if (_active is null) throw new InvalidOperationException("No terminal session started");
             await Task.Delay(1500);
-            _active.Send($"echo {marker}\r");
+            // Type the command through the on-screen keyboard when it is shown, so its click path is exercised too.
+            typedWithKeyboard = _keyboard?.Type($"echo {marker}\r") ?? false;
+            if (!typedWithKeyboard) _active.Send($"echo {marker}\r");
             while (DateTime.UtcNow - started < TimeSpan.FromSeconds(60))
             {
                 var text = _active.Buffer.ScrollbackText();
@@ -561,6 +613,9 @@ public sealed class MainWindow : Window
                 await Task.Delay(200);
             }
             await Task.Delay(2500); // let the monitors fill their charts
+            _terminal.SelectAll();
+            selectionHasMarker = _terminal.SelectedText?.Contains(marker, StringComparison.Ordinal) ?? false;
+            _terminal.ClearSelection();
         }
         catch (Exception e)
         {
@@ -599,6 +654,10 @@ public sealed class MainWindow : Window
             network = $"{_netState.Text} {_netIface.Text} {_netIp.Text}",
             processes = _processes.Children.Count,
             disks = _disks.Children.Count,
+            keyboard = _keyboard is null ? "hidden" : _keyboard.Layout.Name,
+            typedWithKeyboard,
+            selectionHasMarker,
+            sound = _sounds.Backend,
             elapsedSeconds = (DateTime.UtcNow - started).TotalSeconds,
             error,
         };

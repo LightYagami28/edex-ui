@@ -210,6 +210,15 @@ public sealed class TerminalView : Control
     /// <summary>Text currently selected with the mouse, or null.</summary>
     public string? SelectedText => _session is not null && _selection is { IsEmpty: false } sel ? sel.GetText(_session.Buffer.Snapshot()) : null;
 
+    /// <summary>Selects the whole visible screen.</summary>
+    public void SelectAll()
+    {
+        if (_session is null) return;
+        var snapshot = _session.Buffer.Snapshot();
+        _selection = new TextSelection(new CellPosition(0, 0), new CellPosition(snapshot.Columns - 1, snapshot.Rows - 1));
+        InvalidateVisual();
+    }
+
     public void ClearSelection()
     {
         if (_selection is null) return;
@@ -407,9 +416,7 @@ public sealed class TerminalView : Control
         if (appShortcut && e.Key == Key.A)
         {
             e.Handled = true;
-            var snapshot = _session.Buffer.Snapshot();
-            _selection = new TextSelection(new CellPosition(0, 0), new CellPosition(snapshot.Columns - 1, snapshot.Rows - 1));
-            InvalidateVisual();
+            SelectAll();
             return;
         }
         if (mods.HasFlag(KeyModifiers.Shift) && e.Key is Key.PageUp or Key.PageDown)

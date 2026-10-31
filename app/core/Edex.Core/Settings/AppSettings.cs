@@ -14,6 +14,14 @@ public sealed record AppSettings
     public bool ShowHiddenFiles { get; init; }
     public string PingHost { get; init; } = "1.1.1.1";
     public int MonitorIntervalMs { get; init; } = 1000;
+    public bool ShowKeyboard { get; init; } = true;
+    /// <summary>"auto", "en-US" or "it-IT".</summary>
+    public string KeyboardLayout { get; init; } = "auto";
+    public bool Sounds { get; init; } = true;
+    public bool KeyboardSounds { get; init; } = true;
+    public double SoundVolume { get; init; } = 0.4;
+    /// <summary>Look up the public IP location (no API key) for the globe; false keeps everything offline.</summary>
+    public bool OnlineGeolocation { get; init; } = true;
 
     public static string DefaultShell()
     {
