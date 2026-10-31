@@ -62,7 +62,7 @@ class FilesystemDisplay {
         this._timer = setInterval(() => {
             if (this._runNextTick === true) {
                 this._runNextTick = false;
-                this.readFS(this.dirpath);
+                this.readFS(this.dirpath).catch(err => console.warn(err));
             }
         }, 1000);
 
@@ -108,10 +108,10 @@ class FilesystemDisplay {
                         this._fsWatcher.close();
                     }
                     if (cwd.startsWith("FALLBACK |-- ")) {
-                        this.readFS(cwd.slice(13));
+                        this.readFS(cwd.slice(13)).catch(err => console.warn(err));
                         this._noTracking = true;
                     } else {
-                        this.readFS(cwd);
+                        this.readFS(cwd).catch(err => console.warn(err));
                         this.watchFS(cwd);
                     }
                 }
@@ -168,14 +168,18 @@ class FilesystemDisplay {
                 if (this._noTracking === true && this.dirpath) { // #262
                     this.setFailedState();
                     setTimeout(() => {
-                        this.readFS(this.dirpath);
+                        this.readFS(this.dirpath).catch(err => console.warn(err));
                     }, 1000);
                 } else {
                     this.setFailedState();
                 }
             });
+            if (!content) {
+                this._reading = false;
+                return false;
+            }
 
-            this.reCalculateDiskUsage(tcwd);
+            this.reCalculateDiskUsage(tcwd).catch(err => console.warn(err));
 
             this.cwd = [];
 
@@ -260,7 +264,7 @@ class FilesystemDisplay {
             }
 
             this.dirpath = tcwd;
-            this.render(this.cwd);
+            this.render(this.cwd).catch(err => console.warn(err));
             this._reading = false;
         };
 
@@ -284,7 +288,7 @@ class FilesystemDisplay {
                 }
             });
 
-            this.render(devices, true);
+            this.render(devices, true).catch(err => console.warn(err));
         };
 
         this.render = async (originBlockList, isDiskView) => {
@@ -505,16 +509,16 @@ class FilesystemDisplay {
             this.space_bar.text.innerHTML = "Calculating available space...";
             this.space_bar.bar.removeAttribute("value");
 
-            window.si.fsSize().catch(() => {
-                this.space_bar.text.innerHTML = "Could not calculate mountpoint usage.";
-                this.space_bar.bar.value = 100;
-            }).then(d => {
+            window.si.fsSize().then(d => {
                 d.forEach(fsBlock => {
                     if (path.startsWith(fsBlock.mount)) {
                         this.fsBlock = fsBlock;
                     }
                 });
-                this.renderDiskUsage(this.fsBlock);
+                return this.renderDiskUsage(this.fsBlock);
+            }).catch(() => {
+                this.space_bar.text.innerHTML = "Could not calculate mountpoint usage.";
+                this.space_bar.bar.value = 100;
             });
         };
 
@@ -544,7 +548,7 @@ class FilesystemDisplay {
         // ...except if we're hot-reloading, in which case this can mess up the rendering
         // See #392
         if (window.performance.navigation.type === 0) {
-            this.readFS(window.term[window.currentTerm].cwd || window.settings.cwd);
+            this.readFS(window.term[window.currentTerm].cwd || window.settings.cwd).catch(err => console.warn(err));
         }
 
         this.openFile = (name, path, type) => { //Might add text formatting at some point, not now though - Surge

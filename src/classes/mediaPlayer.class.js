@@ -51,7 +51,7 @@ class MediaPlayer {
 
         this.handleFullscreen = () => {
             if (document.fullscreenElement) {
-                document.exitFullscreen();
+                document.exitFullscreen().catch(err => console.warn(err));
                 this.setFullscreenData(false);
 
                 mediaContainer.removeEventListener('mousemove', this.handleFullscreenControls);
@@ -59,7 +59,7 @@ class MediaPlayer {
                 clearTimeout(fullscreenTimeout);
                 this.fullscreenVisible();
             } else {
-                mediaContainer.requestFullscreen();
+                mediaContainer.requestFullscreen().catch(err => console.warn(err));
                 this.setFullscreenData(true);
 
                 fullscreenVisible = false;
