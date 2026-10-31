@@ -75,11 +75,19 @@ jobs:
           Copy-Item "$env:RUNNER_TEMP\smoke" out\smoke-windows -Recurse
           exit $p.ExitCode
 
+      - name: UI smoke test (macOS)
+        if: runner.os == 'macOS'
+        timeout-minutes: 5
+        run: |
+          EDEX_CONFIG_DIR="$RUNNER_TEMP/edex-cfg" out/osx-arm64/eDEX-UI --smoke-test "$RUNNER_TEMP/smoke"
+          cat "$RUNNER_TEMP/smoke/report.json"
+          cp -R "$RUNNER_TEMP/smoke" out/smoke-macos
+
       - name: Bundle (macOS)
         if: runner.os == 'macOS'
         run: sh macos/Edex.MacOS/packaging/make-bundle.sh out/osx-arm64 out/bundle
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: edex-ui-${{ matrix.rid }}
           path: app/out/
