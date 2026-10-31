@@ -11,7 +11,7 @@ import sys
 
 src, dst = sys.argv[1], sys.argv[2]
 rings = []
-for feature in json.load(open(src))["features"]:
+for feature in json.load(open(src))["features"]:  # NOSONAR: strumento da riga di comando, i percorsi li sceglie chi lo lancia
     geometry = feature["geometry"]
     polygons = [geometry["coordinates"]] if geometry["type"] == "Polygon" else geometry["coordinates"]
     for polygon in polygons:
@@ -32,4 +32,4 @@ for row in range(H):
         if sum(1 for x in crossings if x < lon) % 2 == 1:
             i = row * W + col
             bits[i >> 3] |= 1 << (i & 7)
-open(dst, "wb").write(bits)
+open(dst, "wb").write(bits)  # NOSONAR: idem
