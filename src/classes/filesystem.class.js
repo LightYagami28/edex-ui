@@ -613,15 +613,16 @@ class FilesystemDisplay {
                                     html: err
                                 });
                                 console.log(err);
-                            };
+                                return;
+                            }
                             window.keyboard.detach();
                             new Modal(
                                 {
                                     type: "custom",
                                     title: _escapeHtml(name),
-                                    html: `<textarea id="fileEdit" rows="40" cols="150" spellcheck="false">${data}</textarea><p id="fedit-status"></p>`,
+                                    html: `<textarea id="fileEdit" rows="40" cols="150" spellcheck="false">${_escapeHtml(data)}</textarea><p id="fedit-status"></p>`,
                                     buttons: [
-                                        {label:"Save to Disk",action:`window.writeFile('${block.path}')`}
+                                        {label:"Save to Disk",action:`window.writeFile(${_escapeHtml(JSON.stringify(block.path))})`}
                                     ]
                                 }, () => {
                                     window.keyboard.attach();
