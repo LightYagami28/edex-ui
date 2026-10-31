@@ -349,9 +349,10 @@ app.on('ready', async () => {
 
 app.on('web-contents-created', (e, contents) => {
     // Prevent creating more than one window
-    contents.on('new-window', (e, url) => {
-        e.preventDefault();
-        shell.openExternal(url);
+    // ('new-window' was removed from Electron; only http(s) links may reach the OS)
+    contents.setWindowOpenHandler(({url}) => {
+        if (/^https?:\/\//i.test(url)) shell.openExternal(url);
+        return {action: "deny"};
     });
 
     // Prevent loading something else than the UI

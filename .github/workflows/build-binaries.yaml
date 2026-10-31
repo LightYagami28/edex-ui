@@ -34,7 +34,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238
       with:
-        node-version: 18
+        node-version: 22
         cache: 'npm'
     - name: Setup npm
       run: sudo npm i -g npm@10
@@ -80,7 +80,7 @@ jobs:
     - name: Run prebuild outside of QEMU emulator
       run: sudo npm i -g npm@10 && npm install && rsync -a --info=progress2 src/ prebuild-src --exclude node_modules && node prebuild-minify.js && rm -rf node_modules
     - name: Build for arm32v7 (aka armv7l)
-      uses: docker://arm32v7/node:18-bookworm
+      uses: docker://arm32v7/node:22-bookworm
       with:
         args: bash -c "npm i -g npm@10 && npm install && ./node_modules/.bin/electron-builder build -l --armv7l"
       env:
@@ -119,7 +119,7 @@ jobs:
     - name: Run prebuild outside of QEMU emulator
       run: sudo npm i -g npm@10 && npm install && rsync -a --info=progress2 src/ prebuild-src --exclude node_modules && node prebuild-minify.js && rm -rf node_modules
     - name: Build for arm64 (aka arm64v8)
-      uses: docker://arm64v8/node:18-bookworm
+      uses: docker://arm64v8/node:22-bookworm
       with:
         args: bash -c "npm i -g npm@10 && npm install && ./node_modules/.bin/electron-builder build -l --arm64"
       env:
@@ -137,7 +137,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238
       with:
-        node-version: 18
+        node-version: 22
         cache: 'npm'
     - name: Cache Electron binaries
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
@@ -186,7 +186,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238
       with:
-        node-version: 18
+        node-version: 22
     - name: Setup npm
       run: sudo npm i -g npm@10
     - name: npm install
