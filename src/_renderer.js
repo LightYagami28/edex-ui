@@ -335,7 +335,7 @@ async function getDisplayName() {
         return user;
 
     try {
-        user = await require("username")();
+        user = await require("username").username();
     } catch (e) {
         // username detection is optional
     }
