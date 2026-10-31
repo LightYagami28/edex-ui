@@ -12,6 +12,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Edex.Core.Files;
 using Edex.Core.Input;
+using Edex.Core.Geo;
 using Edex.Core.Monitoring;
 using Edex.Core.Networking;
 using Edex.Core.Pty;
@@ -51,6 +52,11 @@ public sealed class MainWindow : Window
     private ListBox _fileList = null!;
     private KeyboardView? _keyboard;
     private SoundPlayer _sounds = null!;
+    private GlobeView _globe = null!;
+    private TextBlock _geoLabel = null!;
+    private GeoLocation? _geoLocation;
+    private string _geoStatus = "locating…";
+    private static readonly HttpClient s_http = CreateHttpClient();
 
     public MainWindow(PlatformProfile profile, string? smokeTestDirectory)
     {
@@ -248,6 +254,13 @@ public sealed class MainWindow : Window
         net.Children.Add(Ui.KeyValue(p, $"ping {_settings.PingHost}", _netPing));
         net.Children.Add(Ui.KeyValue(p, "tcp established", _netConns));
         column.Children.Add(Ui.Card(p, "Network", net));
+
+        var world = new StackPanel { Spacing = 4 };
+        _globe = new GlobeView(p) { Height = 210, Location = _geoLocation };
+        world.Children.Add(_globe);
+        _geoLabel = Ui.Text(DescribeLocation(), p.MutedBrush, 11).Also(t => t.HorizontalAlignment = HorizontalAlignment.Center);
+        world.Children.Add(_geoLabel);
+        column.Children.Add(Ui.Card(p, "World view", world));
 
         var traffic = new StackPanel();
         _netRates = Ui.Text("", p.ForegroundBrush, 12);
@@ -453,15 +466,43 @@ public sealed class MainWindow : Window
             tile.Tapped += (_, _) =>
             {
                 if (dir) NavigateBrowser(entry.FullPath, syncShell: true);
-                else if (_active is not null)
-                {
-                    _active.Send(entry.FullPath.Contains(' ') ? $"\"{entry.FullPath}\" " : entry.FullPath + " ");
-                    _terminal.Focus();
-                }
+                else OpenFile(entry);
             };
+            if (!dir)
+            {
+                var open = new MenuItem { Header = "Open" };
+                open.Click += (_, _) => OpenFile(entry);
+                var system = new MenuItem { Header = "Open with system app" };
+                system.Click += (_, _) => FileViewerWindow.OpenWithSystem(entry.FullPath);
+                var insert = new MenuItem { Header = "Insert path in terminal" };
+                insert.Click += (_, _) => InsertPath(entry.FullPath);
+                tile.ContextMenu = new ContextMenu { ItemsSource = new[] { open, system, insert } };
+            }
             items.Add(tile);
         }
         _fileList.ItemsSource = items;
+    }
+
+    private void OpenFile(FileEntry entry)
+    {
+        var category = FileTypes.Classify(entry.Name, entry.Kind);
+        if (FileViewerWindow.CanView(category))
+        {
+            _sounds.Play(Edex.Core.Audio.SoundEffect.PanelOpen);
+            new FileViewerWindow(_palette, entry.FullPath).Show(this);
+        }
+        else if (category is FileCategory.Audio or FileCategory.Video or FileCategory.Document or FileCategory.Spreadsheet or FileCategory.Presentation)
+        {
+            if (!FileViewerWindow.OpenWithSystem(entry.FullPath)) _sounds.Play(Edex.Core.Audio.SoundEffect.Alert);
+        }
+        else InsertPath(entry.FullPath);
+    }
+
+    private void InsertPath(string path)
+    {
+        if (_active is null) return;
+        _active.Send(path.Contains(' ') ? $"\"{path}\" " : path + " ");
+        _terminal.Focus();
     }
 
     private Control CreateFileIcon(FileEntry entry)
@@ -498,6 +539,38 @@ public sealed class MainWindow : Window
         clockTimer.Start();
         UpdateClock();
         if (_smokeTestDirectory is not null) _ = RunSmokeTestAsync(_smokeTestDirectory);
+        else _sounds.Play(Edex.Core.Audio.SoundEffect.Startup);
+        _ = LocateAsync();
+    }
+
+    private async Task LocateAsync()
+    {
+        if (!_settings.OnlineGeolocation)
+        {
+            _geoStatus = "offline mode";
+            _geoLabel.Text = DescribeLocation();
+            return;
+        }
+        var location = await GeoLocator.LocateAsync(s_http, _shutdown.Token);
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            _geoLocation = location;
+            _geoStatus = location is null ? "location unavailable" : "";
+            _globe.Location = location;
+            _geoLabel.Text = DescribeLocation();
+        });
+    }
+
+    private string DescribeLocation() => _geoLocation is { } l
+        ? string.Join(", ", new[] { l.City, l.Country }.Where(s => !string.IsNullOrEmpty(s))) +
+          string.Create(CultureInfo.InvariantCulture, $"  {l.Latitude:0.00}, {l.Longitude:0.00}")
+        : _geoStatus;
+
+    private static HttpClient CreateHttpClient()
+    {
+        var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("eDEX-UI-Next/1.0");
+        return http;
     }
 
     private void UpdateClock()
@@ -595,6 +668,7 @@ public sealed class MainWindow : Window
         const string marker = "EDEX_SMOKE_OK";
         var started = DateTime.UtcNow;
         bool ok = false, typedWithKeyboard = false, selectionHasMarker = false;
+        string[] viewers = [];
         string? error = null;
         try
         {
@@ -613,6 +687,7 @@ public sealed class MainWindow : Window
                 await Task.Delay(200);
             }
             await Task.Delay(2500); // let the monitors fill their charts
+            viewers = await CheckViewersAsync(directory);
             _terminal.SelectAll();
             selectionHasMarker = _terminal.SelectedText?.Contains(marker, StringComparison.Ordinal) ?? false;
             _terminal.ClearSelection();
@@ -658,6 +733,9 @@ public sealed class MainWindow : Window
             typedWithKeyboard,
             selectionHasMarker,
             sound = _sounds.Backend,
+            globeDots = _globe.LastDotCount,
+            viewers,
+            geolocation = _geoLocation is null ? _geoStatus : $"{_geoLocation.Source}: {_geoLocation.Country}",
             elapsedSeconds = (DateTime.UtcNow - started).TotalSeconds,
             error,
         };
@@ -665,6 +743,63 @@ public sealed class MainWindow : Window
 
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             desktop.Shutdown(ok ? 0 : 1);
+    }
+
+    /// <summary>Opens the built-in viewer on a generated text file, PNG and PDF and reports what each one showed.</summary>
+    private async Task<string[]> CheckViewersAsync(string directory)
+    {
+        var samples = Path.Combine(directory, "viewer-samples");
+        Directory.CreateDirectory(samples);
+        var text = Path.Combine(samples, "notes.txt");
+        await File.WriteAllTextAsync(text, "line one\nline two\nline three\n");
+        var png = Path.Combine(samples, "screen.png");
+        var size = new PixelSize(64, 48);
+        using (var rtb = new RenderTargetBitmap(size)) rtb.Save(png, PngBitmapEncoderOptions.Default);
+        var pdf = Path.Combine(samples, "page.pdf");
+        await File.WriteAllBytesAsync(pdf, MinimalPdf("EDEX PDF"));
+
+        var results = new List<string>();
+        foreach (var file in new[] { text, png, pdf })
+        {
+            var viewer = new FileViewerWindow(_palette, file);
+            viewer.Show(this);
+            await Task.Delay(300);
+            results.Add($"{Path.GetFileName(file)}: {viewer.Summary}");
+            viewer.Close();
+        }
+        // Also render the PDF page to a PNG so the output can be inspected.
+        try
+        {
+            using var page = FileViewerWindow.RenderPdfPage(pdf, 0, 1.0);
+            page.Save(Path.Combine(directory, "pdf-page.png"), PngBitmapEncoderOptions.Default);
+        }
+        catch (Exception e) when (e is not OutOfMemoryException) { results.Add("pdf render: " + e.Message); }
+        return [.. results];
+    }
+
+    /// <summary>A one-page PDF with a line of Helvetica text and a correct cross-reference table.</summary>
+    private static byte[] MinimalPdf(string text)
+    {
+        var objects = new[]
+        {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+            $"<< /Length {28 + text.Length} >>\nstream\nBT /F1 24 Tf 30 90 Td ({text}) Tj ET\nendstream",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        };
+        var pdf = new System.Text.StringBuilder("%PDF-1.4\n");
+        var offsets = new List<int>();
+        for (int i = 0; i < objects.Length; i++)
+        {
+            offsets.Add(pdf.Length);
+            pdf.Append(CultureInfo.InvariantCulture, $"{i + 1} 0 obj\n{objects[i]}\nendobj\n");
+        }
+        int xref = pdf.Length;
+        pdf.Append(CultureInfo.InvariantCulture, $"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (var offset in offsets) pdf.Append(CultureInfo.InvariantCulture, $"{offset:D10} 00000 n \n");
+        pdf.Append(CultureInfo.InvariantCulture, $"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        return System.Text.Encoding.ASCII.GetBytes(pdf.ToString());
     }
 
     private static int CountOccurrences(string text, string value)
