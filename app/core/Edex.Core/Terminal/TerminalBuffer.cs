@@ -38,6 +38,8 @@ public sealed class TerminalBuffer
     public bool ApplicationCursorKeys { get; private set; }
     public bool BracketedPaste { get; private set; }
     public bool CursorVisible { get; private set; } = true;
+    public MouseTrackingMode MouseTracking { get; private set; }
+    public bool SgrMouse { get; private set; }
     public bool IsAlternateScreen => _alternate is not null && ReferenceEquals(_screen, _alternate);
 
     /// <summary>Raised (outside the lock) with bytes the terminal must send back to the program, e.g. cursor position reports.</summary>
@@ -360,7 +362,8 @@ public sealed class TerminalBuffer
         _fg = _bg = 0;
         _attrs = CellAttributes.None;
         _wrapPending = false;
-        ApplicationCursorKeys = BracketedPaste = false;
+        ApplicationCursorKeys = BracketedPaste = SgrMouse = false;
+        MouseTracking = MouseTrackingMode.None;
         CursorVisible = true;
     }
 
@@ -470,6 +473,11 @@ public sealed class TerminalBuffer
                 case 1: ApplicationCursorKeys = on; break;
                 case 25: CursorVisible = on; break;
                 case 2004: BracketedPaste = on; break;
+                case 9: MouseTracking = on ? MouseTrackingMode.X10 : MouseTrackingMode.None; break;
+                case 1000: MouseTracking = on ? MouseTrackingMode.Normal : MouseTrackingMode.None; break;
+                case 1002: MouseTracking = on ? MouseTrackingMode.ButtonEvent : MouseTrackingMode.None; break;
+                case 1003: MouseTracking = on ? MouseTrackingMode.AnyEvent : MouseTrackingMode.None; break;
+                case 1006: SgrMouse = on; break;
                 case 47: case 1047: case 1049:
                     if (on && !IsAlternateScreen)
                     {
