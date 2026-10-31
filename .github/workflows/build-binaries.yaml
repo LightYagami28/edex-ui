@@ -39,7 +39,7 @@ jobs:
     - name: Setup npm
       run: sudo npm i -g npm@latest
     - name: Install build deps
-      run: npm install
+      run: npm ci --ignore-scripts
     - name: Run prebuild script
       run: npm run prebuild-linux
     - name: Build for x64
@@ -49,44 +49,6 @@ jobs:
     - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
       with:
         name: Linux-AppImages
-        path: dist/*.AppImage
-        if-no-files-found: error
-
-  build-linux-arm32:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-    - name: Setup QEMU
-      uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1
-      with:
-        platforms: arm
-    - name: Cache node modules
-      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-      env:
-        cache-name: cache-node-modules
-      with:
-        # npm cache files are stored in `~/.npm` on Linux/macOS
-        path: ~/.npm
-        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
-    - name: Cache Electron binaries
-      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-      env:
-        cache-name: cache-electron-bins
-      with:
-        # cache location is described here:
-        # https://github.com/electron/get#how-it-works
-        path: ~/.cache/electron
-        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
-    - name: Run prebuild outside of QEMU emulator
-      run: sudo npm i -g npm@latest && npm install && rsync -a --info=progress2 src/ prebuild-src --exclude node_modules && node prebuild-minify.js && rm -rf node_modules
-    - name: Build for arm32v7 (aka armv7l)
-      run: |
-        docker run --rm --platform linux/arm/v7 -e GH_TOKEN -v "$PWD":/work -w /work arm32v7/node:22-bookworm bash -c "npm i -g npm@latest && npm install && ./node_modules/.bin/electron-builder build -l --armv7l"
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-      with:
-        name: Linux-arm32-AppImage
         path: dist/*.AppImage
         if-no-files-found: error
 
@@ -116,7 +78,7 @@ jobs:
         path: ~/.cache/electron
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
     - name: Run prebuild outside of QEMU emulator
-      run: sudo npm i -g npm@latest && npm install && rsync -a --info=progress2 src/ prebuild-src --exclude node_modules && node prebuild-minify.js && rm -rf node_modules
+      run: sudo npm i -g npm@latest && npm ci --ignore-scripts && rsync -a --info=progress2 src/ prebuild-src --exclude node_modules && node prebuild-minify.js && rm -rf node_modules
     - name: Build for arm64 (aka arm64v8)
       run: |
         docker run --rm --platform linux/arm64 -e GH_TOKEN -v "$PWD":/work -w /work arm64v8/node:24-bookworm bash -c "npm i -g npm@latest && npm install && ./node_modules/.bin/electron-builder build -l --arm64"
@@ -149,7 +111,7 @@ jobs:
     - name: Setup npm
       run: npm i -g npm@latest
     - name: npm install
-      run: npm install
+      run: npm ci --ignore-scripts
     - name: npm build
       run: npm run build-windows
       env:
@@ -188,7 +150,7 @@ jobs:
     - name: Setup npm
       run: npm i -g npm@latest
     - name: npm install
-      run: npm install
+      run: npm ci --ignore-scripts
     - name: npm build
       run: npm run build-darwin
       env:
