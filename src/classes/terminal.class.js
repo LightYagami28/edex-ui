@@ -6,7 +6,13 @@ class Terminal {
             this.xTerm = require("@xterm/xterm").Terminal;
             const {AttachAddon} = require("@xterm/addon-attach");
             const {FitAddon} = require("@xterm/addon-fit");
-            const {LigaturesAddon} = require("@xterm/addon-ligatures");
+            // @xterm/addon-ligatures 0.10 only ships the ES module build (its "main" points to a missing file)
+let LigaturesAddon = null;
+try {
+    ({LigaturesAddon} = require("@xterm/addon-ligatures/lib/addon-ligatures.mjs"));
+} catch (e) {
+    console.warn("Font ligatures disabled:", e.message);
+}
             const {WebglAddon} = require("@xterm/addon-webgl");
             this.Ipc = require("electron").ipcRenderer;
 
@@ -100,6 +106,7 @@ class Terminal {
             this.term = new this.xTerm({
                 cols: 80,
                 rows: 24,
+                allowProposedApi: true, // required by the ligatures addon
                 cursorBlink: window.theme.terminal.cursorBlink || true,
                 cursorStyle: window.theme.terminal.cursorStyle || "block",
                 allowTransparency: window.theme.terminal.allowTransparency || false,
@@ -139,8 +146,13 @@ class Terminal {
             this.term.loadAddon(fitAddon);
             this.term.open(document.getElementById(opts.parentId));
             this.term.loadAddon(new WebglAddon());
-            let ligaturesAddon = new LigaturesAddon();
-            this.term.loadAddon(ligaturesAddon);
+            if (LigaturesAddon) {
+                try {
+                    this.term.loadAddon(new LigaturesAddon());
+                } catch (e) {
+                    console.warn("Font ligatures disabled:", e.message);
+                }
+            }
             this.term.attachCustomKeyEventHandler(e => {
                 window.keyboard.keydownHandler(e);
                 return true;
@@ -441,7 +453,7 @@ class Terminal {
                             this.renderer.send("terminal_channel-"+this.port, "Fallback cwd", opts.cwd || process.env.PWD);
                         }
                         break;
-                    case "Resize":
+                    case "Resize": {
                         let cols = args[1];
                         let rows = args[2];
                         try {
@@ -451,6 +463,7 @@ class Terminal {
                         }
                         this.onresized(cols, rows);
                         break;
+                    }
                     default:
                         return;
                 }
@@ -500,6 +513,7 @@ class Terminal {
 
         // Keep common terminal input characters and ESC sequences support,
         // while dropping other control characters.
+        // eslint-disable-next-line no-control-regex -- control characters are matched on purpose
         return input.replace(/[^\x1B\x09\x0A\x0D\x20-\x7E]/g, "");
     }
 }

@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/core/">
+    <Project Path="core/Edex.Core/Edex.Core.csproj" />
+  </Folder>
+  <Folder Name="/ui/">
+    <Project Path="ui/Edex.UI/Edex.UI.csproj" />
+  </Folder>
+  <Folder Name="/platforms/">
+    <Project Path="win/Edex.Win/Edex.Win.csproj" />
+    <Project Path="linux/Edex.Linux/Edex.Linux.csproj" />
+    <Project Path="macos/Edex.MacOS/Edex.MacOS.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Edex.Core.Tests/Edex.Core.Tests.csproj" />
+  </Folder>
+</Solution>

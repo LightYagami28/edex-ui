@@ -14,8 +14,8 @@
   "main": "src/_boot.js",
   "scripts": {
     "start": "electron src --nointro",
-    "lint": "eslint src/**/*.js *.js --max-warnings=0",
-    "lint:fix": "eslint src/**/*.js *.js --fix",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{js,json,css}\" \"*.{js,json}\"",
     "format:check": "prettier --check \"src/**/*.{js,json,css}\" \"*.{js,json}\"",
     "install-linux": "npm install && cd src && npm install && ./../node_modules/.bin/electron-rebuild -f -w node-pty && cd ..",
@@ -113,7 +113,9 @@
     "terser": "^5.46.2"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "eslint": "^10.2.1",
+    "globals": "^17.13.0",
     "prettier": "^3.8.3"
   },
   "optionalDependencies": {

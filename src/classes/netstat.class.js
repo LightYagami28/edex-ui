@@ -101,6 +101,7 @@ class Netstat {
             this.internalIPv4 = net.ip4;
             document.getElementById("mod_netstat_iname").innerText = "Interface: "+net.iface;
 
+            let p;
             if (net.ip4 === "127.0.0.1") {
                 offline = true;
             } else {
@@ -139,17 +140,18 @@ class Netstat {
                     this.runsBeforeGeoIPUpdate = this.runsBeforeGeoIPUpdate - 1;
                 }
 
-                let p = await this.ping(window.settings.pingAddr || "1.1.1.1", 80, net.ip4).catch(() => { offline = true });
+                p = await this.ping(window.settings.pingAddr || "1.1.1.1", 80, net.ip4).catch(() => { offline = true });
 
-                this.offline = offline;
-                if (offline) {
-                    document.querySelector("#mod_netstat_innercontainer > div:first-child > h2").innerHTML = "OFFLINE";
-                    document.querySelector("#mod_netstat_innercontainer > div:nth-child(2) > h2").innerHTML = "--.--.--.--";
-                    document.querySelector("#mod_netstat_innercontainer > div:nth-child(3) > h2").innerHTML = "--ms";
-                } else {
-                    document.querySelector("#mod_netstat_innercontainer > div:first-child > h2").innerHTML = "ONLINE";
-                    document.querySelector("#mod_netstat_innercontainer > div:nth-child(3) > h2").innerHTML = Math.round(p)+"ms";
-                }
+            }
+
+            this.offline = offline;
+            if (offline) {
+                document.querySelector("#mod_netstat_innercontainer > div:first-child > h2").innerHTML = "OFFLINE";
+                document.querySelector("#mod_netstat_innercontainer > div:nth-child(2) > h2").innerHTML = "--.--.--.--";
+                document.querySelector("#mod_netstat_innercontainer > div:nth-child(3) > h2").innerHTML = "--ms";
+            } else {
+                document.querySelector("#mod_netstat_innercontainer > div:first-child > h2").innerHTML = "ONLINE";
+                document.querySelector("#mod_netstat_innercontainer > div:nth-child(3) > h2").innerHTML = Math.round(p)+"ms";
             }
         });
     }

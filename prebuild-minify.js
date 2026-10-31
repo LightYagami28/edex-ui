@@ -35,7 +35,7 @@ async function recursiveMinify(dirPath) {
                 await stdout.write(filePath.slice(filePath.indexOf('prebuild-src/')+13)+'...');
 
                 switch (filePath.split(".").pop()) {
-                    case "js":
+                    case "js": {
                         let minified = await UglifyJS.minify(fs.readFileSync(filePath, {encoding: "utf-8"}), {
                             compress: {
                                 dead_code: false,
@@ -56,7 +56,8 @@ async function recursiveMinify(dirPath) {
                             throw minified.error;
                         }
                         break;
-                    case "css":
+                    }
+                    case "css": {
                         let output = new CleanCSS({level:2}).minify(fs.readFileSync(filePath, {encoding:"utf-8"}));
                         if (output.errors.length >= 1) {
                             stdout.write(" -  ❌\n\n\n");
@@ -67,7 +68,8 @@ async function recursiveMinify(dirPath) {
                             });
                         }
                         break;
-                    case "json":
+                    }
+                    case "json": {
                         let out;
                         try {
                             out = JSON.minify(fs.readFileSync(filePath, {encoding:"utf-8"}));
@@ -79,6 +81,7 @@ async function recursiveMinify(dirPath) {
                             throw e;
                         });
                         break;
+                    }
                     default:
                         stdout.write("\n");
                 }

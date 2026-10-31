@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=eDEX-UI
+Comment=Sci-fi terminal and system monitor
+Exec=edex-ui
+Terminal=false
+Categories=System;TerminalEmulator;Monitor;

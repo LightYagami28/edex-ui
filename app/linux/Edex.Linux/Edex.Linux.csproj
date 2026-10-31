@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>edex-ui</AssemblyName>
+    <RootNamespace>Edex.Linux</RootNamespace>
+    <RuntimeIdentifiers>linux-x64;linux-arm64</RuntimeIdentifiers>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../ui/Edex.UI/Edex.UI.csproj" />
+    <None Include="packaging/**" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

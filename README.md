@@ -45,6 +45,12 @@ Click the banner below and sign up to **Bytes**, the only newsletter cool enough
 
 [![Bytes by UI.dev](media/sponsor-uidev-bytes.jpg)](https://ui.dev/bytes/?r=gabriel)
 
+## eDEX-UI Next (.NET 11 rewrite)
+
+The `app/` folder contains a native rewrite of eDEX-UI on .NET 11 and Avalonia UI, without Electron, with builds for
+Windows, Linux and macOS from one shared core. It is alpha software; see [app/README.md](app/README.md) for structure,
+build steps and current status. Like the original, it is released under the GPL-3.0 license.
+
 ## Features
 - Fully featured terminal emulator with tabs, colors, mouse events, and support for `curses` and `curses`-like applications.
 - Real-time system (CPU, RAM, swap, processes) and network (GeoIP, active connections, transfer rates) monitoring.

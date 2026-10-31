@@ -1,0 +1,94 @@
+name: eDEX-UI Next (.NET)
+
+on:
+  push:
+    paths:
+      - "app/**"
+      - ".github/workflows/dotnet-app.yml"
+  pull_request:
+    paths:
+      - "app/**"
+      - ".github/workflows/dotnet-app.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+
+defaults:
+  run:
+    # app/global.json selects the SDK and the Microsoft.Testing.Platform runner, so run dotnet from there.
+    working-directory: app
+
+jobs:
+  build:
+    name: ${{ matrix.rid }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+            project: win/Edex.Win/Edex.Win.csproj
+          - os: ubuntu-latest
+            rid: linux-x64
+            project: linux/Edex.Linux/Edex.Linux.csproj
+          - os: macos-latest
+            rid: osx-arm64
+            project: macos/Edex.MacOS/Edex.MacOS.csproj
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: app/global.json
+
+      - name: Build
+        run: dotnet build EdexUI.slnx -c Release
+
+      - name: Test (core)
+        run: dotnet test --project tests/Edex.Core.Tests/Edex.Core.Tests.csproj -c Release --no-build
+
+      - name: Publish
+        run: dotnet publish ${{ matrix.project }} -c Release -r ${{ matrix.rid }} --self-contained true -p:PublishSingleFile=true -o out/${{ matrix.rid }}
+
+      - name: UI smoke test (Linux, virtual display)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update && sudo apt-get install -y xvfb
+          EDEX_CONFIG_DIR="$RUNNER_TEMP/edex-cfg" xvfb-run -a -s "-screen 0 1600x1000x24" \
+            out/linux-x64/edex-ui --smoke-test "$RUNNER_TEMP/smoke"
+          cat "$RUNNER_TEMP/smoke/report.json"
+          cp -R "$RUNNER_TEMP/smoke" out/smoke-linux
+
+      - name: UI smoke test (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:EDEX_CONFIG_DIR = "$env:RUNNER_TEMP\edex-cfg"
+          $p = Start-Process -FilePath out\win-x64\eDEX-UI.exe -ArgumentList "--smoke-test `"$env:RUNNER_TEMP\smoke`"" -PassThru -Wait
+          Get-Content "$env:RUNNER_TEMP\smoke\report.json"
+          Copy-Item "$env:RUNNER_TEMP\smoke" out\smoke-windows -Recurse
+          exit $p.ExitCode
+
+      - name: UI smoke test (macOS)
+        if: runner.os == 'macOS'
+        timeout-minutes: 5
+        run: |
+          EDEX_CONFIG_DIR="$RUNNER_TEMP/edex-cfg" out/osx-arm64/eDEX-UI --smoke-test "$RUNNER_TEMP/smoke"
+          cat "$RUNNER_TEMP/smoke/report.json"
+          cp -R "$RUNNER_TEMP/smoke" out/smoke-macos
+
+      - name: Bundle (macOS)
+        if: runner.os == 'macOS'
+        run: sh macos/Edex.MacOS/packaging/make-bundle.sh out/osx-arm64 out/bundle
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: edex-ui-${{ matrix.rid }}
+          path: app/out/
+          if-no-files-found: error
