@@ -386,7 +386,7 @@ class Keyboard {
                     window.useAppShortcut(cut.action);
                     shortcutsTriggered = true;
                 } else if (cut.type === "shell") {
-                    let fn = (cut.linebreak) ? writelr : write;
+                    let fn = (cut.linebreak) ? "writelr" : "write";
                     window.term[window.currentTerm][fn](cut.action);
                 } else {
                     console.warn(`${cut.trigger} has unknown type`);
