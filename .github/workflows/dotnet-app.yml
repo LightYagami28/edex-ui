@@ -41,9 +41,9 @@ jobs:
             project: macos/Edex.MacOS/Edex.MacOS.csproj
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: app/global.json
 
@@ -87,7 +87,7 @@ jobs:
         if: runner.os == 'macOS'
         run: sh macos/Edex.MacOS/packaging/make-bundle.sh out/osx-arm64 out/bundle
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: edex-ui-${{ matrix.rid }}
           path: app/out/
