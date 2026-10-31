@@ -18,6 +18,11 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: "1"
   DOTNET_NOLOGO: "1"
 
+defaults:
+  run:
+    # app/global.json selects the SDK and the Microsoft.Testing.Platform runner, so run dotnet from there.
+    working-directory: app
+
 jobs:
   build:
     name: ${{ matrix.rid }}
@@ -27,13 +32,13 @@ jobs:
         include:
           - os: windows-latest
             rid: win-x64
-            project: app/win/Edex.Win/Edex.Win.csproj
+            project: win/Edex.Win/Edex.Win.csproj
           - os: ubuntu-latest
             rid: linux-x64
-            project: app/linux/Edex.Linux/Edex.Linux.csproj
+            project: linux/Edex.Linux/Edex.Linux.csproj
           - os: macos-latest
             rid: osx-arm64
-            project: app/macos/Edex.MacOS/Edex.MacOS.csproj
+            project: macos/Edex.MacOS/Edex.MacOS.csproj
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
@@ -43,10 +48,10 @@ jobs:
           global-json-file: app/global.json
 
       - name: Build
-        run: dotnet build app/EdexUI.slnx -c Release
+        run: dotnet build EdexUI.slnx -c Release
 
       - name: Test (core)
-        run: dotnet test --project app/tests/Edex.Core.Tests/Edex.Core.Tests.csproj -c Release --no-build
+        run: dotnet test --project tests/Edex.Core.Tests/Edex.Core.Tests.csproj -c Release --no-build
 
       - name: Publish
         run: dotnet publish ${{ matrix.project }} -c Release -r ${{ matrix.rid }} --self-contained true -p:PublishSingleFile=true -o out/${{ matrix.rid }}
@@ -72,10 +77,10 @@ jobs:
 
       - name: Bundle (macOS)
         if: runner.os == 'macOS'
-        run: sh app/macos/Edex.MacOS/packaging/make-bundle.sh out/osx-arm64 out/bundle
+        run: sh macos/Edex.MacOS/packaging/make-bundle.sh out/osx-arm64 out/bundle
 
       - uses: actions/upload-artifact@v4
         with:
           name: edex-ui-${{ matrix.rid }}
-          path: out/
+          path: app/out/
           if-no-files-found: error
