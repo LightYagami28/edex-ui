@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>eDEX-UI</AssemblyName>
+    <RootNamespace>Edex.MacOS</RootNamespace>
+    <RuntimeIdentifiers>osx-arm64;osx-x64</RuntimeIdentifiers>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../ui/Edex.UI/Edex.UI.csproj" />
+    <None Include="packaging/**" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
