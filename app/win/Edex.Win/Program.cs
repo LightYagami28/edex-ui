@@ -11,5 +11,6 @@ internal static class Program
         Name = "Windows",
         UseCommandKey = false,
         PreferredMonospaceFonts = "Cascadia Mono, Cascadia Code, Consolas, Lucida Console, monospace",
+        FileIcons = ShellIcons.Get,
     });
 }
