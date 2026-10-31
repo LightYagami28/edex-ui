@@ -34,7 +34,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
       with:
-        node-version: 24
+        node-version: 26
         cache: 'npm'
     - name: Install build deps
       run: npm ci --ignore-scripts
@@ -79,7 +79,7 @@ jobs:
       run: npm ci --ignore-scripts && rsync -a --info=progress2 src/ prebuild-src --exclude node_modules && node prebuild-minify.js && rm -rf node_modules
     - name: Build for arm64 (aka arm64v8)
       run: |
-        docker run --rm --platform linux/arm64 -e GH_TOKEN -v "$PWD":/work -w /work arm64v8/node:24-bookworm bash -c "npm i -g npm@latest && npm install && ./node_modules/.bin/electron-builder build -l --arm64"
+        docker run --rm --platform linux/arm64 -e GH_TOKEN -v "$PWD":/work -w /work arm64v8/node:26-bookworm bash -c "npm i -g npm@latest && npm install && ./node_modules/.bin/electron-builder build -l --arm64"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
@@ -95,7 +95,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
       with:
-        node-version: 24
+        node-version: 26
         cache: 'npm'
     - name: Cache Electron binaries
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
@@ -142,7 +142,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
       with:
-        node-version: 24
+        node-version: 26
     - name: npm install
       run: npm ci --ignore-scripts
     - name: npm build
