@@ -15,7 +15,7 @@ class Modal {
         this.classes = "modal_popup";
         let buttons = [];
         let augs = [];
-        let zindex = 0;
+        let zindex;
 
         // Reserve a slot in window.modals
         window.modals[this.id] = {};

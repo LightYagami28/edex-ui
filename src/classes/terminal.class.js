@@ -441,7 +441,7 @@ class Terminal {
                             this.renderer.send("terminal_channel-"+this.port, "Fallback cwd", opts.cwd || process.env.PWD);
                         }
                         break;
-                    case "Resize":
+                    case "Resize": {
                         let cols = args[1];
                         let rows = args[2];
                         try {
@@ -451,6 +451,7 @@ class Terminal {
                         }
                         this.onresized(cols, rows);
                         break;
+                    }
                     default:
                         return;
                 }
@@ -500,6 +501,7 @@ class Terminal {
 
         // Keep common terminal input characters and ESC sequences support,
         // while dropping other control characters.
+        // eslint-disable-next-line no-control-regex -- control characters are matched on purpose
         return input.replace(/[^\x1B\x09\x0A\x0D\x20-\x7E]/g, "");
     }
 }

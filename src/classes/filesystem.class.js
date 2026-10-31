@@ -379,7 +379,7 @@ class FilesystemDisplay {
                     cmd = `window.openShortcutsHelp()`;
                 }
 
-                let icon = "";
+                let icon;
                 let type = "";
                 switch(e.type) {
                     case "showDisks":
@@ -428,7 +428,7 @@ class FilesystemDisplay {
                         icon = this.edexIcons.kblayoutsDir;
                         type = "eDEX-UI keyboards folder";
                         break;
-                    default:
+                    default: {
                         let iconName = this.fileIconsMatcher(e.name);
                         icon = this.icons[iconName];
                         if (typeof icon === "undefined") {
@@ -444,6 +444,7 @@ class FilesystemDisplay {
                             type = "special folder";
                         }
                         break;
+                    }
                 }
 
                 if (type === "") type = e.type;
@@ -560,7 +561,7 @@ class FilesystemDisplay {
 
             let filetype = mime.lookup(name.split(".")[name.split(".").length - 1]);
             switch (filetype) {
-                case "application/pdf":
+                case "application/pdf": {
                     let html = `<div>
                         <div class="pdf_options">
                             <button class="zoom_in">
@@ -603,6 +604,7 @@ class FilesystemDisplay {
                         }
                     );
                     break;
+                }
                 default:
                     if (mime.charset(filetype) === "UTF-8") {
                         fs.readFile(block.path, 'utf-8', (err, data) => {

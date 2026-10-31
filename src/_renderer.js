@@ -244,6 +244,7 @@ function displayLine() {
     switch(true) {
         case i === 2:
             bootScreen.innerHTML += `eDEX-UI Kernel version ${remote.app.getVersion()} boot at ${Date().toString()}; root:xnu-1699.22.73~1/RELEASE_X86_64`;
+            // falls through
         case i === 4:
             setTimeout(displayLine, 500);
             break;
@@ -335,7 +336,9 @@ async function getDisplayName() {
 
     try {
         user = await require("username")();
-    } catch (e) {}
+    } catch (e) {
+        // username detection is optional
+    }
 
     return user;
 }
@@ -984,7 +987,7 @@ window.useAppShortcut = action => {
                     window.focusShellTab(0);
                 }
             return true;
-        case "PREVIOUS_TAB":
+        case "PREVIOUS_TAB": {
                 let i = window.currentTerm || 4;
                 if (window.term[i] && i !== window.currentTerm) {
                     window.focusShellTab(i);
@@ -998,6 +1001,7 @@ window.useAppShortcut = action => {
                     window.focusShellTab(i-4);
                 }
             return true;
+        }
         case "TAB_1":
             window.focusShellTab(0);
             return true;

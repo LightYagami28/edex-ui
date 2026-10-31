@@ -81,7 +81,7 @@ class Keyboard {
 
                 // Icon support, overrides previously defined innerHTML
                 // Arrow and other icons
-                let icon = null;
+                let icon;
                 if (keyObj.name.startsWith("ESCAPED|-- ICON: ")) {
                     keyObj.name = keyObj.name.substr(17);
                     switch(keyObj.name) {
