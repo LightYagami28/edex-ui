@@ -8,10 +8,12 @@ Layout: 360x180 bits, row 0 = 89.5N, column 0 = 179.5W, bit i = byte i>>3, bit i
 """
 import json
 import sys
+from pathlib import Path
 
-src, dst = sys.argv[1], sys.argv[2]
+# i percorsi devono restare dentro la cartella da cui si lancia lo script
+src, dst = (Path(a).resolve().relative_to(Path.cwd().resolve()) for a in sys.argv[1:3])
 rings = []
-for feature in json.load(open(src))["features"]:  # NOSONAR: strumento da riga di comando, i percorsi li sceglie chi lo lancia
+for feature in json.loads(src.read_text(encoding="utf-8"))["features"]:
     geometry = feature["geometry"]
     polygons = [geometry["coordinates"]] if geometry["type"] == "Polygon" else geometry["coordinates"]
     for polygon in polygons:
@@ -32,4 +34,4 @@ for row in range(H):
         if sum(1 for x in crossings if x < lon) % 2 == 1:
             i = row * W + col
             bits[i >> 3] |= 1 << (i & 7)
-open(dst, "wb").write(bits)  # NOSONAR: idem
+dst.write_bytes(bits)
