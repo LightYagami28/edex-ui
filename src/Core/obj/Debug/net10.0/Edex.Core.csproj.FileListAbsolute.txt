@@ -1,0 +1,13 @@
+E:\repo\_wt\native-base\src\Core\obj\Debug\net10.0\Edex.Core.GeneratedMSBuildEditorConfig.editorconfig
+E:\repo\_wt\native-base\src\Core\obj\Debug\net10.0\Edex.Core.AssemblyInfoInputs.cache
+E:\repo\_wt\native-base\src\Core\obj\Debug\net10.0\Edex.Core.AssemblyInfo.cs
+E:\repo\_wt\native-base\src\Core\obj\Debug\net10.0\Edex.Core.csproj.CoreCompileInputs.cache
+E:\repo\_wt\native-base\src\Core\obj\Debug\net10.0\Edex.Core.sourcelink.json
+E:\repo\_wt\native-base\src\Core\bin\Debug\net10.0\Edex.Core.deps.json
+E:\repo\_wt\native-base\src\Core\bin\Debug\net10.0\Edex.Core.dll
+E:\repo\_wt\native-base\src\Core\bin\Debug\net10.0\Edex.Core.pdb
+E:\repo\_wt\native-base\src\Core\obj\Debug\net10.0\Edex.Core.dll
+E:\repo\_wt\native-base\src\Core\obj\Debug\net10.0\refint\Edex.Core.dll
+E:\repo\_wt\native-base\src\Core\obj\Debug\net10.0\Edex.Core.pdb
+E:\repo\_wt\native-base\src\Core\obj\Debug\net10.0\ref\Edex.Core.dll
+E:\repo\_wt\native-base\src\Core\obj\Debug\net10.0\Edex.Core.csproj.Up2Date
