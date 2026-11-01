@@ -1,6 +1,0 @@
-node_modules/
-dist/
-prebuild-src/
-file-icons/
-*.lock
-package-lock.json

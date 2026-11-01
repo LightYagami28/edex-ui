@@ -49,3 +49,10 @@ src/node_modules
 # Snyk
 .snyk
 .github/instructions
+# .NET
+bin/
+obj/
+TestResults/
+*.cobertura.xml
+cov.xml
+sonar-coverage.xml
