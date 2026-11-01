@@ -1,0 +1,9 @@
+<Project Sdk="MSTest.Sdk/4.5.2">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <TestingExtensionsProfile>AllMicrosoft</TestingExtensionsProfile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Core/Edex.Core.csproj" />
+  </ItemGroup>
+</Project>

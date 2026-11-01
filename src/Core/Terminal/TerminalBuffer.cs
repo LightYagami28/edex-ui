@@ -139,7 +139,7 @@ public sealed class TerminalBuffer
         return lines.ToArray();
     }
 
-    private static bool IsBlank(TerminalCell[] line) => line.All(c => c.Char == ' ' && c.Background == 0);
+    private static bool IsBlank(TerminalCell[] line) => line.All(c => c.Glyph == ' ' && c.Background == 0);
 
     private void PushScrollback(TerminalCell[] line)
     {
@@ -193,7 +193,7 @@ public sealed class TerminalBuffer
         {
             var sb = new StringBuilder();
             foreach (var line in _scrollback.Concat(_main))
-                sb.Append(new string(line.Select(c => c.Char).ToArray()).TrimEnd()).Append('\n');
+                sb.Append(new string(line.Select(c => c.Glyph).ToArray()).TrimEnd()).Append('\n');
             return sb.ToString().TrimEnd('\n');
         }
     }
@@ -390,7 +390,7 @@ public sealed class TerminalBuffer
         for (int i = 0; i < parts.Length; i++)
         {
             var digits = new string(parts[i].TakeWhile(char.IsAsciiDigit).Take(9).ToArray());
-            values[i] = digits.Length == 0 ? 0 : int.Parse(digits);
+            values[i] = digits.Length == 0 ? 0 : int.Parse(digits, System.Globalization.CultureInfo.InvariantCulture);
         }
         return values;
     }
@@ -452,7 +452,7 @@ public sealed class TerminalBuffer
             case 's': SaveCursor(); break;
             case 'u': RestoreCursor(); break;
             case 'n':
-                if (Arg(p, 0, 0) == 6) _responses.Append($"\x1b[{_cursorY + 1};{_cursorX + 1}R");
+                if (Arg(p, 0, 0) == 6) _responses.Append(System.Globalization.CultureInfo.InvariantCulture, $"\x1b[{_cursorY + 1};{_cursorX + 1}R");
                 else if (Arg(p, 0, 0) == 5) _responses.Append("\x1b[0n");
                 break;
             case 'c':

@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Edex.Core.Pty;
 using Edex.Core.Terminal;
 
 namespace Edex.Core.Tests;
 
+[TestClass]
 public class PtyTests
 {
-    [Fact]
+    [TestMethod]
     public void RunsCommandInPseudoTerminal()
     {
         var options = OperatingSystem.IsWindows()
@@ -20,14 +22,14 @@ public class PtyTests
 
         Assert.Contains("EDEX_PTY_OK", session.Buffer.ScrollbackText());
         while (DateTime.UtcNow < deadline.AddSeconds(10) && !session.HasExited) Thread.Sleep(50);
-        Assert.True(session.HasExited);
-        Assert.Equal(0, session.ExitCode);
+        Assert.IsTrue(session.HasExited);
+        Assert.AreEqual(0, session.ExitCode);
     }
 
-    [Fact]
+    [TestMethod]
     public void BuildsWindowsCommandLine()
     {
         if (!OperatingSystem.IsWindows()) return;
-        Assert.Equal("cmd.exe /c \"echo a b\" \"x\\\"y\"", WindowsPty.BuildCommandLine("cmd.exe", ["/c", "echo a b", "x\"y"]));
+        Assert.AreEqual("cmd.exe /c \"echo a b\" \"x\\\"y\"", WindowsPty.BuildCommandLine("cmd.exe", ["/c", "echo a b", "x\"y"]));
     }
 }

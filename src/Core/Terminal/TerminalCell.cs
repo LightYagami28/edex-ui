@@ -18,7 +18,7 @@ public enum CellAttributes : ushort
 /// One character cell. Colors are encoded as: 0 = default,
 /// 0x01000000 | index = palette entry (0-255), 0x02000000 | RRGGBB = true color.
 /// </summary>
-public readonly record struct TerminalCell(char Char, uint Foreground, uint Background, CellAttributes Attributes)
+public readonly record struct TerminalCell(char Glyph, uint Foreground, uint Background, CellAttributes Attributes)
 {
     public static readonly TerminalCell Blank = new(' ', 0, 0, CellAttributes.None);
 
@@ -41,7 +41,7 @@ public sealed class TerminalSnapshot
     public required int ScrollOffset { get; init; }
     public required int ScrollbackLength { get; init; }
 
-    public string LineText(int row) => new string(Lines[row].Select(c => c.Char == '\0' ? ' ' : c.Char).ToArray()).TrimEnd();
+    public string LineText(int row) => new string(Lines[row].Select(c => c.Glyph == '\0' ? ' ' : c.Glyph).ToArray()).TrimEnd();
 
     public string Text => string.Join('\n', Enumerable.Range(0, Rows).Select(LineText)).TrimEnd('\n');
 }

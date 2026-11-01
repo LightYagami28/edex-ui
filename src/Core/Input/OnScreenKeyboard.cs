@@ -5,11 +5,11 @@ namespace Edex.Core.Input;
 
 public enum KeyAction
 {
-    Char, Space, Enter, Backspace, Tab, Escape, Delete, Shift, Control, Alt, CapsLock, Up, Down, Left, Right, Home, End, PageUp, PageDown,
+    Character, Space, Enter, Backspace, Tab, Escape, Delete, Shift, Control, Alt, CapsLock, Up, Down, Left, Right, Home, End, PageUp, PageDown,
 }
 
 /// <summary>One key: label, label with Shift, behaviour and relative width (1 = standard key).</summary>
-public sealed record KeyDefinition(string Label, string? ShiftLabel = null, KeyAction Action = KeyAction.Char, double Width = 1)
+public sealed record KeyDefinition(string Label, string? ShiftLabel = null, KeyAction Action = KeyAction.Character, double Width = 1)
 {
     public bool IsModifier => Action is KeyAction.Shift or KeyAction.Control or KeyAction.Alt or KeyAction.CapsLock;
 }
@@ -108,7 +108,7 @@ public sealed class KeyboardState
 
         string output = key.Action switch
         {
-            KeyAction.Char => CharOutput(key),
+            KeyAction.Character => CharOutput(key),
             KeyAction.Space => Control ? "\0" : Alt ? "\x1b " : " ",
             KeyAction.Enter => Alt ? "\x1b\r" : "\r",
             KeyAction.Backspace => Control ? "\x08" : Alt ? "\x1b\x7f" : "\x7f",
@@ -132,7 +132,7 @@ public sealed class KeyboardState
     /// <summary>The label a character key shows with the current modifiers.</summary>
     public string Display(KeyDefinition key)
     {
-        if (key.Action != KeyAction.Char) return key.Label;
+        if (key.Action != KeyAction.Character) return key.Label;
         bool letter = key.Label.Length == 1 && char.IsLetter(key.Label[0]);
         bool upper = letter ? Shift ^ CapsLock : Shift;
         return upper ? key.ShiftLabel ?? key.Label.ToUpperInvariant() : key.Label;

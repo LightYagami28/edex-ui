@@ -7,6 +7,10 @@ namespace Edex.Core.Terminal;
 public readonly record struct CellPosition(int Column, int Row) : IComparable<CellPosition>
 {
     public int CompareTo(CellPosition other) => Row != other.Row ? Row.CompareTo(other.Row) : Column.CompareTo(other.Column);
+    public static bool operator <(CellPosition a, CellPosition b) => a.CompareTo(b) < 0;
+    public static bool operator >(CellPosition a, CellPosition b) => a.CompareTo(b) > 0;
+    public static bool operator <=(CellPosition a, CellPosition b) => a.CompareTo(b) <= 0;
+    public static bool operator >=(CellPosition a, CellPosition b) => a.CompareTo(b) >= 0;
 }
 
 /// <summary>A linear (stream) text selection between two cells, inclusive.</summary>
@@ -34,7 +38,7 @@ public readonly record struct TextSelection(CellPosition Anchor, CellPosition Ac
             int from = row == start.Row ? Math.Clamp(start.Column, 0, line.Length) : 0;
             int to = row == end.Row ? Math.Clamp(end.Column, -1, line.Length - 1) : line.Length - 1;
             var part = new StringBuilder();
-            for (int c = from; c <= to; c++) part.Append(line[c].Char == '\0' ? ' ' : line[c].Char);
+            for (int c = from; c <= to; c++) part.Append(line[c].Glyph == '\0' ? ' ' : line[c].Glyph);
             if (row > start.Row) sb.Append('\n');
             sb.Append(part.ToString().TrimEnd());
         }
@@ -47,10 +51,10 @@ public readonly record struct TextSelection(CellPosition Anchor, CellPosition Ac
         if (at.Row < 0 || at.Row >= snapshot.Rows) return new TextSelection(at, at);
         var line = snapshot.Lines[at.Row];
         int col = Math.Clamp(at.Column, 0, line.Length - 1);
-        Func<char, bool> same = IsWordChar(line[col].Char) ? IsWordChar : IsSpace(line[col].Char) ? IsSpace : _ => false;
+        Func<char, bool> same = IsWordChar(line[col].Glyph) ? IsWordChar : IsSpace(line[col].Glyph) ? IsSpace : _ => false;
         int from = col, to = col;
-        while (from > 0 && same(line[from - 1].Char)) from--;
-        while (to < line.Length - 1 && same(line[to + 1].Char)) to++;
+        while (from > 0 && same(line[from - 1].Glyph)) from--;
+        while (to < line.Length - 1 && same(line[to + 1].Glyph)) to++;
         return new TextSelection(new CellPosition(from, at.Row), new CellPosition(to, at.Row));
     }
 

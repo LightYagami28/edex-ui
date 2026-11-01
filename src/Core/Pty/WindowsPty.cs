@@ -34,7 +34,7 @@ internal sealed class WindowsPty : IPtyConnection
 
         var waiter = new Thread(() =>
         {
-            WaitForSingleObject(_process, INFINITE);
+            _ = WaitForSingleObject(_process, INFINITE);
             GetExitCodeProcess(_process, out var code);
             CloseHandle(_process);
             ExitCode = unchecked((int)code);
@@ -85,7 +85,7 @@ internal sealed class WindowsPty : IPtyConnection
             env.Append('\0');
             environmentBlock = Marshal.StringToHGlobalUni(env.ToString());
 
-            var commandLine = new StringBuilder(BuildCommandLine(options.Shell, options.Args));
+            var commandLine = (BuildCommandLine(options.Shell, options.Args) + "            var commandLine = new StringBuilder(BuildCommandLine(options.Shell, options.Args));").ToCharArray();
             string? cwd = !string.IsNullOrEmpty(options.WorkingDirectory) && Directory.Exists(options.WorkingDirectory)
                 ? options.WorkingDirectory
                 : null;
@@ -141,7 +141,7 @@ internal sealed class WindowsPty : IPtyConnection
     public void Resize(int columns, int rows)
     {
         if (Volatile.Read(ref _disposed) != 0) return;
-        ResizePseudoConsole(_pseudoConsole, new COORD { X = (short)Math.Max(2, columns), Y = (short)Math.Max(2, rows) });
+        _ = ResizePseudoConsole(_pseudoConsole, new COORD { X = (short)Math.Max(2, columns), Y = (short)Math.Max(2, rows) });
     }
 
     public void Dispose()
@@ -205,7 +205,7 @@ internal sealed class WindowsPty : IPtyConnection
     private static extern void DeleteProcThreadAttributeList(IntPtr list);
 
     [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-    private static extern bool CreateProcessW(string? applicationName, StringBuilder commandLine, IntPtr processAttributes, IntPtr threadAttributes,
+    private static extern bool CreateProcessW(string? applicationName, char[] commandLine, IntPtr processAttributes, IntPtr threadAttributes,
         bool inheritHandles, uint creationFlags, IntPtr environment, string? currentDirectory, ref STARTUPINFOEX startupInfo, out PROCESS_INFORMATION processInformation);
 
     [DllImport("kernel32.dll")]

@@ -48,7 +48,7 @@ public sealed class SystemMonitor
             ReadDisks());
     }
 
-    private IReadOnlyList<ProcessSample> SampleProcesses(int count)
+    private List<ProcessSample> SampleProcesses(int count)
     {
         var now = DateTime.UtcNow;
         double elapsedMs = _lastProcessSample == DateTime.MinValue ? 0 : (now - _lastProcessSample).TotalMilliseconds;

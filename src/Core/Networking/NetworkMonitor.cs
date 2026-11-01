@@ -122,6 +122,6 @@ public sealed class NetworkMonitor
     internal static string? FormatMac(PhysicalAddress address)
     {
         var bytes = address.GetAddressBytes();
-        return bytes.Length == 0 ? null : string.Join(':', bytes.Select(b => b.ToString("x2")));
+        return bytes.Length == 0 ? null : string.Join(':', bytes.Select(b => b.ToString("x2", System.Globalization.CultureInfo.InvariantCulture)));
     }
 }

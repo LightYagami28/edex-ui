@@ -72,8 +72,8 @@ internal sealed class UnixPty : IPtyConnection
         int pid = ForkPty(out int master, ref size);
         if (pid == 0)
         {
-            chdir(dir);
-            execve(path, argv, envp);
+            _ = chdir(dir);
+            _ = execve(path, argv, envp);
             _exit(127);
         }
 
@@ -121,13 +121,13 @@ internal sealed class UnixPty : IPtyConnection
     {
         if (Volatile.Read(ref _disposed) != 0) return;
         var size = new WinSize { Rows = (ushort)Math.Max(2, rows), Columns = (ushort)Math.Max(2, columns) };
-        ioctl(_master, OperatingSystem.IsMacOS() ? (UIntPtr)0x80087467u : (UIntPtr)0x5414u, ref size);
+        _ = ioctl(_master, OperatingSystem.IsMacOS() ? (UIntPtr)0x80087467u : (UIntPtr)0x5414u, ref size);
     }
 
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
-        kill(_pid, SIGHUP);
+        _ = kill(_pid, SIGHUP);
         try { _input.Dispose(); } catch (IOException) { }
         try { _output.Dispose(); } catch (IOException) { }
     }

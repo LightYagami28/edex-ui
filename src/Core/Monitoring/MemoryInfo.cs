@@ -34,7 +34,7 @@ internal static class MemoryInfo
         {
             var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length < 2) continue;
-            ulong kb = ulong.Parse(parts[1]) * 1024;
+            ulong kb = ulong.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture) * 1024;
             switch (parts[0])
             {
                 case "MemTotal:": total = kb; break;
@@ -73,10 +73,10 @@ internal static class MemoryInfo
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX buffer);
 
-    [DllImport("libc")]
+    [DllImport("libc", CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
     private static extern uint mach_host_self();
 
-    [DllImport("libc")]
+    [DllImport("libc", CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
     private static extern int host_statistics64(uint host, int flavor, [Out] uint[] info, ref int count);
 }
 
@@ -98,9 +98,9 @@ internal static class MacSysctl
         return Encoding.UTF8.GetString(buffer).TrimEnd('\0').Trim();
     }
 
-    [DllImport("libc")]
+    [DllImport("libc", CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
     private static extern int sysctlbyname(string name, ref ulong value, ref IntPtr size, IntPtr newValue, IntPtr newSize);
 
-    [DllImport("libc")]
+    [DllImport("libc", CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
     private static extern int sysctlbyname(string name, byte[]? value, ref IntPtr size, IntPtr newValue, IntPtr newSize);
 }
