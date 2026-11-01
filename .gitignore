@@ -49,3 +49,10 @@ src/node_modules
 # Snyk
 .snyk
 .github/instructions
+
+# Segreti locali
+.env
+.env.*
+!.env.example
+*.pem
+*.key
