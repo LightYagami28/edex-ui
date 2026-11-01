@@ -6,17 +6,13 @@ namespace Edex.Core.Monitoring;
 
 internal static class MemoryInfo
 {
-    public static MemorySample Read()
+    public static MemorySample Read() => Safe.Run(ReadSystem, new MemorySample((ulong)GC.GetGCMemoryInfo().TotalAvailableMemoryBytes, 0));
+
+    private static MemorySample ReadSystem()
     {
-        try
-        {
-            if (OperatingSystem.IsWindows()) return ReadWindows();
-            if (OperatingSystem.IsLinux()) return ParseMeminfo(File.ReadAllText("/proc/meminfo"));
-            if (OperatingSystem.IsMacOS()) return ReadMac();
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or FormatException) { }
-        var gc = GC.GetGCMemoryInfo();
-        return new MemorySample((ulong)gc.TotalAvailableMemoryBytes, 0);
+        if (OperatingSystem.IsWindows()) return ReadWindows();
+        if (OperatingSystem.IsMacOS()) return ReadMac();
+        return ParseMeminfo(File.ReadAllText("/proc/meminfo"));
     }
 
     private static MemorySample ReadWindows()

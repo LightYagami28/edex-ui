@@ -37,9 +37,7 @@ public static class PtyFactory
     public static IPtyConnection Spawn(PtyOptions options)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(options.Shell);
-        if (OperatingSystem.IsWindows()) return WindowsPty.Spawn(options);
-        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) return UnixPty.Spawn(options);
-        throw new PlatformNotSupportedException("No pseudo terminal backend for this operating system.");
+        return OperatingSystem.IsWindows() ? WindowsPty.Spawn(options) : UnixPty.Spawn(options);
     }
 
     internal static Dictionary<string, string> BuildEnvironment(IReadOnlyDictionary<string, string>? extra)

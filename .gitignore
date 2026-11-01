@@ -55,3 +55,4 @@ obj/
 TestResults/
 *.cobertura.xml
 cov.xml
+sonar-coverage.xml

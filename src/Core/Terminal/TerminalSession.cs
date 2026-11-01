@@ -38,10 +38,11 @@ public sealed class TerminalSession : IDisposable
 
     public static TerminalSession Start(PtyOptions options, int scrollback = 2000)
     {
-        var buffer = new TerminalBuffer(options.Columns, options.Rows, scrollback);
-        var pty = PtyFactory.Spawn(options);
-        return new TerminalSession(pty, buffer, options.Shell);
+        return Attach(PtyFactory.Spawn(options), options.Shell, new TerminalBuffer(options.Columns, options.Rows, scrollback));
     }
+
+    /// <summary>Wraps an already running pseudo terminal. <see cref="Start"/> uses it; tests pass a fake connection.</summary>
+    internal static TerminalSession Attach(IPtyConnection pty, string shell, TerminalBuffer buffer) => new(pty, buffer, shell);
 
     private void OnExited(int code)
     {
@@ -64,8 +65,10 @@ public sealed class TerminalSession : IDisposable
                 Updated?.Invoke(this, EventArgs.Empty);
             }
         }
-        catch (IOException) { /* EIO on Unix when the child closes the tty */ }
-        catch (ObjectDisposedException) { }
+        catch (Exception e) when (e is IOException or ObjectDisposedException)
+        {
+            // EIO on Unix when the child closes the tty, or the connection was disposed while reading.
+        }
         Updated?.Invoke(this, EventArgs.Empty);
     }
 
@@ -81,8 +84,7 @@ public sealed class TerminalSession : IDisposable
                 _pty.Input.Flush();
             }
         }
-        catch (IOException) { }
-        catch (ObjectDisposedException) { }
+        catch (Exception e) when (e is IOException or ObjectDisposedException) { }
     }
 
     public void Paste(string text)

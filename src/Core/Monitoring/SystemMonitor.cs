@@ -91,27 +91,24 @@ public sealed class SystemMonitor
         "binfmt_misc", "devfs", "nullfs", "ramfs", "efivarfs", "rpc_pipefs", "nsfs",
     };
 
-    public static IReadOnlyList<DiskSample> ReadDisks()
+    public static IReadOnlyList<DiskSample> ReadDisks() =>
+        DriveInfo.GetDrives().Select(d => Safe.Run(() => Describe(d), null)).OfType<DiskSample>().ToList();
+
+    private static DiskSample? Describe(DriveInfo drive)
     {
-        var disks = new List<DiskSample>();
-        foreach (var drive in DriveInfo.GetDrives())
-        {
-            try
-            {
-                if (!drive.IsReady || drive.TotalSize <= 0) continue;
-                if (PseudoFormats.Contains(drive.DriveFormat)) continue;
-                if (!OperatingSystem.IsWindows() && (drive.Name.StartsWith("/snap", StringComparison.Ordinal)
-                    || drive.Name.StartsWith("/System/Volumes/", StringComparison.Ordinal) && drive.Name != "/System/Volumes/Data"
-                    || drive.Name.StartsWith("/boot/efi", StringComparison.Ordinal) && drive.TotalSize < 2L << 30
-                    || drive.Name.StartsWith("/run", StringComparison.Ordinal) || drive.Name.StartsWith("/dev", StringComparison.Ordinal)))
-                    continue;
-                string label = OperatingSystem.IsWindows() && !string.IsNullOrWhiteSpace(drive.VolumeLabel)
-                    ? $"{drive.VolumeLabel} ({drive.Name.TrimEnd('\\')})"
-                    : drive.Name;
-                disks.Add(new DiskSample(label, drive.RootDirectory.FullName, drive.DriveFormat, drive.TotalSize, drive.AvailableFreeSpace));
-            }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
-        }
-        return disks;
+        if (!drive.IsReady || drive.TotalSize <= 0 || PseudoFormats.Contains(drive.DriveFormat)) return null;
+        if (!OperatingSystem.IsWindows() && IsHiddenMount(drive.Name, drive.TotalSize)) return null;
+        string label = OperatingSystem.IsWindows() && !string.IsNullOrWhiteSpace(drive.VolumeLabel)
+            ? $"{drive.VolumeLabel} ({drive.Name.TrimEnd(Path.DirectorySeparatorChar)})"
+            : drive.Name;
+        return new DiskSample(label, drive.RootDirectory.FullName, drive.DriveFormat, drive.TotalSize, drive.AvailableFreeSpace);
     }
+
+    /// <summary>Mount points that are plumbing rather than user storage (snaps, runtime folders, EFI, macOS system volumes).</summary>
+    internal static bool IsHiddenMount(string name, long totalSize) =>
+        name.StartsWith("/snap", StringComparison.Ordinal)
+        || name.StartsWith("/System/Volumes/", StringComparison.Ordinal) && name != "/System/Volumes/Data"
+        || name.StartsWith("/boot/efi", StringComparison.Ordinal) && totalSize < 2L << 30
+        || name.StartsWith("/run", StringComparison.Ordinal)
+        || name.StartsWith("/dev", StringComparison.Ordinal);
 }

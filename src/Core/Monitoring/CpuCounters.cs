@@ -15,18 +15,12 @@ internal static class CpuCounters
     public static ICpuCounter Create()
     {
         if (OperatingSystem.IsWindows()) return new WindowsCpuCounter();
-        if (OperatingSystem.IsLinux()) return new LinuxCpuCounter();
         if (OperatingSystem.IsMacOS()) return new MacCpuCounter();
-        return new NullCpuCounter();
+        return new LinuxCpuCounter();
     }
 
     internal static double Percent(ulong idleDelta, ulong totalDelta) =>
         totalDelta == 0 ? 0 : Math.Clamp((1.0 - (double)idleDelta / totalDelta) * 100.0, 0, 100);
-}
-
-internal sealed class NullCpuCounter : ICpuCounter
-{
-    public double SampleTotalPercent() => 0;
 }
 
 [SupportedOSPlatform("windows")]
@@ -49,25 +43,20 @@ internal sealed class WindowsCpuCounter : ICpuCounter
     private static extern bool GetSystemTimes(out ulong idle, out ulong kernel, out ulong user);
 }
 
-internal sealed class LinuxCpuCounter : ICpuCounter
+internal sealed class LinuxCpuCounter(string path = "/proc/stat") : ICpuCounter
 {
     private ulong _idle, _total;
 
-    public double SampleTotalPercent()
+    public double SampleTotalPercent() => Safe.Run(Sample, 0);
+
+    private double Sample()
     {
-        try
-        {
-            var line = File.ReadLines("/proc/stat").First(l => l.StartsWith("cpu ", StringComparison.Ordinal));
-            var (idle, total) = Parse(line);
-            double result = _total == 0 ? 0 : CpuCounters.Percent(idle - _idle, total - _total);
-            _idle = idle;
-            _total = total;
-            return result;
-        }
-        catch (Exception e) when (e is IOException or InvalidOperationException or FormatException)
-        {
-            return 0;
-        }
+        var line = File.ReadLines(path).First(l => l.StartsWith("cpu ", StringComparison.Ordinal));
+        var (idle, total) = Parse(line);
+        double result = _total == 0 ? 0 : CpuCounters.Percent(idle - _idle, total - _total);
+        _idle = idle;
+        _total = total;
+        return result;
     }
 
     internal static (ulong Idle, ulong Total) Parse(string line)
@@ -109,25 +98,16 @@ internal static class CpuInfo
 {
     public static string ReadModel()
     {
-        try
-        {
-            if (OperatingSystem.IsWindows())
-            {
-                var name = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\HARDWARE\DESCRIPTION\System\CentralProcessor\0", "ProcessorNameString", null) as string;
-                if (!string.IsNullOrWhiteSpace(name)) return name.Trim();
-            }
-            else if (OperatingSystem.IsLinux())
-            {
-                var line = File.ReadLines("/proc/cpuinfo").FirstOrDefault(l => l.StartsWith("model name", StringComparison.Ordinal));
-                if (line is not null) return line[(line.IndexOf(':') + 1)..].Trim();
-            }
-            else if (OperatingSystem.IsMacOS())
-            {
-                var brand = MacSysctl.ReadString("machdep.cpu.brand_string");
-                if (!string.IsNullOrWhiteSpace(brand)) return brand;
-            }
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Security.SecurityException) { }
-        return RuntimeInformation.ProcessArchitecture.ToString();
+        var model = Safe.Run(Read, "");
+        return string.IsNullOrWhiteSpace(model) ? RuntimeInformation.ProcessArchitecture.ToString() : model;
+    }
+
+    private static string Read()
+    {
+        if (OperatingSystem.IsWindows())
+            return Convert.ToString(Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\HARDWARE\DESCRIPTION\System\CentralProcessor\0", "ProcessorNameString", ""), System.Globalization.CultureInfo.InvariantCulture)!.Trim();
+        if (OperatingSystem.IsMacOS()) return MacSysctl.ReadString("machdep.cpu.brand_string");
+        var line = File.ReadLines("/proc/cpuinfo").FirstOrDefault(l => l.StartsWith("model name", StringComparison.Ordinal)) ?? ":";
+        return line[(line.IndexOf(':') + 1)..].Trim();
     }
 }

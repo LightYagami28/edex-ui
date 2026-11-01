@@ -23,22 +23,19 @@ public sealed record AppSettings
     /// <summary>Look up the public IP location (no API key) for the globe; false keeps everything offline.</summary>
     public bool OnlineGeolocation { get; init; } = true;
 
-    public static string DefaultShell()
+    public static string DefaultShell() =>
+        DefaultShell(Environment.GetEnvironmentVariable("PATH"), Environment.GetEnvironmentVariable("SHELL"));
+
+    internal static string DefaultShell(string? pathVariable, string? shellVariable)
     {
         if (OperatingSystem.IsWindows())
         {
-            foreach (var dir in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
-            {
-                try
-                {
-                    if (File.Exists(Path.Combine(dir, "pwsh.exe"))) return "pwsh.exe";
-                }
-                catch (ArgumentException) { }
-            }
-            return "powershell.exe";
+            var onPath = (pathVariable ?? "")
+                .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+                .Any(dir => File.Exists(Path.Combine(dir, "pwsh.exe")));
+            return onPath ? "pwsh.exe" : "powershell.exe";
         }
-        var shell = Environment.GetEnvironmentVariable("SHELL");
-        if (!string.IsNullOrWhiteSpace(shell)) return shell;
+        if (!string.IsNullOrWhiteSpace(shellVariable)) return shellVariable;
         return OperatingSystem.IsMacOS() ? "/bin/zsh" : "/bin/bash";
     }
 }

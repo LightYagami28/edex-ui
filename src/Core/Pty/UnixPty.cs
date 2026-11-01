@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using Microsoft.Win32.SafeHandles;
 
 namespace Edex.Core.Pty;
 
 /// <summary>Pseudo terminal for Linux and macOS based on forkpty(3).</summary>
-[SupportedOSPlatform("linux")]
-[SupportedOSPlatform("macos")]
 internal sealed class UnixPty : IPtyConnection
 {
     private readonly int _pid;
@@ -69,31 +66,14 @@ internal sealed class UnixPty : IPtyConnection
         var size = new WinSize { Rows = (ushort)Math.Max(2, options.Rows), Columns = (ushort)Math.Max(2, options.Columns) };
 
         PrepareChildCalls();
-        int pid = ForkPty(out int master, ref size);
-        if (pid == 0)
-        {
-            _ = chdir(dir);
-            _ = execve(path, argv, envp);
-            _exit(127);
-        }
+        int pid = forkpty(out int master, IntPtr.Zero, IntPtr.Zero, ref size);
+        // Child: only async-signal-safe calls. Exit 127 unless execve replaced the process.
+        if (pid == 0) _exit(chdir(dir) == 0 && execve(path, argv, envp) == 0 ? 0 : 127);
 
         int error = Marshal.GetLastPInvokeError();
         foreach (var p in allocations) Marshal.FreeHGlobal(p);
         if (pid < 0) throw new IOException($"forkpty failed (errno {error})");
         return new UnixPty(pid, master);
-    }
-
-    private static int ForkPty(out int master, ref WinSize size)
-    {
-        try
-        {
-            return forkpty(out master, IntPtr.Zero, IntPtr.Zero, ref size);
-        }
-        catch (EntryPointNotFoundException)
-        {
-            // glibc older than 2.34 keeps forkpty in libutil.
-            return forkpty_libutil(out master, IntPtr.Zero, IntPtr.Zero, ref size);
-        }
     }
 
     private static void PrepareChildCalls()
@@ -140,9 +120,6 @@ internal sealed class UnixPty : IPtyConnection
 
     [DllImport("libc", SetLastError = true)]
     private static extern int forkpty(out int master, IntPtr name, IntPtr termios, ref WinSize size);
-
-    [DllImport("libutil.so.1", EntryPoint = "forkpty", SetLastError = true)]
-    private static extern int forkpty_libutil(out int master, IntPtr name, IntPtr termios, ref WinSize size);
 
     [DllImport("libc")]
     private static extern int execve(IntPtr path, IntPtr argv, IntPtr envp);

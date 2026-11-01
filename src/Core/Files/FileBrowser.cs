@@ -24,37 +24,30 @@ public static class FileBrowser
         if (parent is not null)
             entries.Add(new FileEntry("..", parent.FullName, FileEntryKind.Directory, 0, DateTime.MinValue, false));
 
-        try
-        {
-            var dir = new DirectoryInfo(full);
-            if (!dir.Exists) return new DirectoryListing(full, entries, "Directory not found");
-            var options = new EnumerationOptions { IgnoreInaccessible = true, AttributesToSkip = 0, RecurseSubdirectories = false };
-            var items = new List<FileEntry>();
-            foreach (var info in dir.EnumerateFileSystemInfos("*", options))
-            {
-                bool hidden = info.Name.StartsWith('.') || info.Attributes.HasFlag(FileAttributes.Hidden);
-                if (hidden && !showHidden) continue;
-                var kind = info.LinkTarget is not null ? FileEntryKind.Link
-                    : info is DirectoryInfo ? FileEntryKind.Directory : FileEntryKind.File;
-                long size = info is FileInfo f && kind == FileEntryKind.File ? SafeLength(f) : 0;
-                bool isDir = info is DirectoryInfo;
-                items.Add(new FileEntry(info.Name, info.FullName, isDir ? FileEntryKind.Directory : kind, size, info.LastWriteTime, hidden));
-            }
-            entries.AddRange(items
-                .OrderByDescending(e => e.Kind == FileEntryKind.Directory)
-                .ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase));
-            return new DirectoryListing(full, entries, null);
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Security.SecurityException)
-        {
-            return new DirectoryListing(full, entries, e.Message);
-        }
+        var items = Safe.Run(() => Enumerate(full, showHidden), null);
+        if (items is null) return new DirectoryListing(full, entries, "Directory not found");
+        entries.AddRange(items
+            .OrderByDescending(e => e.Kind == FileEntryKind.Directory)
+            .ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase));
+        return new DirectoryListing(full, entries, null);
     }
 
-    private static long SafeLength(FileInfo file)
+    /// <summary>The entries of a folder, or null when it does not exist.</summary>
+    private static List<FileEntry>? Enumerate(string full, bool showHidden)
     {
-        try { return file.Length; }
-        catch (IOException) { return 0; }
+        var dir = new DirectoryInfo(full);
+        if (!dir.Exists) return null;
+        var options = new EnumerationOptions { IgnoreInaccessible = true, AttributesToSkip = 0, RecurseSubdirectories = false };
+        var items = new List<FileEntry>();
+        foreach (var info in dir.EnumerateFileSystemInfos("*", options))
+        {
+            bool hidden = info.Name.StartsWith('.') || info.Attributes.HasFlag(FileAttributes.Hidden);
+            if (hidden && !showHidden) continue;
+            var kind = info is DirectoryInfo ? FileEntryKind.Directory : info.LinkTarget is not null ? FileEntryKind.Link : FileEntryKind.File;
+            long size = info is FileInfo f ? Safe.Run(() => f.Length, 0L) : 0;
+            items.Add(new FileEntry(info.Name, info.FullName, kind, size, info.LastWriteTime, hidden));
+        }
+        return items;
     }
 
     public static string ExpandHome(string path)

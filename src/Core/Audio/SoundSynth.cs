@@ -20,8 +20,7 @@ public static class SoundSynth
             SoundEffect.Info => Sequence((880, 0.06), (1318.5, 0.1)),
             SoundEffect.Alert => Sequence((587.33, 0.12), (0, 0.05), (440, 0.18)),
             SoundEffect.PanelOpen => Sweep(300, 1200, 0.18),
-            SoundEffect.Exit => Sequence((659.25, 0.08), (523.25, 0.08), (392, 0.2)),
-            _ => [],
+            _ => Sequence((659.25, 0.08), (523.25, 0.08), (392, 0.2)),
         };
         return ToWav(samples, volume);
     }

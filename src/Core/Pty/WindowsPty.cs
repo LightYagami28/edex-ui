@@ -46,32 +46,22 @@ internal sealed class WindowsPty : IPtyConnection
 
     public static WindowsPty Spawn(PtyOptions options)
     {
-        if (!CreatePipe(out var inputRead, out var inputWrite, IntPtr.Zero, 0)) throw new Win32Exception();
-        if (!CreatePipe(out var outputRead, out var outputWrite, IntPtr.Zero, 0)) throw new Win32Exception();
-
-        var size = new COORD { X = (short)Math.Clamp(options.Columns, 2, short.MaxValue), Y = (short)Math.Clamp(options.Rows, 2, short.MaxValue) };
-        int hr = CreatePseudoConsole(size, inputRead, outputWrite, 0, out var pseudoConsole);
-        // The pseudo console duplicated these ends; we must release ours.
-        inputRead.Dispose();
-        outputWrite.Dispose();
-        if (hr != 0)
-        {
-            outputRead.Dispose();
-            inputWrite.Dispose();
-            throw new Win32Exception(hr, "CreatePseudoConsole failed");
-        }
-
-        IntPtr attributeList = IntPtr.Zero;
-        IntPtr environmentBlock = IntPtr.Zero;
+        var (inputRead, inputWrite) = Pipe();
+        var (outputRead, outputWrite) = Pipe();
+        IntPtr pseudoConsole = IntPtr.Zero, attributeList = IntPtr.Zero, environmentBlock = IntPtr.Zero;
         try
         {
+            var size = new COORD { X = (short)Math.Clamp(options.Columns, 2, short.MaxValue), Y = (short)Math.Clamp(options.Rows, 2, short.MaxValue) };
+            Marshal.ThrowExceptionForHR(CreatePseudoConsole(size, inputRead, outputWrite, 0, out pseudoConsole));
+            // The pseudo console duplicated these ends; we must release ours.
+            inputRead.Dispose();
+            outputWrite.Dispose();
+
             IntPtr listSize = IntPtr.Zero;
             InitializeProcThreadAttributeList(IntPtr.Zero, 1, 0, ref listSize);
             attributeList = Marshal.AllocHGlobal(listSize);
-            if (!InitializeProcThreadAttributeList(attributeList, 1, 0, ref listSize)) throw new Win32Exception();
-            if (!UpdateProcThreadAttribute(attributeList, 0, (IntPtr)PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE, pseudoConsole,
-                    (IntPtr)IntPtr.Size, IntPtr.Zero, IntPtr.Zero))
-                throw new Win32Exception();
+            Ensure(InitializeProcThreadAttributeList(attributeList, 1, 0, ref listSize));
+            Ensure(UpdateProcThreadAttribute(attributeList, 0, (IntPtr)PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE, pseudoConsole, (IntPtr)IntPtr.Size, IntPtr.Zero, IntPtr.Zero));
 
             var startup = new STARTUPINFOEX();
             startup.StartupInfo.cb = Marshal.SizeOf<STARTUPINFOEX>();
@@ -85,10 +75,9 @@ internal sealed class WindowsPty : IPtyConnection
             env.Append('\0');
             environmentBlock = Marshal.StringToHGlobalUni(env.ToString());
 
-            var commandLine = (BuildCommandLine(options.Shell, options.Args) + "            var commandLine = new StringBuilder(BuildCommandLine(options.Shell, options.Args));").ToCharArray();
-            string? cwd = !string.IsNullOrEmpty(options.WorkingDirectory) && Directory.Exists(options.WorkingDirectory)
-                ? options.WorkingDirectory
-                : null;
+            // CreateProcessW may modify the command line, so it gets its own writable, null-terminated buffer.
+            var commandLine = (BuildCommandLine(options.Shell, options.Args) + "\0").ToCharArray();
+            string? cwd = Directory.Exists(options.WorkingDirectory) ? options.WorkingDirectory : null;
 
             if (!CreateProcessW(null, commandLine, IntPtr.Zero, IntPtr.Zero, false,
                     EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT, environmentBlock, cwd, ref startup, out var info))
@@ -98,9 +87,11 @@ internal sealed class WindowsPty : IPtyConnection
         }
         catch
         {
-            ClosePseudoConsole(pseudoConsole);
+            inputRead.Dispose();
+            outputWrite.Dispose();
             outputRead.Dispose();
             inputWrite.Dispose();
+            if (pseudoConsole != IntPtr.Zero) ClosePseudoConsole(pseudoConsole);
             throw;
         }
         finally
@@ -113,6 +104,14 @@ internal sealed class WindowsPty : IPtyConnection
             if (environmentBlock != IntPtr.Zero) Marshal.FreeHGlobal(environmentBlock);
         }
     }
+
+    private static (SafeFileHandle Read, SafeFileHandle Write) Pipe()
+    {
+        Ensure(CreatePipe(out var read, out var write, IntPtr.Zero, 0));
+        return (read, write);
+    }
+
+    private static void Ensure(bool succeeded) { if (!succeeded) throw new Win32Exception(); }
 
     internal static string BuildCommandLine(string executable, IReadOnlyList<string> args)
     {

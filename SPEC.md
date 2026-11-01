@@ -112,9 +112,15 @@ Pacchetti per cartella:
 | C2 | `native/linux`: app X11 + 6 pacchetti | build e smoke test in CI (ubuntu, xvfb) e nei container |
 | C3 | `native/macos`: app AppKit + 3 pacchetti | build in CI (macos); avvio solo se il runner lo permette |
 
-Stato della base: Core esiste già in forma parziale (PTY Windows/Unix, emulatore terminale, monitor CPU/RAM/rete, file browser, tema, globo,
-tastiera su schermo, audio sintetico), derivato dal precedente lavoro `dotnet11-rewrite`, senza le sue parti Avalonia e Docnet.
-Da completare in B: `Shortcuts`, `Boot`, `Updates`, `FuzzyFinder`, `ProcessList`, `HardwareInfo`, layout tastiera da `assets/kb_layouts`, `Ui`, `Render`.
+Stato fase B (Core): fatto. Contiene Pty, Terminal, Input, Files (con FuzzyFinder), Monitoring (con HardwareInfo), Networking, Geo, Themes,
+Settings (con Shortcuts), Audio, Boot, Updates. 128 test, copertura di riga completa su Windows + Linux; restano non misurabili qui solo le righe
+macOS (contatori `host_statistics`, `sysctl`), misurate dal job macOS della CI.
+
+Differenze rispetto alla tabella delle funzioni:
+- Le impostazioni usano nomi propri (`AppSettings`: Shell, Theme, FontSize, ...), non i campi di eDEX-UI; non c'è import dei vecchi `settings.json`.
+- Layout tastiera: due layout incorporati (en-US, it-IT); i 19 JSON di `assets/kb_layouts` non sono ancora caricati.
+- `Ui` (scena) e `Render` (rasterizzatore per Linux e macOS) non sono in Core: si scrivono nelle fasi C2 e C3 insieme alle finestre.
+- Processi: l'elenco dei più attivi è in `SystemMonitor.Sample`; `HardwareInfo` legge produttore, modello e chassis.
 
 ## 6. Rischi e decisioni aperte
 
