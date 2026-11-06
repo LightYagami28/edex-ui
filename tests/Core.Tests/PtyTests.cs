@@ -9,7 +9,7 @@ namespace Edex.Core.Tests;
 public class PtyTests
 {
     [TestMethod]
-    public void RunsCommandInPseudoTerminal()
+    public async Task RunsCommandInPseudoTerminal()
     {
         var options = OperatingSystem.IsWindows()
             ? new PtyOptions { Shell = "cmd.exe", Args = ["/c", "echo EDEX_PTY_OK"], Columns = 80, Rows = 10 }
@@ -18,10 +18,10 @@ public class PtyTests
         using var session = TerminalSession.Start(options);
         var deadline = DateTime.UtcNow.AddSeconds(15);
         while (DateTime.UtcNow < deadline && !session.Buffer.ScrollbackText().Contains("EDEX_PTY_OK"))
-            Thread.Sleep(50);
+            await Task.Delay(50);
 
         Assert.Contains("EDEX_PTY_OK", session.Buffer.ScrollbackText());
-        while (DateTime.UtcNow < deadline.AddSeconds(10) && !session.HasExited) Thread.Sleep(50);
+        while (DateTime.UtcNow < deadline.AddSeconds(10) && !session.HasExited) await Task.Delay(50);
         Assert.IsTrue(session.HasExited);
         Assert.AreEqual(0, session.ExitCode);
     }

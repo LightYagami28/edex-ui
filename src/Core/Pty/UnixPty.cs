@@ -6,7 +6,7 @@ using Microsoft.Win32.SafeHandles;
 namespace Edex.Core.Pty;
 
 /// <summary>Pseudo terminal for Linux and macOS based on forkpty(3).</summary>
-internal sealed class UnixPty : IPtyConnection
+internal sealed partial class UnixPty : IPtyConnection
 {
     private readonly int _pid;
     private readonly int _master;
@@ -118,27 +118,27 @@ internal sealed class UnixPty : IPtyConnection
     [StructLayout(LayoutKind.Sequential)]
     private struct WinSize { public ushort Rows, Columns, XPixels, YPixels; }
 
-    [DllImport("libc", SetLastError = true)]
-    private static extern int forkpty(out int master, IntPtr name, IntPtr termios, ref WinSize size);
+    [LibraryImport("libc", SetLastError = true)]
+    private static partial int forkpty(out int master, IntPtr name, IntPtr termios, ref WinSize size);
 
-    [DllImport("libc")]
-    private static extern int execve(IntPtr path, IntPtr argv, IntPtr envp);
+    [LibraryImport("libc")]
+    private static partial int execve(IntPtr path, IntPtr argv, IntPtr envp);
 
-    [DllImport("libc")]
-    private static extern int chdir(IntPtr path);
+    [LibraryImport("libc")]
+    private static partial int chdir(IntPtr path);
 
-    [DllImport("libc")]
-    private static extern void _exit(int status);
+    [LibraryImport("libc")]
+    private static partial void _exit(int status);
 
-    [DllImport("libc", SetLastError = true)]
-    private static extern int ioctl(int fd, UIntPtr request, ref WinSize size);
+    [LibraryImport("libc", SetLastError = true)]
+    private static partial int ioctl(int fd, UIntPtr request, ref WinSize size);
 
-    [DllImport("libc", SetLastError = true)]
-    private static extern int waitpid(int pid, out int status, int options);
+    [LibraryImport("libc", SetLastError = true)]
+    private static partial int waitpid(int pid, out int status, int options);
 
-    [DllImport("libc", SetLastError = true)]
-    private static extern int dup(int fd);
+    [LibraryImport("libc", SetLastError = true)]
+    private static partial int dup(int fd);
 
-    [DllImport("libc")]
-    private static extern int kill(int pid, int signal);
+    [LibraryImport("libc")]
+    private static partial int kill(int pid, int signal);
 }

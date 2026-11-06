@@ -43,7 +43,7 @@ public static class FileBrowser
         {
             bool hidden = info.Name.StartsWith('.') || info.Attributes.HasFlag(FileAttributes.Hidden);
             if (hidden && !showHidden) continue;
-            var kind = info is DirectoryInfo ? FileEntryKind.Directory : info.LinkTarget is not null ? FileEntryKind.Link : FileEntryKind.File;
+            var kind = GetKind(info);
             long size = info is FileInfo f ? Safe.Run(() => f.Length, 0L) : 0;
             items.Add(new FileEntry(info.Name, info.FullName, kind, size, info.LastWriteTime, hidden));
         }
@@ -56,6 +56,12 @@ public static class FileBrowser
         if (path.StartsWith("~/", StringComparison.Ordinal) || path.StartsWith("~\\", StringComparison.Ordinal))
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), path[2..]);
         return path;
+    }
+
+    private static FileEntryKind GetKind(FileSystemInfo info)
+    {
+        if (info is DirectoryInfo) return FileEntryKind.Directory;
+        return info.LinkTarget is not null ? FileEntryKind.Link : FileEntryKind.File;
     }
 
     public static string FormatSize(long bytes)

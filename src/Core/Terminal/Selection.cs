@@ -51,7 +51,7 @@ public readonly record struct TextSelection(CellPosition Anchor, CellPosition Ac
         if (at.Row < 0 || at.Row >= snapshot.Rows) return new TextSelection(at, at);
         var line = snapshot.Lines[at.Row];
         int col = Math.Clamp(at.Column, 0, line.Length - 1);
-        Func<char, bool> same = IsWordChar(line[col].Glyph) ? IsWordChar : IsSpace(line[col].Glyph) ? IsSpace : _ => false;
+        Func<char, bool> same = GetCharacterMatcher(line[col].Glyph);
         int from = col, to = col;
         while (from > 0 && same(line[from - 1].Glyph)) from--;
         while (to < line.Length - 1 && same(line[to + 1].Glyph)) to++;
@@ -65,4 +65,10 @@ public readonly record struct TextSelection(CellPosition Anchor, CellPosition Ac
     private static bool IsWordChar(char c) => char.IsLetterOrDigit(c) || "-_./~:@%+#=?&\\".Contains(c);
 
     private static bool IsSpace(char c) => c == '\0' || char.IsWhiteSpace(c);
+
+    private static Func<char, bool> GetCharacterMatcher(char character)
+    {
+        if (IsWordChar(character)) return IsWordChar;
+        return IsSpace(character) ? IsSpace : _ => false;
+    }
 }

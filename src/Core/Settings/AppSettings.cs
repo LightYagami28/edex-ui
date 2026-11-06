@@ -12,7 +12,7 @@ public sealed record AppSettings
     public double FontSize { get; init; } = 14;
     public int Scrollback { get; init; } = 2000;
     public bool ShowHiddenFiles { get; init; }
-    public string PingHost { get; init; } = "1.1.1.1";
+    public string PingHost { get; init; } = "one.one.one.one";
     public int MonitorIntervalMs { get; init; } = 1000;
     public bool ShowKeyboard { get; init; } = true;
     /// <summary>"auto", "en-US" or "it-IT".</summary>

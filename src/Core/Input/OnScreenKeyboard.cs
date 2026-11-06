@@ -27,22 +27,22 @@ public sealed record KeyboardLayout(string Name, IReadOnlyList<IReadOnlyList<Key
         return list;
     }
 
-    private static IReadOnlyList<IReadOnlyList<KeyDefinition>> Build(string r1, string r1s, string r2, string r2s, string r3, string r3s, string r4, string r4s)
+    private static IReadOnlyList<IReadOnlyList<KeyDefinition>> Build(params (string Normal, string Shifted)[] rows)
     {
         var row1 = new List<KeyDefinition> { new("Esc", null, KeyAction.Escape) };
-        row1.AddRange(Chars(r1, r1s));
+        row1.AddRange(Chars(rows[0].Normal, rows[0].Shifted));
         row1.Add(new KeyDefinition("⌫", null, KeyAction.Backspace, 1.8));
 
         var row2 = new List<KeyDefinition> { new("Tab", null, KeyAction.Tab, 1.5) };
-        row2.AddRange(Chars(r2, r2s));
+        row2.AddRange(Chars(rows[1].Normal, rows[1].Shifted));
         row2.Add(new KeyDefinition("Del", null, KeyAction.Delete, 1.3));
 
         var row3 = new List<KeyDefinition> { new("Caps", null, KeyAction.CapsLock, 1.8) };
-        row3.AddRange(Chars(r3, r3s));
+        row3.AddRange(Chars(rows[2].Normal, rows[2].Shifted));
         row3.Add(new KeyDefinition("Enter", null, KeyAction.Enter, 2.0));
 
         var row4 = new List<KeyDefinition> { new("Shift", null, KeyAction.Shift, 2.3) };
-        row4.AddRange(Chars(r4, r4s));
+        row4.AddRange(Chars(rows[3].Normal, rows[3].Shifted));
         row4.Add(new KeyDefinition("↑", null, KeyAction.Up));
         row4.Add(new KeyDefinition("Shift", null, KeyAction.Shift, 1.6));
 
@@ -61,16 +61,16 @@ public sealed record KeyboardLayout(string Name, IReadOnlyList<IReadOnlyList<Key
     }
 
     public static readonly KeyboardLayout EnUs = new("en-US", Build(
-        "`1234567890-=", "~!@#$%^&*()_+",
-        "qwertyuiop[]\\", "QWERTYUIOP{}|",
-        "asdfghjkl;'", "ASDFGHJKL:\"",
-        "zxcvbnm,./", "ZXCVBNM<>?"));
+        ("`1234567890-=", "~!@#$%^&*()_+"),
+        ("qwertyuiop[]\\", "QWERTYUIOP{}|"),
+        ("asdfghjkl;'", "ASDFGHJKL:\""),
+        ("zxcvbnm,./", "ZXCVBNM<>?")));
 
     public static readonly KeyboardLayout ItIt = new("it-IT", Build(
-        "\\1234567890'ì", "|!\"£$%&/()=?^",
-        "qwertyuiopè+ù", "QWERTYUIOPé*§",
-        "asdfghjklòà", "ASDFGHJKLç°",
-        "<zxcvbnm,.-", ">ZXCVBNM;:_"));
+        ("\\1234567890'ì", "|!\"£$%&/()=?^"),
+        ("qwertyuiopè+ù", "QWERTYUIOPé*§"),
+        ("asdfghjklòà", "ASDFGHJKLç°"),
+        ("<zxcvbnm,.-", ">ZXCVBNM;:_")));
 
     public static IReadOnlyList<KeyboardLayout> All { get; } = [EnUs, ItIt];
 
@@ -106,28 +106,30 @@ public sealed class KeyboardState
         string Cursor(char final) => modifier > 1 ? $"\x1b[1;{modifier}{final}" : applicationCursorKeys ? $"\x1bO{final}" : $"\x1b[{final}";
         string Tilde(int code) => modifier > 1 ? $"\x1b[{code};{modifier}~" : $"\x1b[{code}~";
 
-        string output = key.Action switch
-        {
-            KeyAction.Character => CharOutput(key),
-            KeyAction.Space => Control ? "\0" : Alt ? "\x1b " : " ",
-            KeyAction.Enter => Alt ? "\x1b\r" : "\r",
-            KeyAction.Backspace => Control ? "\x08" : Alt ? "\x1b\x7f" : "\x7f",
-            KeyAction.Tab => Shift ? "\x1b[Z" : "\t",
-            KeyAction.Escape => "\x1b",
-            KeyAction.Delete => Tilde(3),
-            KeyAction.Up => Cursor('A'),
-            KeyAction.Down => Cursor('B'),
-            KeyAction.Right => Cursor('C'),
-            KeyAction.Left => Cursor('D'),
-            KeyAction.Home => Cursor('H'),
-            KeyAction.End => Cursor('F'),
-            KeyAction.PageUp => Tilde(5),
-            KeyAction.PageDown => Tilde(6),
-            _ => "",
-        };
+        string output = CreateOutput(key, Cursor, Tilde);
         Shift = Control = Alt = false;
         return output;
     }
+
+    private string CreateOutput(KeyDefinition key, Func<char, string> cursor, Func<int, string> tilde) => key.Action switch
+    {
+        KeyAction.Character => CharOutput(key),
+        KeyAction.Space => Control ? "\0" : Alt ? "\x1b " : " ",
+        KeyAction.Enter => Alt ? "\x1b\r" : "\r",
+        KeyAction.Backspace => Control ? "\x08" : Alt ? "\x1b\x7f" : "\x7f",
+        KeyAction.Tab => Shift ? "\x1b[Z" : "\t",
+        KeyAction.Escape => "\x1b",
+        KeyAction.Delete => tilde(3),
+        KeyAction.Up => cursor('A'),
+        KeyAction.Down => cursor('B'),
+        KeyAction.Right => cursor('C'),
+        KeyAction.Left => cursor('D'),
+        KeyAction.Home => cursor('H'),
+        KeyAction.End => cursor('F'),
+        KeyAction.PageUp => tilde(5),
+        KeyAction.PageDown => tilde(6),
+        _ => "",
+    };
 
     /// <summary>The label a character key shows with the current modifiers.</summary>
     public string Display(KeyDefinition key)
