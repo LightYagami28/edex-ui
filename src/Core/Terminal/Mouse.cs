@@ -34,9 +34,17 @@ public static class MouseEncoder
     public static string? Encode(MouseTrackingMode mode, bool sgr, MouseEventKind kind, MouseButton button, int column, int row, MouseModifiers modifiers = MouseModifiers.None)
     {
         if (mode == MouseTrackingMode.None) return null;
-        if (!ShouldReport(mode, kind, button))
+        bool wheel = button is MouseButton.WheelUp or MouseButton.WheelDown;
+        switch (kind)
         {
-            return null;
+            case MouseEventKind.Release when mode == MouseTrackingMode.X10 || wheel:
+                return null;
+            case MouseEventKind.Motion when mode == MouseTrackingMode.AnyEvent:
+                break;
+            case MouseEventKind.Motion when mode == MouseTrackingMode.ButtonEvent && button != MouseButton.None:
+                break;
+            case MouseEventKind.Motion:
+                return null;
         }
 
         int code = (int)button;
@@ -57,50 +65,5 @@ public static class MouseEncoder
         var sb = new StringBuilder("\x1b[M");
         sb.Append((char)(32 + code)).Append((char)(32 + x)).Append((char)(32 + y));
         return sb.ToString();
-    }
-
-    private static Boolean ShouldReport(MouseTrackingMode mode, MouseEventKind kind, MouseButton button)
-    {
-        if (kind == MouseEventKind.Release)
-        {
-            return ReportsRelease(mode, button);
-        }
-
-        if (kind == MouseEventKind.Motion)
-        {
-            return ReportsMotion(mode, button);
-        }
-
-        return true;
-    }
-
-    private static Boolean ReportsRelease(MouseTrackingMode mode, MouseButton button)
-    {
-        if (mode == MouseTrackingMode.X10)
-        {
-            return false;
-        }
-
-        if (button == MouseButton.WheelUp || button == MouseButton.WheelDown)
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    private static Boolean ReportsMotion(MouseTrackingMode mode, MouseButton button)
-    {
-        if (mode == MouseTrackingMode.AnyEvent)
-        {
-            return true;
-        }
-
-        if (mode == MouseTrackingMode.ButtonEvent && button != MouseButton.None)
-        {
-            return true;
-        }
-
-        return false;
     }
 }

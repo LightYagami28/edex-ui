@@ -101,6 +101,11 @@ public sealed class KeyboardState
     /// <summary>Returns the bytes to send, or null when the key only changed a modifier.</summary>
     public string? Press(KeyDefinition key, bool applicationCursorKeys = false)
     {
+        if (key == null)
+        {
+            return null;
+        }
+
         switch (key.Action)
         {
             case KeyAction.Shift: Shift = !Shift; return null;
@@ -136,13 +141,14 @@ public sealed class KeyboardState
 
     private static String? NavigationOutput(KeyAction action, Func<char, string> cursor, Func<int, string> tilde)
     {
-        String? edited = EditedKeyOutput(action, tilde);
+        KeyAction current = action;
+        String? edited = EditedKeyOutput(current, tilde);
         if (edited != null)
         {
             return edited;
         }
 
-        return ArrowOutput(action, cursor);
+        return ArrowOutput(current, cursor);
     }
 
     private static String? EditedKeyOutput(KeyAction action, Func<int, string> tilde)
@@ -162,7 +168,8 @@ public sealed class KeyboardState
 
     private static String? ArrowOutput(KeyAction action, Func<char, string> cursor)
     {
-        switch (action)
+        KeyAction current = action;
+        switch (current)
         {
             case KeyAction.Up:
                 return cursor('A');
@@ -171,7 +178,7 @@ public sealed class KeyboardState
             case KeyAction.Right:
                 return cursor('C');
             default:
-                return OtherArrowOutput(action, cursor);
+                return OtherArrowOutput(current, cursor);
         }
     }
 

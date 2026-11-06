@@ -32,6 +32,7 @@ public class MonitoringTests
 {
     private const int sampleGapMs = 30;
     private const int topProcessLimit = 3;
+    private const int fullCpuPercent = 100;
 
     [TestMethod]
     public async Task CpuCounterSamples()
@@ -39,7 +40,7 @@ public class MonitoringTests
         var counter = CpuCounters.Create();
         Assert.IsGreaterThanOrEqualTo(0, counter.SampleTotalPercent());
         await Task.Delay(sampleGapMs);
-        Assert.IsInRange(0, 100, counter.SampleTotalPercent());
+        Assert.IsInRange(0, fullCpuPercent, counter.SampleTotalPercent());
         Assert.IsFalse(string.IsNullOrWhiteSpace(CpuInfo.ReadModel()));
         Assert.AreEqual(0, CpuCounters.Percent(5, 0));
         Assert.AreEqual(50, CpuCounters.Percent(5, 10));
@@ -124,7 +125,8 @@ public class FilesTests
         Assert.IsNull(listing.Error);
         Assert.AreSequenceEqual(["..", "sub", "a.txt"], listing.Entries.Select(e => e.Name));
         Assert.AreEqual(5, listing.Entries.Single(e => e.Name == "a.txt").Size);
-        Assert.HasCount(4, FileBrowser.List(dir.Path, showHidden: true).Entries);
+        const int entriesWithHidden = 4;
+        Assert.HasCount(entriesWithHidden, FileBrowser.List(dir.Path, showHidden: true).Entries);
 
         // A file is not a folder.
         Assert.IsNotNull(FileBrowser.List(Path.Combine(dir.Path, "a.txt")).Error);
