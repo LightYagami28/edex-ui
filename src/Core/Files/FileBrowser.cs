@@ -60,8 +60,22 @@ public static class FileBrowser
 
     private static FileEntryKind GetKind(FileSystemInfo info)
     {
-        if (info is DirectoryInfo) return FileEntryKind.Directory;
-        return info.LinkTarget is not null ? FileEntryKind.Link : FileEntryKind.File;
+        if (info == null)
+        {
+            return FileEntryKind.File;
+        }
+
+        if (info is DirectoryInfo)
+        {
+            return FileEntryKind.Directory;
+        }
+
+        if (info.LinkTarget is not null)
+        {
+            return FileEntryKind.Link;
+        }
+
+        return FileEntryKind.File;
     }
 
     public static string FormatSize(long bytes)

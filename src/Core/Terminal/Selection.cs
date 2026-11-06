@@ -51,11 +51,27 @@ public readonly record struct TextSelection(CellPosition Anchor, CellPosition Ac
         if (at.Row < 0 || at.Row >= snapshot.Rows) return new TextSelection(at, at);
         var line = snapshot.Lines[at.Row];
         int col = Math.Clamp(at.Column, 0, line.Length - 1);
-        Func<char, bool> same = GetCharacterMatcher(line[col].Glyph);
+        char glyph = line[col].Glyph;
+        Func<char, bool> same = Classify();
         int from = col, to = col;
         while (from > 0 && same(line[from - 1].Glyph)) from--;
         while (to < line.Length - 1 && same(line[to + 1].Glyph)) to++;
         return new TextSelection(new CellPosition(from, at.Row), new CellPosition(to, at.Row));
+
+        Func<char, bool> Classify()
+        {
+            if (IsWordChar(glyph))
+            {
+                return IsWordChar;
+            }
+
+            if (IsSpace(glyph))
+            {
+                return IsSpace;
+            }
+
+            return static _ => false;
+        }
     }
 
     /// <summary>Selects a whole line.</summary>
@@ -65,10 +81,4 @@ public readonly record struct TextSelection(CellPosition Anchor, CellPosition Ac
     private static bool IsWordChar(char c) => char.IsLetterOrDigit(c) || "-_./~:@%+#=?&\\".Contains(c);
 
     private static bool IsSpace(char c) => c == '\0' || char.IsWhiteSpace(c);
-
-    private static Func<char, bool> GetCharacterMatcher(char character)
-    {
-        if (IsWordChar(character)) return IsWordChar;
-        return IsSpace(character) ? IsSpace : _ => false;
-    }
 }

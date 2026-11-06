@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Edex.Core.Monitoring;
 
-internal static partial class MemoryInfo
+internal static class MemoryInfo
 {
     public static MemorySample Read() => Safe.Run(ReadSystem, new MemorySample((ulong)GC.GetGCMemoryInfo().TotalAvailableMemoryBytes, 0));
 
@@ -66,9 +66,8 @@ internal static partial class MemoryInfo
         public ulong ullTotalPhys, ullAvailPhys, ullTotalPageFile, ullAvailPageFile, ullTotalVirtual, ullAvailVirtual, ullAvailExtendedVirtual;
     }
 
-    [LibraryImport("kernel32.dll", SetLastError = true)]
-  [return: MarshalAs(UnmanagedType.Bool)]
-  private static partial bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX buffer);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX buffer);
 
     [DllImport("libc", CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
     private static extern uint mach_host_self();

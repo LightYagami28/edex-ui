@@ -30,12 +30,15 @@ public class SafeTests
 [TestClass]
 public class MonitoringTests
 {
+    private const int sampleGapMs = 30;
+    private const int topProcessLimit = 3;
+
     [TestMethod]
     public async Task CpuCounterSamples()
     {
         var counter = CpuCounters.Create();
         Assert.IsGreaterThanOrEqualTo(0, counter.SampleTotalPercent());
-        await Task.Delay(30);
+        await Task.Delay(sampleGapMs);
         Assert.IsInRange(0, 100, counter.SampleTotalPercent());
         Assert.IsFalse(string.IsNullOrWhiteSpace(CpuInfo.ReadModel()));
         Assert.AreEqual(0, CpuCounters.Percent(5, 0));
@@ -97,9 +100,9 @@ public class MonitoringTests
     {
         var monitor = new SystemMonitor();
         monitor.Sample();
-        await Task.Delay(30);
-        var snapshot = monitor.Sample(3);
-        Assert.IsLessThanOrEqualTo(3, snapshot.TopProcesses.Count);
+        await Task.Delay(sampleGapMs);
+        var snapshot = monitor.Sample(topProcessLimit);
+        Assert.IsLessThanOrEqualTo(topProcessLimit, snapshot.TopProcesses.Count);
         Assert.IsFalse(string.IsNullOrEmpty(snapshot.HostName));
     }
 }

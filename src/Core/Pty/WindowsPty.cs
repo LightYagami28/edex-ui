@@ -9,7 +9,7 @@ namespace Edex.Core.Pty;
 
 /// <summary>Pseudo terminal backed by the Windows ConPTY API (Windows 10 1809+).</summary>
 [SupportedOSPlatform("windows")]
-internal sealed partial class WindowsPty : IPtyConnection
+internal sealed class WindowsPty : IPtyConnection
 {
     private readonly IntPtr _pseudoConsole;
     private readonly IntPtr _process;
@@ -182,43 +182,37 @@ internal sealed partial class WindowsPty : IPtyConnection
     [StructLayout(LayoutKind.Sequential)]
     private struct PROCESS_INFORMATION { public IntPtr hProcess, hThread; public int dwProcessId, dwThreadId; }
 
-    [LibraryImport("kernel32.dll", SetLastError = true)]
-  [return: MarshalAs(UnmanagedType.Bool)]
-  private static partial bool CreatePipe(out SafeFileHandle read, out SafeFileHandle write, IntPtr attributes, int size);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool CreatePipe(out SafeFileHandle read, out SafeFileHandle write, IntPtr attributes, int size);
 
-    [LibraryImport("kernel32.dll")]
-    private static partial int CreatePseudoConsole(COORD size, SafeFileHandle input, SafeFileHandle output, uint flags, out IntPtr pseudoConsole);
+    [DllImport("kernel32.dll")]
+    private static extern int CreatePseudoConsole(COORD size, SafeFileHandle input, SafeFileHandle output, uint flags, out IntPtr pseudoConsole);
 
-    [LibraryImport("kernel32.dll")]
-    private static partial int ResizePseudoConsole(IntPtr pseudoConsole, COORD size);
+    [DllImport("kernel32.dll")]
+    private static extern int ResizePseudoConsole(IntPtr pseudoConsole, COORD size);
 
-    [LibraryImport("kernel32.dll")]
-    private static partial void ClosePseudoConsole(IntPtr pseudoConsole);
+    [DllImport("kernel32.dll")]
+    private static extern void ClosePseudoConsole(IntPtr pseudoConsole);
 
-    [LibraryImport("kernel32.dll", SetLastError = true)]
-  [return: MarshalAs(UnmanagedType.Bool)]
-  private static partial bool InitializeProcThreadAttributeList(IntPtr list, int count, int flags, ref IntPtr size);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool InitializeProcThreadAttributeList(IntPtr list, int count, int flags, ref IntPtr size);
 
-    [LibraryImport("kernel32.dll", SetLastError = true)]
-  [return: MarshalAs(UnmanagedType.Bool)]
-  private static partial bool UpdateProcThreadAttribute(IntPtr list, uint flags, IntPtr attribute, IntPtr value, IntPtr size, IntPtr previous, IntPtr returnSize);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool UpdateProcThreadAttribute(IntPtr list, uint flags, IntPtr attribute, IntPtr value, IntPtr size, IntPtr previous, IntPtr returnSize);
 
-    [LibraryImport("kernel32.dll")]
-    private static partial void DeleteProcThreadAttributeList(IntPtr list);
+    [DllImport("kernel32.dll")]
+    private static extern void DeleteProcThreadAttributeList(IntPtr list);
 
-    [LibraryImport("kernel32.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
-  [return: MarshalAs(UnmanagedType.Bool)]
-  private static partial bool CreateProcessW(string? applicationName, char[] commandLine, IntPtr processAttributes, IntPtr threadAttributes,
-        [MarshalAs(UnmanagedType.Bool)] bool inheritHandles, uint creationFlags, IntPtr environment, string? currentDirectory, ref STARTUPINFOEX startupInfo, out PROCESS_INFORMATION processInformation);
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern bool CreateProcessW(string? applicationName, char[] commandLine, IntPtr processAttributes, IntPtr threadAttributes,
+        bool inheritHandles, uint creationFlags, IntPtr environment, string? currentDirectory, ref STARTUPINFOEX startupInfo, out PROCESS_INFORMATION processInformation);
 
-    [LibraryImport("kernel32.dll")]
-    private static partial uint WaitForSingleObject(IntPtr handle, uint milliseconds);
+    [DllImport("kernel32.dll")]
+    private static extern uint WaitForSingleObject(IntPtr handle, uint milliseconds);
 
-    [LibraryImport("kernel32.dll")]
-  [return: MarshalAs(UnmanagedType.Bool)]
-  private static partial bool GetExitCodeProcess(IntPtr process, out uint exitCode);
+    [DllImport("kernel32.dll")]
+    private static extern bool GetExitCodeProcess(IntPtr process, out uint exitCode);
 
-    [LibraryImport("kernel32.dll")]
-  [return: MarshalAs(UnmanagedType.Bool)]
-  private static partial bool CloseHandle(IntPtr handle);
+    [DllImport("kernel32.dll")]
+    private static extern bool CloseHandle(IntPtr handle);
 }

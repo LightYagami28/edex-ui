@@ -34,7 +34,10 @@ public static class MouseEncoder
     public static string? Encode(MouseTrackingMode mode, bool sgr, MouseEventKind kind, MouseButton button, int column, int row, MouseModifiers modifiers = MouseModifiers.None)
     {
         if (mode == MouseTrackingMode.None) return null;
-        if (!ShouldReport(mode, kind, button)) return null;
+        if (!ShouldReport(mode, kind, button))
+        {
+            return null;
+        }
 
         int code = (int)button;
         if (mode != MouseTrackingMode.X10) code |= (int)modifiers;
@@ -56,12 +59,48 @@ public static class MouseEncoder
         return sb.ToString();
     }
 
-    private static bool ShouldReport(MouseTrackingMode mode, MouseEventKind kind, MouseButton button)
+    private static Boolean ShouldReport(MouseTrackingMode mode, MouseEventKind kind, MouseButton button)
     {
         if (kind == MouseEventKind.Release)
-            return mode != MouseTrackingMode.X10 && button is not (MouseButton.WheelUp or MouseButton.WheelDown);
-        return kind != MouseEventKind.Motion
-            || mode == MouseTrackingMode.AnyEvent
-            || (mode == MouseTrackingMode.ButtonEvent && button != MouseButton.None);
+        {
+            return ReportsRelease(mode, button);
+        }
+
+        if (kind == MouseEventKind.Motion)
+        {
+            return ReportsMotion(mode, button);
+        }
+
+        return true;
+    }
+
+    private static Boolean ReportsRelease(MouseTrackingMode mode, MouseButton button)
+    {
+        if (mode == MouseTrackingMode.X10)
+        {
+            return false;
+        }
+
+        if (button == MouseButton.WheelUp || button == MouseButton.WheelDown)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static Boolean ReportsMotion(MouseTrackingMode mode, MouseButton button)
+    {
+        if (mode == MouseTrackingMode.AnyEvent)
+        {
+            return true;
+        }
+
+        if (mode == MouseTrackingMode.ButtonEvent && button != MouseButton.None)
+        {
+            return true;
+        }
+
+        return false;
     }
 }
