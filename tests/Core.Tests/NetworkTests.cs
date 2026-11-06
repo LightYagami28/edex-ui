@@ -9,6 +9,7 @@ namespace Edex.Core.Tests;
 [TestClass]
 public class NetworkTests
 {
+    public TestContext TestContext { get; set; }
     private sealed class FakeProbe(params NicInfo[] nics) : INetworkProbe
     {
         public List<NicInfo> Nics { get; } = [.. nics];
@@ -64,7 +65,7 @@ public class NetworkTests
     public async Task OfflineWithoutInterface()
     {
         var monitor = new NetworkMonitor(probe: new FakeProbe());
-        var snapshot = await monitor.SampleAsync();
+        var snapshot = await monitor.SampleAsync(TestContext.CancellationToken);
         Assert.IsFalse(snapshot.Online);
         Assert.AreEqual("offline", snapshot.InterfaceName);
     }
@@ -76,7 +77,7 @@ public class NetworkTests
         var probe = new FakeProbe(Nic("a", rx: 1000, tx: 500));
         var monitor = new NetworkMonitor("9.9.9.9", probe, () => now);
 
-        var first = await monitor.SampleAsync();
+        var first = await monitor.SampleAsync(TestContext.CancellationToken);
         Assert.IsTrue(first.Online);
         Assert.AreEqual("192.168.1.5", first.IPv4);
         Assert.AreEqual("192.168.1.1", first.Gateway);
@@ -89,7 +90,7 @@ public class NetworkTests
         now = now.AddSeconds(2);
         probe.Nics[0] = Nic("a", rx: 5000, tx: 1500);
         probe.PingResult = 99;
-        var second = await monitor.SampleAsync();
+        var second = await monitor.SampleAsync(TestContext.CancellationToken);
         Assert.AreEqual(2000, second.DownloadBytesPerSecond);
         Assert.AreEqual(500, second.UploadBytesPerSecond);
         Assert.AreEqual(5000, second.TotalReceivedBytes);
@@ -98,14 +99,14 @@ public class NetworkTests
 
         now = now.AddSeconds(6);
         probe.Nics[0] = Nic("a", rx: 100, tx: 100);
-        var third = await monitor.SampleAsync();
+        var third = await monitor.SampleAsync(TestContext.CancellationToken);
         Assert.AreEqual(0, third.DownloadBytesPerSecond);
         Assert.AreEqual(99, third.PingMilliseconds);
         Assert.AreEqual(2, probe.Pings);
 
         now = now.AddSeconds(1);
         probe.Nics[0] = Nic("b", rx: 9000, tx: 9000);
-        var other = await monitor.SampleAsync();
+        var other = await monitor.SampleAsync(TestContext.CancellationToken);
         Assert.AreEqual(0, other.DownloadBytesPerSecond);
     }
 
@@ -123,7 +124,7 @@ public class NetworkTests
         Assert.IsTrue(local is null or >= 0);
         var unreachable = await probe.PingAsync("192.0.2.1", CancellationToken.None);
         Assert.IsTrue(unreachable is null or >= 0);
-        var sample = await new NetworkMonitor("127.0.0.1").SampleAsync();
+        var sample = await new NetworkMonitor("127.0.0.1").SampleAsync(TestContext.CancellationToken);
         Assert.IsNotNull(sample.InterfaceName);
     }
 }

@@ -30,13 +30,17 @@ public class SafeTests
 [TestClass]
 public class MonitoringTests
 {
+    private const int sampleGapMs = 30;
+    private const int topProcessLimit = 3;
+    private const int fullCpuPercent = 100;
+
     [TestMethod]
-    public void CpuCounterSamples()
+    public async Task CpuCounterSamples()
     {
         var counter = CpuCounters.Create();
-        Assert.IsTrue(counter.SampleTotalPercent() >= 0);
-        Thread.Sleep(30);
-        Assert.IsTrue(counter.SampleTotalPercent() is >= 0 and <= 100);
+        Assert.IsGreaterThanOrEqualTo(0, counter.SampleTotalPercent());
+        await Task.Delay(sampleGapMs);
+        Assert.IsInRange(0, fullCpuPercent, counter.SampleTotalPercent());
         Assert.IsFalse(string.IsNullOrWhiteSpace(CpuInfo.ReadModel()));
         Assert.AreEqual(0, CpuCounters.Percent(5, 0));
         Assert.AreEqual(50, CpuCounters.Percent(5, 10));
@@ -73,7 +77,7 @@ public class MonitoringTests
         Assert.AreEqual(0UL, new MemorySample(10, 20).UsedBytes);
         Assert.AreEqual(75, new MemorySample(100, 25).UsedPercent);
         var live = MemoryInfo.Read();
-        Assert.IsTrue(live.TotalBytes > 0);
+        Assert.IsGreaterThan(0UL, live.TotalBytes);
     }
 
     [TestMethod]
@@ -89,17 +93,17 @@ public class MonitoringTests
         Assert.IsFalse(SystemMonitor.IsHiddenMount("/home", 1));
         Assert.AreEqual(0, new DiskSample("d", "/", "ext4", 0, 0).UsedPercent);
         Assert.AreEqual(25, new DiskSample("d", "/", "ext4", 100, 75).UsedPercent);
-        Assert.IsTrue(SystemMonitor.ReadDisks().Count > 0);
+        Assert.IsNotEmpty(SystemMonitor.ReadDisks());
     }
 
     [TestMethod]
-    public void SamplesTwice()
+    public async Task SamplesTwice()
     {
         var monitor = new SystemMonitor();
         monitor.Sample();
-        Thread.Sleep(30);
-        var snapshot = monitor.Sample(3);
-        Assert.IsTrue(snapshot.TopProcesses.Count <= 3);
+        await Task.Delay(sampleGapMs);
+        var snapshot = monitor.Sample(topProcessLimit);
+        Assert.IsLessThanOrEqualTo(topProcessLimit, snapshot.TopProcesses.Count);
         Assert.IsFalse(string.IsNullOrEmpty(snapshot.HostName));
     }
 }
@@ -119,9 +123,10 @@ public class FilesTests
         Directory.CreateDirectory(Path.Combine(dir.Path, "sub"));
         var listing = FileBrowser.List(dir.Path);
         Assert.IsNull(listing.Error);
-        Assert.IsTrue(listing.Entries.Select(e => e.Name).SequenceEqual(["..", "sub", "a.txt"]));
+        Assert.AreSequenceEqual(["..", "sub", "a.txt"], listing.Entries.Select(e => e.Name));
         Assert.AreEqual(5, listing.Entries.Single(e => e.Name == "a.txt").Size);
-        Assert.AreEqual(4, FileBrowser.List(dir.Path, showHidden: true).Entries.Count);
+        const int entriesWithHidden = 4;
+        Assert.HasCount(entriesWithHidden, FileBrowser.List(dir.Path, showHidden: true).Entries);
 
         // A file is not a folder.
         Assert.IsNotNull(FileBrowser.List(Path.Combine(dir.Path, "a.txt")).Error);
@@ -244,7 +249,7 @@ public class TerminalExtraTests
         var blank = TextSelection.Word(snapshot, new CellPosition(11, 0));
         Assert.AreEqual(11, blank.End.Column);
         var outside = TextSelection.Word(snapshot, new CellPosition(3, 9));
-        Assert.IsTrue(outside.IsEmpty);
+        Assert.IsEmpty(outside.GetText(snapshot));
         Assert.AreEqual("\nab $$ cd/e\nxyz\n", new TextSelection(new CellPosition(-3, -2), new CellPosition(40, 5)).GetText(snapshot));
         Assert.AreEqual("xyz", TextSelection.Line(snapshot, 1).GetText(snapshot));
     }
@@ -560,20 +565,20 @@ public class PtyExtraTests
     }
 
     [TestMethod]
-    public void SessionSurvivesBrokenReadsAndEarlyExit()
+    public async Task SessionSurvivesBrokenReadsAndEarlyExit()
     {
         var failing = new FakePty(exitCode: 9);
         failing.Out.FailReads = true;
         using (var session = TerminalSession.Attach(failing, "sh", new TerminalBuffer(10, 2)))
         {
             Assert.AreEqual(9, session.ExitCode);
-            Thread.Sleep(50);
+            await Task.Delay(50);
         }
 
         var disposed = new FakePty();
         disposed.Out.DisposedFailure = true;
         using var second = TerminalSession.Attach(disposed, "sh", new TerminalBuffer(10, 2));
-        Thread.Sleep(50);
+        await Task.Delay(50);
         Assert.IsFalse(second.HasExited);
     }
 
@@ -594,7 +599,7 @@ public class PtyExtraTests
             ? new PtyOptions { Shell = "cmd.exe", Columns = 100, Rows = 20, WorkingDirectory = Path.GetTempPath(), Environment = new Dictionary<string, string> { ["EDEX_T"] = "yes" } }
             : new PtyOptions { Shell = "sh", Columns = 100, Rows = 20, WorkingDirectory = Path.GetTempPath(), Environment = new Dictionary<string, string> { ["EDEX_T"] = "yes" } };
         using var session = TerminalSession.Start(options);
-        Assert.IsTrue(session.ProcessId > 0);
+        Assert.IsGreaterThan(0, session.ProcessId);
         session.Send(OperatingSystem.IsWindows() ? "echo %EDEX_T%-ok\r" : "echo $EDEX_T-ok\r");
         WaitFor(() => session.Buffer.ScrollbackText().Contains("yes-ok", StringComparison.Ordinal));
         session.Resize(90, 15);

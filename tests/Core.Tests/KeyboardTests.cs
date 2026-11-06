@@ -14,7 +14,7 @@ public class KeyboardTests
     {
         foreach (var layout in KeyboardLayout.All)
         {
-            Assert.AreEqual(5, layout.Rows.Count);
+            Assert.HasCount(5, layout.Rows);
             Assert.IsTrue(layout.Rows[1].Any(k => k.Label == "q"));
         }
         Assert.AreEqual("é", Key(KeyboardLayout.ItIt, "è").ShiftLabel);

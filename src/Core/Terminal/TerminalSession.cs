@@ -8,7 +8,6 @@ namespace Edex.Core.Terminal;
 public sealed class TerminalSession : IDisposable
 {
     private readonly IPtyConnection _pty;
-    private readonly Thread _reader;
     private readonly object _writeGate = new();
     private int _disposed;
     private int _exitReported;
@@ -32,8 +31,8 @@ public sealed class TerminalSession : IDisposable
         _pty.Exited += (_, code) => OnExited(code);
         // The child may already be gone before we subscribed.
         if (_pty.ExitCode is int early) OnExited(early);
-        _reader = new Thread(ReadLoop) { IsBackground = true, Name = "pty-reader" };
-        _reader.Start();
+        var reader = new Thread(ReadLoop) { IsBackground = true, Name = "pty-reader" };
+        reader.Start();
     }
 
     public static TerminalSession Start(PtyOptions options, int scrollback = 2000)
@@ -67,7 +66,7 @@ public sealed class TerminalSession : IDisposable
         }
         catch (Exception e) when (e is IOException or ObjectDisposedException)
         {
-            // EIO on Unix when the child closes the tty, or the connection was disposed while reading.
+            _ = e;
         }
         Updated?.Invoke(this, EventArgs.Empty);
     }

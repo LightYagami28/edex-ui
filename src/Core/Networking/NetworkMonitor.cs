@@ -95,7 +95,7 @@ public sealed class NetworkMonitor
     private double? _lastPing;
     private DateTime _lastPingTime = DateTime.MinValue;
 
-    public NetworkMonitor(string pingHost = "1.1.1.1", INetworkProbe? probe = null, Func<DateTime>? clock = null)
+    public NetworkMonitor(string pingHost = "one.one.one.one", INetworkProbe? probe = null, Func<DateTime>? clock = null)
     {
         _pingHost = pingHost;
         _probe = probe ?? new SystemNetworkProbe();

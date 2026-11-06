@@ -24,7 +24,7 @@ public class SoundSynthTests
         Assert.AreEqual(SoundSynth.SampleRate, BitConverter.ToInt32(wav, 24));
         int dataBytes = BitConverter.ToInt32(wav, 40);
         Assert.AreEqual(wav.Length - 44, dataBytes);
-        Assert.IsTrue(dataBytes > 0);
+        Assert.IsGreaterThan(0, dataBytes);
         short peak = 0;
         for (int i = 44; i < wav.Length; i += 2) peak = Math.Max(peak, Math.Abs(BitConverter.ToInt16(wav, i)));
         Assert.IsTrue(peak >= 1000 && peak <= short.MaxValue);                // audible and not clipped beyond range

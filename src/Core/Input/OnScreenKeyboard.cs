@@ -27,22 +27,25 @@ public sealed record KeyboardLayout(string Name, IReadOnlyList<IReadOnlyList<Key
         return list;
     }
 
-    private static IReadOnlyList<IReadOnlyList<KeyDefinition>> Build(string r1, string r1s, string r2, string r2s, string r3, string r3s, string r4, string r4s)
+    private static IReadOnlyList<IReadOnlyList<KeyDefinition>> Build(params (string normal, string shifted)[] rows)
     {
+        const int homeRow = 2;
+        const int bottomRow = 3;
+
         var row1 = new List<KeyDefinition> { new("Esc", null, KeyAction.Escape) };
-        row1.AddRange(Chars(r1, r1s));
+        row1.AddRange(Chars(rows[0].normal, rows[0].shifted));
         row1.Add(new KeyDefinition("⌫", null, KeyAction.Backspace, 1.8));
 
         var row2 = new List<KeyDefinition> { new("Tab", null, KeyAction.Tab, 1.5) };
-        row2.AddRange(Chars(r2, r2s));
+        row2.AddRange(Chars(rows[1].normal, rows[1].shifted));
         row2.Add(new KeyDefinition("Del", null, KeyAction.Delete, 1.3));
 
         var row3 = new List<KeyDefinition> { new("Caps", null, KeyAction.CapsLock, 1.8) };
-        row3.AddRange(Chars(r3, r3s));
+        row3.AddRange(Chars(rows[homeRow].normal, rows[homeRow].shifted));
         row3.Add(new KeyDefinition("Enter", null, KeyAction.Enter, 2.0));
 
         var row4 = new List<KeyDefinition> { new("Shift", null, KeyAction.Shift, 2.3) };
-        row4.AddRange(Chars(r4, r4s));
+        row4.AddRange(Chars(rows[bottomRow].normal, rows[bottomRow].shifted));
         row4.Add(new KeyDefinition("↑", null, KeyAction.Up));
         row4.Add(new KeyDefinition("Shift", null, KeyAction.Shift, 1.6));
 
@@ -61,16 +64,16 @@ public sealed record KeyboardLayout(string Name, IReadOnlyList<IReadOnlyList<Key
     }
 
     public static readonly KeyboardLayout EnUs = new("en-US", Build(
-        "`1234567890-=", "~!@#$%^&*()_+",
-        "qwertyuiop[]\\", "QWERTYUIOP{}|",
-        "asdfghjkl;'", "ASDFGHJKL:\"",
-        "zxcvbnm,./", "ZXCVBNM<>?"));
+        ("`1234567890-=", "~!@#$%^&*()_+"),
+        ("qwertyuiop[]\\", "QWERTYUIOP{}|"),
+        ("asdfghjkl;'", "ASDFGHJKL:\""),
+        ("zxcvbnm,./", "ZXCVBNM<>?")));
 
     public static readonly KeyboardLayout ItIt = new("it-IT", Build(
-        "\\1234567890'ì", "|!\"£$%&/()=?^",
-        "qwertyuiopè+ù", "QWERTYUIOPé*§",
-        "asdfghjklòà", "ASDFGHJKLç°",
-        "<zxcvbnm,.-", ">ZXCVBNM;:_"));
+        ("\\1234567890'ì", "|!\"£$%&/()=?^"),
+        ("qwertyuiopè+ù", "QWERTYUIOPé*§"),
+        ("asdfghjklòà", "ASDFGHJKLç°"),
+        ("<zxcvbnm,.-", ">ZXCVBNM;:_")));
 
     public static IReadOnlyList<KeyboardLayout> All { get; } = [EnUs, ItIt];
 
@@ -91,9 +94,18 @@ public sealed class KeyboardState
     public bool Alt { get; private set; }
     public bool CapsLock { get; private set; }
 
+    private const int deleteSequence = 3;
+    private const int pageUpSequence = 5;
+    private const int pageDownSequence = 6;
+
     /// <summary>Returns the bytes to send, or null when the key only changed a modifier.</summary>
     public string? Press(KeyDefinition key, bool applicationCursorKeys = false)
     {
+        if (key == null)
+        {
+            return null;
+        }
+
         switch (key.Action)
         {
             case KeyAction.Shift: Shift = !Shift; return null;
@@ -106,27 +118,173 @@ public sealed class KeyboardState
         string Cursor(char final) => modifier > 1 ? $"\x1b[1;{modifier}{final}" : applicationCursorKeys ? $"\x1bO{final}" : $"\x1b[{final}";
         string Tilde(int code) => modifier > 1 ? $"\x1b[{code};{modifier}~" : $"\x1b[{code}~";
 
-        string output = key.Action switch
-        {
-            KeyAction.Character => CharOutput(key),
-            KeyAction.Space => Control ? "\0" : Alt ? "\x1b " : " ",
-            KeyAction.Enter => Alt ? "\x1b\r" : "\r",
-            KeyAction.Backspace => Control ? "\x08" : Alt ? "\x1b\x7f" : "\x7f",
-            KeyAction.Tab => Shift ? "\x1b[Z" : "\t",
-            KeyAction.Escape => "\x1b",
-            KeyAction.Delete => Tilde(3),
-            KeyAction.Up => Cursor('A'),
-            KeyAction.Down => Cursor('B'),
-            KeyAction.Right => Cursor('C'),
-            KeyAction.Left => Cursor('D'),
-            KeyAction.Home => Cursor('H'),
-            KeyAction.End => Cursor('F'),
-            KeyAction.PageUp => Tilde(5),
-            KeyAction.PageDown => Tilde(6),
-            _ => "",
-        };
+        string output = CreateOutput(key, Cursor, Tilde);
         Shift = Control = Alt = false;
         return output;
+    }
+
+    private String CreateOutput(KeyDefinition key, Func<char, string> cursor, Func<int, string> tilde)
+    {
+        if (key == null)
+        {
+            return "";
+        }
+
+        String? navigation = NavigationOutput(key.Action, cursor, tilde);
+        if (navigation != null)
+        {
+            return navigation;
+        }
+
+        return TypingOutput(key);
+    }
+
+    private static String? NavigationOutput(KeyAction action, Func<char, string> cursor, Func<int, string> tilde)
+    {
+        KeyAction current = action;
+        String? edited = EditedKeyOutput(current, tilde);
+        if (edited != null)
+        {
+            return edited;
+        }
+
+        return ArrowOutput(current, cursor);
+    }
+
+    private static String? EditedKeyOutput(KeyAction action, Func<int, string> tilde)
+    {
+        switch (action)
+        {
+            case KeyAction.Delete:
+                return tilde(deleteSequence);
+            case KeyAction.PageUp:
+                return tilde(pageUpSequence);
+            case KeyAction.PageDown:
+                return tilde(pageDownSequence);
+            default:
+                return null;
+        }
+    }
+
+    private static String? ArrowOutput(KeyAction action, Func<char, string> cursor)
+    {
+        KeyAction current = action;
+        switch (current)
+        {
+            case KeyAction.Up:
+                return cursor('A');
+            case KeyAction.Down:
+                return cursor('B');
+            case KeyAction.Right:
+                return cursor('C');
+            default:
+                return OtherArrowOutput(current, cursor);
+        }
+    }
+
+    private static String? OtherArrowOutput(KeyAction action, Func<char, string> cursor)
+    {
+        switch (action)
+        {
+            case KeyAction.Left:
+                return cursor('D');
+            case KeyAction.Home:
+                return cursor('H');
+            case KeyAction.End:
+                return cursor('F');
+            default:
+                return null;
+        }
+    }
+
+    private String TypingOutput(KeyDefinition key)
+    {
+        if (key == null)
+        {
+            return "";
+        }
+
+        switch (key.Action)
+        {
+            case KeyAction.Character:
+                return CharOutput(key);
+            case KeyAction.Space:
+                return SpaceOutput();
+            case KeyAction.Enter:
+                return EnterOutput();
+            default:
+                return MoreTyping(key);
+        }
+    }
+
+    private String MoreTyping(KeyDefinition key)
+    {
+        if (key == null)
+        {
+            return "";
+        }
+
+        switch (key.Action)
+        {
+            case KeyAction.Backspace:
+                return BackspaceOutput();
+            case KeyAction.Tab:
+                return TabOutput();
+            case KeyAction.Escape:
+                return "\x1b";
+            default:
+                return "";
+        }
+    }
+
+    private String SpaceOutput()
+    {
+        if (Control)
+        {
+            return "\0";
+        }
+
+        if (Alt)
+        {
+            return "\x1b ";
+        }
+
+        return " ";
+    }
+
+    private String EnterOutput()
+    {
+        if (Alt)
+        {
+            return "\x1b\r";
+        }
+
+        return "\r";
+    }
+
+    private String BackspaceOutput()
+    {
+        if (Control)
+        {
+            return "\x08";
+        }
+
+        if (Alt)
+        {
+            return "\x1b\x7f";
+        }
+
+        return "\x7f";
+    }
+
+    private String TabOutput()
+    {
+        if (Shift)
+        {
+            return "\x1b[Z";
+        }
+
+        return "\t";
     }
 
     /// <summary>The label a character key shows with the current modifiers.</summary>

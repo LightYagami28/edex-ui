@@ -51,11 +51,27 @@ public readonly record struct TextSelection(CellPosition Anchor, CellPosition Ac
         if (at.Row < 0 || at.Row >= snapshot.Rows) return new TextSelection(at, at);
         var line = snapshot.Lines[at.Row];
         int col = Math.Clamp(at.Column, 0, line.Length - 1);
-        Func<char, bool> same = IsWordChar(line[col].Glyph) ? IsWordChar : IsSpace(line[col].Glyph) ? IsSpace : _ => false;
+        char glyph = line[col].Glyph;
+        Func<char, bool> same = Classify();
         int from = col, to = col;
         while (from > 0 && same(line[from - 1].Glyph)) from--;
         while (to < line.Length - 1 && same(line[to + 1].Glyph)) to++;
         return new TextSelection(new CellPosition(from, at.Row), new CellPosition(to, at.Row));
+
+        Func<char, bool> Classify()
+        {
+            if (IsWordChar(glyph))
+            {
+                return IsWordChar;
+            }
+
+            if (IsSpace(glyph))
+            {
+                return IsSpace;
+            }
+
+            return static _ => false;
+        }
     }
 
     /// <summary>Selects a whole line.</summary>

@@ -37,7 +37,7 @@ public class ShortcutsTests
         Assert.AreSame(Shortcuts.Defaults, Shortcuts.Parse("{nope"));
         Assert.AreSame(Shortcuts.Defaults, Shortcuts.Parse("null"));
         var parsed = Shortcuts.Parse("""[{"keys":"Ctrl+B","action":"x","command":"ls\n"},{"keys":"","action":"y"},{"keys":"Ctrl+N","action":""}]""");
-        Assert.AreEqual(1, parsed.Count);
+        Assert.HasCount(1, parsed);
         Assert.AreEqual("ls\n", parsed[0].Command);
         Assert.AreEqual(parsed[0], Shortcuts.Parse(Shortcuts.Serialize(parsed))[0]);
     }
@@ -51,13 +51,13 @@ public class BootSequenceTests
     {
         var text = string.Join('\n', Enumerable.Range(0, 20).Select(i => $" line {i} ")) + "\n\n";
         var lines = BootSequence.Parse(text);
-        Assert.AreEqual(20, lines.Count);
+        Assert.HasCount(20, lines);
         Assert.AreEqual("line 0", lines[0].Text);
         Assert.AreEqual(400, lines[0].DelayMs);
         Assert.AreEqual(180, lines[17].DelayMs);
         Assert.AreEqual(8 + 5 * 7 % 40, lines[5].DelayMs);
         Assert.AreEqual(lines.Sum(l => l.DelayMs), BootSequence.TotalMs(lines));
-        Assert.AreEqual(0, BootSequence.Parse("").Count);
+        Assert.IsEmpty(BootSequence.Parse(""));
     }
 }
 
@@ -117,8 +117,8 @@ public class FuzzyFinderTests
     public void ScoreRequiresOrderedLetters()
     {
         Assert.AreEqual(-1, FuzzyFinder.Score("readme.md", "mr"));
-        Assert.IsTrue(FuzzyFinder.Score("readme.md", "rd") > 0);
-        Assert.IsTrue(FuzzyFinder.Score("my-app.cs", "app") > FuzzyFinder.Score("mxaxpxp.cs", "app"));
+        Assert.IsGreaterThan(0, FuzzyFinder.Score("readme.md", "rd"));
+        Assert.IsGreaterThan(FuzzyFinder.Score("mxaxpxp.cs", "app"), FuzzyFinder.Score("my-app.cs", "app"));
         Assert.AreEqual(0, FuzzyFinder.Score("a", ""));
     }
 
@@ -135,10 +135,10 @@ public class FuzzyFinderTests
         try
         {
             var found = FuzzyFinder.Search(root, "main");
-            CollectionAssert.AreEqual(new[] { "main.cs", Path.Combine("sub", "main_test.cs") }, found.Select(f => f.RelativePath).ToArray());
-            Assert.AreEqual(3, FuzzyFinder.Search(root, "main", showHidden: true).Count);
-            Assert.AreEqual(1, FuzzyFinder.Search(root, "main", maxResults: 1).Count);
-            Assert.AreEqual(0, FuzzyFinder.Search(Path.Combine(root, "missing"), "x").Count);
+            Assert.AreSequenceEqual(new[] { "main.cs", Path.Combine("sub", "main_test.cs") }, found.Select(f => f.RelativePath));
+            Assert.HasCount(3, FuzzyFinder.Search(root, "main", showHidden: true));
+            Assert.HasCount(1, FuzzyFinder.Search(root, "main", maxResults: 1));
+            Assert.IsEmpty(FuzzyFinder.Search(Path.Combine(root, "missing"), "x"));
         }
         finally
         {

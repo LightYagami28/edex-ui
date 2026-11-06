@@ -302,10 +302,10 @@ public class TerminalParserTests
         var replies = new List<string>();
         b.Response += replies.Add;
         b.Feed("\x1b[5n\x1b[6n\x1b[c\x1b[0c\x1b[>c\x1b[1c\x1b[7n\x1b[<c\x1b[=c");
-        Assert.AreEqual(1, replies.Count);
+        Assert.HasCount(1, replies);
         Assert.AreEqual("\x1b[0n\x1b[1;1R\x1b[?62;22c\x1b[?62;22c\x1b[>0;10;0c", replies[0]);
         b.Feed("x");
-        Assert.AreEqual(1, replies.Count);
+        Assert.HasCount(1, replies);
         // intermediate-character CSI sequences: only DECSTR (CSI ! p) resets
         b.Feed("abc\x1b[ q\x1b[\"q\x1b[$p\x1b['z\x1b[!p");
         Assert.AreEqual("", b.Snapshot().Text);
@@ -347,7 +347,7 @@ public class TerminalParserTests
         d.Feed("1\r\n2\r\n3\r\n4\r\n5\r\n6");
         d.ScrollViewport(3);
         d.Resize(4, 4);
-        Assert.IsTrue(d.Snapshot().ScrollOffset <= d.Snapshot().ScrollbackLength);
+        Assert.IsLessThanOrEqualTo(d.Snapshot().ScrollbackLength, d.Snapshot().ScrollOffset);
     }
 
     [TestMethod]
@@ -368,7 +368,7 @@ public class TerminalParserTests
         b.Feed("\x1b[3J");
         Assert.AreEqual(0, b.Snapshot().ScrollbackLength);
         Assert.AreEqual(0, b.Snapshot().ScrollOffset);
-        Assert.IsTrue(b.ScrollbackText().Length > 0);
+        Assert.IsNotEmpty(b.ScrollbackText());
         // growing scrollback while scrolled back keeps the view in place
         var c = new TerminalBuffer(4, 2, 10);
         c.Feed("1\r\n2\r\n3\r\n4");

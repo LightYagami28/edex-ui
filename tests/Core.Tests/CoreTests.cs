@@ -111,11 +111,11 @@ public class FileBrowserTests
 public class MonitorTests
 {
     [TestMethod]
-    public void SamplesSystem()
+    public async Task SamplesSystem()
     {
         var monitor = new SystemMonitor();
         monitor.Sample();
-        Thread.Sleep(200);
+        await Task.Delay(200);
         var snap = monitor.Sample();
         Assert.IsTrue(snap.Memory.TotalBytes > 0);
         Assert.IsTrue(snap.Cpu.TotalPercent >= 0 && snap.Cpu.TotalPercent <= 100);
