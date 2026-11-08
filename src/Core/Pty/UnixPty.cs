@@ -41,7 +41,7 @@ internal sealed partial class UnixPty : IPtyConnection
         waiter.Start();
     }
 
-    public static UnixPty Spawn(PtyOptions options)
+    internal static UnixPty Spawn(PtyOptions options)
     {
         string executable = ResolveExecutable(options.Shell);
         var env = PtyFactory.BuildEnvironment(options.Environment);
