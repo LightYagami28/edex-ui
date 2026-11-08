@@ -60,7 +60,10 @@ public static class FileTypes
     // Well-known extensionless files.
     private static FileCategory ClassifyExtensionless(string name, FileEntryKind kind)
     {
-        if (ByName.TryGetValue(name, out var category)) return category;
+        if (ByName.TryGetValue(name, out var category))
+        {
+            return category;
+        }
         if (name.StartsWith('.')) return FileCategory.Data;
         return kind == FileEntryKind.Link ? FileCategory.Link : FileCategory.Other;
     }

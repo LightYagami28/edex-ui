@@ -7,6 +7,8 @@ namespace Edex.Core.Tests;
 [TestClass]
 public class KeyboardTests
 {
+    private const int LayoutFiles = 19;
+
     private static KeyDefinition Key(KeyboardLayout layout, string label) => layout.Rows.SelectMany(r => r).First(k => k.Label == label);
 
     [TestMethod]
@@ -17,7 +19,7 @@ public class KeyboardTests
             Assert.HasCount(5, layout.Rows);
             Assert.Contains(k => k.Action == KeyAction.Tab, layout.Rows[1]);
         }
-        Assert.HasCount(19, KeyboardLayout.All);
+        Assert.HasCount(LayoutFiles, KeyboardLayout.All);
         Assert.AreEqual("Z", Key(KeyboardLayout.Find("de-DE"), "z").ShiftLabel);
         Assert.AreEqual("A", Key(KeyboardLayout.Find("fr-FR"), "a").ShiftLabel);
         Assert.AreEqual("é", Key(KeyboardLayout.ItIt, "è").ShiftLabel);

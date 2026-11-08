@@ -107,7 +107,10 @@ public sealed record KeyboardLayout(string Name, IReadOnlyList<IReadOnlyList<Key
         {
             var cmd = key.GetProperty("cmd").ToString();
             // Tab, Enter, Shift, arrows and the other special keys have control or multi-character commands.
-            if (cmd.Length != 1 || char.IsControl(cmd[0])) continue;
+            if (cmd.Length != 1 || char.IsControl(cmd[0]))
+            {
+                continue;
+            }
             var shift = key.TryGetProperty("shift_cmd", out var value) ? value.GetString() : null;
             normal.Append(cmd);
             shifted.Append(shift is { Length: 1 } ? shift : cmd.ToUpperInvariant());

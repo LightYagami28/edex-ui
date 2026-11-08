@@ -12,6 +12,7 @@ public class PtyTests
     public TestContext TestContext { get; set; }
 
     private const int ExitGraceSeconds = 10;
+    private const int PollMs = 50;
 
     [TestMethod]
     public async Task RunsCommandInPseudoTerminal()
@@ -29,7 +30,7 @@ public class PtyTests
         var exitDeadline = deadline.AddSeconds(ExitGraceSeconds);
         while (DateTime.UtcNow < exitDeadline && !session.HasExited)
         {
-            await Task.Delay(50, TestContext.CancellationToken);
+            await Task.Delay(PollMs, TestContext.CancellationToken);
         }
         Assert.IsTrue(session.HasExited);
         Assert.AreEqual(0, session.ExitCode);
