@@ -6,7 +6,7 @@ using Microsoft.Win32.SafeHandles;
 namespace Edex.Core.Pty;
 
 /// <summary>Pseudo terminal for Linux and macOS based on forkpty(3).</summary>
-internal sealed class UnixPty : IPtyConnection
+internal sealed partial class UnixPty : IPtyConnection
 {
     private readonly int _pid;
     private readonly int _master;
@@ -30,7 +30,10 @@ internal sealed class UnixPty : IPtyConnection
         var waiter = new Thread(() =>
         {
             int status;
-            while (waitpid(_pid, out status, 0) == -1 && Marshal.GetLastPInvokeError() == EINTR) { }
+            while (waitpid(_pid, out status, 0) == -1 && Marshal.GetLastPInvokeError() == EINTR)
+            {
+                // Interrupted by a signal: retry until the child state is available.
+            }
             int code = (status & 0x7f) == 0 ? (status >> 8) & 0xff : 128 + (status & 0x7f);
             ExitCode = code;
             Exited?.Invoke(this, code);
@@ -49,20 +52,20 @@ internal sealed class UnixPty : IPtyConnection
 
         // Everything the child needs is marshalled before fork: after fork only async-signal-safe calls are made.
         var allocations = new List<IntPtr>();
-        IntPtr Str(string s) { var p = Marshal.StringToHGlobalAnsi(s); allocations.Add(p); return p; }
-        IntPtr Array(IEnumerable<string> items)
+        static IntPtr Str(List<IntPtr> allocations, string s) { var p = Marshal.StringToHGlobalAnsi(s); allocations.Add(p); return p; }
+        static IntPtr Array(List<IntPtr> allocations, IEnumerable<string> items)
         {
-            var pointers = items.Select(Str).Append(IntPtr.Zero).ToArray();
+            var pointers = items.Select(item => Str(allocations, item)).Append(IntPtr.Zero).ToArray();
             var block = Marshal.AllocHGlobal(IntPtr.Size * pointers.Length);
             for (int i = 0; i < pointers.Length; i++) Marshal.WriteIntPtr(block, i * IntPtr.Size, pointers[i]);
             allocations.Add(block);
             return block;
         }
 
-        IntPtr path = Str(executable);
-        IntPtr argv = Array(new[] { executable }.Concat(options.Args));
-        IntPtr envp = Array(env.Select(e => $"{e.Key}={e.Value}"));
-        IntPtr dir = Str(cwd);
+        IntPtr path = Str(allocations, executable);
+        IntPtr argv = Array(allocations, new[] { executable }.Concat(options.Args));
+        IntPtr envp = Array(allocations, env.Select(e => $"{e.Key}={e.Value}"));
+        IntPtr dir = Str(allocations, cwd);
         var size = new WinSize { Rows = (ushort)Math.Max(2, options.Rows), Columns = (ushort)Math.Max(2, options.Columns) };
 
         PrepareChildCalls();
@@ -81,7 +84,7 @@ internal sealed class UnixPty : IPtyConnection
         // Generate the interop stubs now so the child never needs the JIT.
         foreach (var name in new[] { nameof(chdir), nameof(execve), nameof(_exit) })
         {
-            var method = typeof(UnixPty).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Static);
+            var method = typeof(UnixPty).GetMethod(name, BindingFlags.Public | BindingFlags.Static);
             if (method is not null) Marshal.Prelink(method);
         }
     }
@@ -108,8 +111,8 @@ internal sealed class UnixPty : IPtyConnection
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
         _ = kill(_pid, SIGHUP);
-        try { _input.Dispose(); } catch (IOException) { }
-        try { _output.Dispose(); } catch (IOException) { }
+        try { _input.Dispose(); } catch (IOException) { /* already closed */ }
+        try { _output.Dispose(); } catch (IOException) { /* already closed */ }
     }
 
     private const int SIGHUP = 1;
@@ -118,27 +121,31 @@ internal sealed class UnixPty : IPtyConnection
     [StructLayout(LayoutKind.Sequential)]
     private struct WinSize { public ushort Rows, Columns, XPixels, YPixels; }
 
-    [DllImport("libc", SetLastError = true)]
-    private static extern int forkpty(out int master, IntPtr name, IntPtr termios, ref WinSize size);
+    [LibraryImport("libc", SetLastError = true)]
+    private static partial int forkpty(out int master, IntPtr name, IntPtr termios, ref WinSize size);
+
+    // The child calls chdir/execve/_exit right after fork, so their stubs are pre-linked with Marshal.Prelink.
+    // Prelink needs real DllImport methods (not LibraryImport wrappers), hence the suppression.
+#pragma warning disable SYSLIB1054
+    [DllImport("libc")]
+    public static extern int execve(IntPtr path, IntPtr argv, IntPtr envp);
 
     [DllImport("libc")]
-    private static extern int execve(IntPtr path, IntPtr argv, IntPtr envp);
+    public static extern int chdir(IntPtr path);
 
     [DllImport("libc")]
-    private static extern int chdir(IntPtr path);
+    public static extern void _exit(int status);
+#pragma warning restore SYSLIB1054
 
-    [DllImport("libc")]
-    private static extern void _exit(int status);
+    [LibraryImport("libc", SetLastError = true)]
+    private static partial int ioctl(int fd, UIntPtr request, ref WinSize size);
 
-    [DllImport("libc", SetLastError = true)]
-    private static extern int ioctl(int fd, UIntPtr request, ref WinSize size);
+    [LibraryImport("libc", SetLastError = true)]
+    private static partial int waitpid(int pid, out int status, int options);
 
-    [DllImport("libc", SetLastError = true)]
-    private static extern int waitpid(int pid, out int status, int options);
+    [LibraryImport("libc", SetLastError = true)]
+    private static partial int dup(int fd);
 
-    [DllImport("libc", SetLastError = true)]
-    private static extern int dup(int fd);
-
-    [DllImport("libc")]
-    private static extern int kill(int pid, int signal);
+    [LibraryImport("libc")]
+    private static partial int kill(int pid, int signal);
 }

@@ -40,17 +40,19 @@ public static class FileTypes
     {
         if (kind == FileEntryKind.Directory) return FileCategory.Folder;
         var ext = Path.GetExtension(name);
-        if (string.IsNullOrEmpty(ext))
-        {
-            // Well-known extensionless files.
-            var lower = name.ToLowerInvariant();
-            if (lower is "makefile" or "dockerfile" or "jenkinsfile" or "rakefile" or "gemfile") return FileCategory.Code;
-            if (lower is "readme" or "license" or "copying" or "authors" or "changelog") return FileCategory.Text;
-            if (name.StartsWith('.')) return FileCategory.Data;
-            return kind == FileEntryKind.Link ? FileCategory.Link : FileCategory.Other;
-        }
+        if (string.IsNullOrEmpty(ext)) return ClassifyExtensionless(name, kind);
         if (ByExtension.TryGetValue(ext, out var category)) return category;
         if (name.StartsWith('.') && name.IndexOf('.', 1) < 0) return FileCategory.Data;
+        return kind == FileEntryKind.Link ? FileCategory.Link : FileCategory.Other;
+    }
+
+    // Well-known extensionless files.
+    private static FileCategory ClassifyExtensionless(string name, FileEntryKind kind)
+    {
+        var lower = name.ToLowerInvariant();
+        if (lower is "makefile" or "dockerfile" or "jenkinsfile" or "rakefile" or "gemfile") return FileCategory.Code;
+        if (lower is "readme" or "license" or "copying" or "authors" or "changelog") return FileCategory.Text;
+        if (name.StartsWith('.')) return FileCategory.Data;
         return kind == FileEntryKind.Link ? FileCategory.Link : FileCategory.Other;
     }
 

@@ -115,7 +115,11 @@ public sealed class KeyboardState
         }
 
         int modifier = 1 + (Shift ? 1 : 0) + (Alt ? 2 : 0) + (Control ? 4 : 0);
-        string Cursor(char final) => modifier > 1 ? $"\x1b[1;{modifier}{final}" : applicationCursorKeys ? $"\x1bO{final}" : $"\x1b[{final}";
+        string Cursor(char final)
+        {
+            if (modifier > 1) return $"\x1b[1;{modifier}{final}";
+            return applicationCursorKeys ? $"\x1bO{final}" : $"\x1b[{final}";
+        }
         string Tilde(int code) => modifier > 1 ? $"\x1b[{code};{modifier}~" : $"\x1b[{code}~";
 
         string output = CreateOutput(key, Cursor, Tilde);

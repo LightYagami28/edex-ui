@@ -205,8 +205,7 @@ public sealed class TerminalBuffer
         switch (_state)
         {
             case State.Ground:
-                if (c < 0x20 || c == 0x7F) Control(c);
-                else Print(c);
+                ProcessGround(c);
                 break;
             case State.Escape:
                 EscapeChar(c);
@@ -218,29 +217,50 @@ public sealed class TerminalBuffer
                 _state = State.Ground; // character set designation is ignored (UTF-8 only)
                 break;
             case State.Csi:
-                if (c >= 0x40 && c <= 0x7E) { Csi(c); _state = State.Ground; }
-                else if (c == 0x1B) _state = State.Escape;
-                else if (c == 0x18 || c == 0x1A) _state = State.Ground;
-                else if (c >= 0x20) _params.Append(c);
-                else Control(c);
+                ProcessCsi(c);
                 break;
             case State.Osc:
-                if (c == 0x07) { Osc(); _state = State.Ground; }
-                else if (c == 0x1B) _state = State.OscEscape;
-                else if (_osc.Length < 4096) _osc.Append(c);
+                ProcessOsc(c);
                 break;
             case State.OscEscape:
                 if (c == '\\') Osc();
                 _state = State.Ground;
                 break;
             case State.Dcs:
-                if (c == 0x1B) _state = State.DcsEscape;
-                else if (c == 0x07) _state = State.Ground;
+                ProcessDcs(c);
                 break;
             case State.DcsEscape:
                 _state = c == '\\' ? State.Ground : State.Dcs;
                 break;
         }
+    }
+
+    private void ProcessGround(char c)
+    {
+        if (c < 0x20 || c == 0x7F) Control(c);
+        else Print(c);
+    }
+
+    private void ProcessCsi(char c)
+    {
+        if (c >= 0x40 && c <= 0x7E) { Csi(c); _state = State.Ground; }
+        else if (c == 0x1B) _state = State.Escape;
+        else if (c == 0x18 || c == 0x1A) _state = State.Ground;
+        else if (c >= 0x20) _params.Append(c);
+        else Control(c);
+    }
+
+    private void ProcessOsc(char c)
+    {
+        if (c == 0x07) { Osc(); _state = State.Ground; }
+        else if (c == 0x1B) _state = State.OscEscape;
+        else if (_osc.Length < 4096) _osc.Append(c);
+    }
+
+    private void ProcessDcs(char c)
+    {
+        if (c == 0x1B) _state = State.DcsEscape;
+        else if (c == 0x07) _state = State.Ground;
     }
 
     private void EscapeChar(char c)
@@ -385,7 +405,7 @@ public sealed class TerminalBuffer
             raw = raw[1..];
         }
         if (raw.Length == 0) return [];
-        var parts = raw.Split(';', ':');
+        var parts = raw.Split(ParamSeparators);
         var values = new int[parts.Length];
         for (int i = 0; i < parts.Length; i++)
         {
@@ -394,6 +414,8 @@ public sealed class TerminalBuffer
         }
         return values;
     }
+
+    private static readonly char[] ParamSeparators = [';', ':'];
 
     private static int Arg(int[] p, int index, int fallback = 1) => index < p.Length && p[index] > 0 ? p[index] : fallback;
 
@@ -413,6 +435,12 @@ public sealed class TerminalBuffer
             return;
         }
 
+        CsiCommand(final, p);
+        if (final != 'm' && final != 'n' && final != 'c') _wrapPending = false;
+    }
+
+    private void CsiCommand(char final, int[] p)
+    {
         int rowLimitTop = 0, rowLimitBottom = Rows - 1;
         if (_cursorY >= _scrollTop && _cursorY <= _scrollBottom) { rowLimitTop = _scrollTop; rowLimitBottom = _scrollBottom; }
 
@@ -430,73 +458,88 @@ public sealed class TerminalBuffer
                 _cursorY = Math.Clamp(Arg(p, 0) - 1, 0, Rows - 1);
                 _cursorX = Math.Clamp(Arg(p, 1) - 1, 0, Columns - 1);
                 break;
-            case 'J': EraseDisplay(p.Length > 0 ? p[0] : 0); break;
-            case 'K': EraseLine(p.Length > 0 ? p[0] : 0); break;
+            case 'J': EraseDisplay(Arg(p, 0, 0)); break;
+            case 'K': EraseLine(Arg(p, 0, 0)); break;
             case 'L': InsertLines(Arg(p, 0)); break;
             case 'M': DeleteLines(Arg(p, 0)); break;
             case 'P': DeleteChars(Arg(p, 0)); break;
             case '@': InsertChars(Arg(p, 0)); break;
-            case 'X':
-                for (int i = 0; i < Arg(p, 0) && _cursorX + i < Columns; i++) _screen[_cursorY][_cursorX + i] = BlankWithBackground;
-                break;
+            case 'X': EraseChars(Arg(p, 0)); break;
             case 'S': ScrollUp(Arg(p, 0)); break;
             case 'T': ScrollDown(Arg(p, 0)); break;
             case 'm': Sgr(p); break;
-            case 'r':
-                int top = Arg(p, 0) - 1, bottom = Arg(p, 1, Rows) - 1;
-                if (top < bottom && bottom < Rows) { _scrollTop = top; _scrollBottom = bottom; }
-                else { _scrollTop = 0; _scrollBottom = Rows - 1; }
-                _cursorX = 0;
-                _cursorY = 0;
-                break;
+            case 'r': SetScrollRegion(p); break;
             case 's': SaveCursor(); break;
             case 'u': RestoreCursor(); break;
-            case 'n':
-                if (Arg(p, 0, 0) == 6) _responses.Append(System.Globalization.CultureInfo.InvariantCulture, $"\x1b[{_cursorY + 1};{_cursorX + 1}R");
-                else if (Arg(p, 0, 0) == 5) _responses.Append("\x1b[0n");
-                break;
+            case 'n': DeviceStatus(Arg(p, 0, 0)); break;
             case 'c':
                 if (Arg(p, 0, 0) == 0) _responses.Append("\x1b[?62;22c");
                 break;
         }
-        if (final != 'm' && final != 'n' && final != 'c') _wrapPending = false;
+    }
+
+    private void EraseChars(int count)
+    {
+        for (int i = 0; i < count && _cursorX + i < Columns; i++) _screen[_cursorY][_cursorX + i] = BlankWithBackground;
+    }
+
+    private void SetScrollRegion(int[] p)
+    {
+        int top = Arg(p, 0) - 1, bottom = Arg(p, 1, Rows) - 1;
+        if (top < bottom && bottom < Rows) { _scrollTop = top; _scrollBottom = bottom; }
+        else { _scrollTop = 0; _scrollBottom = Rows - 1; }
+        _cursorX = 0;
+        _cursorY = 0;
+    }
+
+    private void DeviceStatus(int request)
+    {
+        if (request == 6) _responses.Append(System.Globalization.CultureInfo.InvariantCulture, $"\x1b[{_cursorY + 1};{_cursorX + 1}R");
+        else if (request == 5) _responses.Append("\x1b[0n");
     }
 
     private void PrivateMode(char final, int[] p)
     {
         if (final != 'h' && final != 'l') return;
         bool on = final == 'h';
-        foreach (var mode in p)
+        foreach (var mode in p) SetPrivateMode(mode, on);
+    }
+
+    private void SetPrivateMode(int mode, bool on)
+    {
+        switch (mode)
         {
-            switch (mode)
-            {
-                case 1: ApplicationCursorKeys = on; break;
-                case 25: CursorVisible = on; break;
-                case 2004: BracketedPaste = on; break;
-                case 9: MouseTracking = on ? MouseTrackingMode.X10 : MouseTrackingMode.None; break;
-                case 1000: MouseTracking = on ? MouseTrackingMode.Normal : MouseTrackingMode.None; break;
-                case 1002: MouseTracking = on ? MouseTrackingMode.ButtonEvent : MouseTrackingMode.None; break;
-                case 1003: MouseTracking = on ? MouseTrackingMode.AnyEvent : MouseTrackingMode.None; break;
-                case 1006: SgrMouse = on; break;
-                case 47: case 1047: case 1049:
-                    if (on && !IsAlternateScreen)
-                    {
-                        if (mode == 1049) SaveCursor();
-                        _alternate = NewScreen(Columns, Rows);
-                        _screen = _alternate;
-                        _cursorX = _cursorY = 0;
-                    }
-                    else if (!on && IsAlternateScreen)
-                    {
-                        _screen = _main;
-                        _alternate = null;
-                        if (mode == 1049) RestoreCursor();
-                    }
-                    _scrollTop = 0;
-                    _scrollBottom = Rows - 1;
-                    break;
-            }
+            case 1: ApplicationCursorKeys = on; break;
+            case 25: CursorVisible = on; break;
+            case 2004: BracketedPaste = on; break;
+            case 9: MouseTracking = Tracking(on, MouseTrackingMode.X10); break;
+            case 1000: MouseTracking = Tracking(on, MouseTrackingMode.Normal); break;
+            case 1002: MouseTracking = Tracking(on, MouseTrackingMode.ButtonEvent); break;
+            case 1003: MouseTracking = Tracking(on, MouseTrackingMode.AnyEvent); break;
+            case 1006: SgrMouse = on; break;
+            case 47: case 1047: case 1049: SwitchScreen(mode, on); break;
         }
+    }
+
+    private static MouseTrackingMode Tracking(bool on, MouseTrackingMode mode) => on ? mode : MouseTrackingMode.None;
+
+    private void SwitchScreen(int mode, bool on)
+    {
+        if (on && !IsAlternateScreen)
+        {
+            if (mode == 1049) SaveCursor();
+            _alternate = NewScreen(Columns, Rows);
+            _screen = _alternate;
+            _cursorX = _cursorY = 0;
+        }
+        else if (!on && IsAlternateScreen)
+        {
+            _screen = _main;
+            _alternate = null;
+            if (mode == 1049) RestoreCursor();
+        }
+        _scrollTop = 0;
+        _scrollBottom = Rows - 1;
     }
 
     private void EraseDisplay(int mode)
@@ -572,9 +615,10 @@ public sealed class TerminalBuffer
     private void Sgr(int[] p)
     {
         if (p.Length == 0) { _fg = _bg = 0; _attrs = CellAttributes.None; return; }
-        for (int i = 0; i < p.Length; i++)
+        int i = 0;
+        while (i < p.Length)
         {
-            int code = p[i];
+            int code = p[i++];
             switch (code)
             {
                 case 0: _fg = _bg = 0; _attrs = CellAttributes.None; break;
@@ -598,13 +642,21 @@ public sealed class TerminalBuffer
                 case >= 90 and <= 97: _fg = TerminalCell.Palette(code - 90 + 8); break;
                 case >= 100 and <= 107: _bg = TerminalCell.Palette(code - 100 + 8); break;
                 case 38: case 48:
-                    uint color;
-                    if (i + 2 < p.Length && p[i + 1] == 5) { color = TerminalCell.Palette(p[i + 2]); i += 2; }
-                    else if (i + 4 < p.Length && p[i + 1] == 2) { color = TerminalCell.Rgb(p[i + 2], p[i + 3], p[i + 4]); i += 4; }
-                    else { i = p.Length; break; }
-                    if (code == 38) _fg = color; else _bg = color;
+                    i = ExtendedColor(p, i, code == 38);
                     break;
             }
         }
+    }
+
+    /// <summary>Applies a 256-color or RGB color whose arguments start at <paramref name="next"/>; returns the index after them.</summary>
+    private int ExtendedColor(int[] p, int next, bool foreground)
+    {
+        uint color;
+        int end;
+        if (next + 1 < p.Length && p[next] == 5) { color = TerminalCell.Palette(p[next + 1]); end = next + 2; }
+        else if (next + 3 < p.Length && p[next] == 2) { color = TerminalCell.Rgb(p[next + 1], p[next + 2], p[next + 3]); end = next + 4; }
+        else return p.Length;
+        if (foreground) _fg = color; else _bg = color;
+        return end;
     }
 }

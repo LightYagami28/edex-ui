@@ -9,7 +9,7 @@ namespace Edex.Core.Pty;
 
 /// <summary>Pseudo terminal backed by the Windows ConPTY API (Windows 10 1809+).</summary>
 [SupportedOSPlatform("windows")]
-internal sealed class WindowsPty : IPtyConnection
+internal sealed partial class WindowsPty : IPtyConnection
 {
     private readonly IntPtr _pseudoConsole;
     private readonly IntPtr _process;
@@ -23,7 +23,7 @@ internal sealed class WindowsPty : IPtyConnection
     public int? ExitCode { get; private set; }
     public event EventHandler<int>? Exited;
 
-    private WindowsPty(IntPtr pseudoConsole, PROCESS_INFORMATION info, SafeFileHandle outputRead, SafeFileHandle inputWrite)
+    private WindowsPty(IntPtr pseudoConsole, ProcessInformation info, SafeFileHandle outputRead, SafeFileHandle inputWrite)
     {
         _pseudoConsole = pseudoConsole;
         _process = info.hProcess;
@@ -48,14 +48,16 @@ internal sealed class WindowsPty : IPtyConnection
     {
         var (inputRead, inputWrite) = Pipe();
         var (outputRead, outputWrite) = Pipe();
+        bool consoleOwnsEnds = false;
         IntPtr pseudoConsole = IntPtr.Zero, attributeList = IntPtr.Zero, environmentBlock = IntPtr.Zero;
         try
         {
-            var size = new COORD { X = (short)Math.Clamp(options.Columns, 2, short.MaxValue), Y = (short)Math.Clamp(options.Rows, 2, short.MaxValue) };
+            var size = new Coord { X = (short)Math.Clamp(options.Columns, 2, short.MaxValue), Y = (short)Math.Clamp(options.Rows, 2, short.MaxValue) };
             Marshal.ThrowExceptionForHR(CreatePseudoConsole(size, inputRead, outputWrite, 0, out pseudoConsole));
             // The pseudo console duplicated these ends; we must release ours.
             inputRead.Dispose();
             outputWrite.Dispose();
+            consoleOwnsEnds = true;
 
             IntPtr listSize = IntPtr.Zero;
             InitializeProcThreadAttributeList(IntPtr.Zero, 1, 0, ref listSize);
@@ -63,8 +65,8 @@ internal sealed class WindowsPty : IPtyConnection
             Ensure(InitializeProcThreadAttributeList(attributeList, 1, 0, ref listSize));
             Ensure(UpdateProcThreadAttribute(attributeList, 0, (IntPtr)PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE, pseudoConsole, (IntPtr)IntPtr.Size, IntPtr.Zero, IntPtr.Zero));
 
-            var startup = new STARTUPINFOEX();
-            startup.StartupInfo.cb = Marshal.SizeOf<STARTUPINFOEX>();
+            var startup = new StartupInfoEx();
+            startup.StartupInfo.cb = Marshal.SizeOf<StartupInfoEx>();
             // Do not let the child inherit the standard handles of a GUI host.
             startup.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
             startup.lpAttributeList = attributeList;
@@ -87,8 +89,11 @@ internal sealed class WindowsPty : IPtyConnection
         }
         catch
         {
-            inputRead.Dispose();
-            outputWrite.Dispose();
+            if (!consoleOwnsEnds)
+            {
+                inputRead.Dispose();
+                outputWrite.Dispose();
+            }
             outputRead.Dispose();
             inputWrite.Dispose();
             if (pseudoConsole != IntPtr.Zero) ClosePseudoConsole(pseudoConsole);
@@ -140,20 +145,20 @@ internal sealed class WindowsPty : IPtyConnection
     public void Resize(int columns, int rows)
     {
         if (Volatile.Read(ref _disposed) != 0) return;
-        _ = ResizePseudoConsole(_pseudoConsole, new COORD { X = (short)Math.Max(2, columns), Y = (short)Math.Max(2, rows) });
+        _ = ResizePseudoConsole(_pseudoConsole, new Coord { X = (short)Math.Max(2, columns), Y = (short)Math.Max(2, rows) });
     }
 
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
-        try { _input.Dispose(); } catch (IOException) { }
+        try { _input.Dispose(); } catch (IOException) { /* already closed */ }
         // ClosePseudoConsole can block until pending output is drained, so never run it on the UI thread.
         var hpc = _pseudoConsole;
         var output = _output;
         ThreadPool.QueueUserWorkItem(_ =>
         {
             ClosePseudoConsole(hpc);
-            try { output.Dispose(); } catch (IOException) { }
+            try { output.Dispose(); } catch (IOException) { /* already closed */ }
         });
     }
 
@@ -164,10 +169,10 @@ internal sealed class WindowsPty : IPtyConnection
     private const int PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = 0x00020016;
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct COORD { public short X; public short Y; }
+    private struct Coord { public short X; public short Y; }
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct STARTUPINFO
+    private struct StartupInfo
     {
         public int cb;
         public IntPtr lpReserved, lpDesktop, lpTitle;
@@ -177,42 +182,48 @@ internal sealed class WindowsPty : IPtyConnection
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct STARTUPINFOEX { public STARTUPINFO StartupInfo; public IntPtr lpAttributeList; }
+    private struct StartupInfoEx { public StartupInfo StartupInfo; public IntPtr lpAttributeList; }
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct PROCESS_INFORMATION { public IntPtr hProcess, hThread; public int dwProcessId, dwThreadId; }
+    private struct ProcessInformation { public IntPtr hProcess, hThread; public int dwProcessId, dwThreadId; }
 
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool CreatePipe(out SafeFileHandle read, out SafeFileHandle write, IntPtr attributes, int size);
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool CreatePipe(out SafeFileHandle read, out SafeFileHandle write, IntPtr attributes, int size);
 
-    [DllImport("kernel32.dll")]
-    private static extern int CreatePseudoConsole(COORD size, SafeFileHandle input, SafeFileHandle output, uint flags, out IntPtr pseudoConsole);
+    [LibraryImport("kernel32.dll")]
+    private static partial int CreatePseudoConsole(Coord size, SafeFileHandle input, SafeFileHandle output, uint flags, out IntPtr pseudoConsole);
 
-    [DllImport("kernel32.dll")]
-    private static extern int ResizePseudoConsole(IntPtr pseudoConsole, COORD size);
+    [LibraryImport("kernel32.dll")]
+    private static partial int ResizePseudoConsole(IntPtr pseudoConsole, Coord size);
 
-    [DllImport("kernel32.dll")]
-    private static extern void ClosePseudoConsole(IntPtr pseudoConsole);
+    [LibraryImport("kernel32.dll")]
+    private static partial void ClosePseudoConsole(IntPtr pseudoConsole);
 
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool InitializeProcThreadAttributeList(IntPtr list, int count, int flags, ref IntPtr size);
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool InitializeProcThreadAttributeList(IntPtr list, int count, int flags, ref IntPtr size);
 
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool UpdateProcThreadAttribute(IntPtr list, uint flags, IntPtr attribute, IntPtr value, IntPtr size, IntPtr previous, IntPtr returnSize);
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool UpdateProcThreadAttribute(IntPtr list, uint flags, IntPtr attribute, IntPtr value, IntPtr size, IntPtr previous, IntPtr returnSize);
 
-    [DllImport("kernel32.dll")]
-    private static extern void DeleteProcThreadAttributeList(IntPtr list);
+    [LibraryImport("kernel32.dll")]
+    private static partial void DeleteProcThreadAttributeList(IntPtr list);
 
-    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-    private static extern bool CreateProcessW(string? applicationName, char[] commandLine, IntPtr processAttributes, IntPtr threadAttributes,
-        bool inheritHandles, uint creationFlags, IntPtr environment, string? currentDirectory, ref STARTUPINFOEX startupInfo, out PROCESS_INFORMATION processInformation);
+    [LibraryImport("kernel32.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool CreateProcessW(string? applicationName, [In, Out] char[] commandLine, IntPtr processAttributes, IntPtr threadAttributes,
+        [MarshalAs(UnmanagedType.Bool)] bool inheritHandles, uint creationFlags, IntPtr environment, string? currentDirectory, ref StartupInfoEx startupInfo, out ProcessInformation processInformation);
 
-    [DllImport("kernel32.dll")]
-    private static extern uint WaitForSingleObject(IntPtr handle, uint milliseconds);
+    [LibraryImport("kernel32.dll")]
+    private static partial uint WaitForSingleObject(IntPtr handle, uint milliseconds);
 
-    [DllImport("kernel32.dll")]
-    private static extern bool GetExitCodeProcess(IntPtr process, out uint exitCode);
+    [LibraryImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool GetExitCodeProcess(IntPtr process, out uint exitCode);
 
-    [DllImport("kernel32.dll")]
-    private static extern bool CloseHandle(IntPtr handle);
+    [LibraryImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool CloseHandle(IntPtr handle);
 }

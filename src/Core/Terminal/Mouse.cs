@@ -33,19 +33,7 @@ public static class MouseEncoder
     /// </summary>
     public static string? Encode(MouseTrackingMode mode, bool sgr, MouseEventKind kind, MouseButton button, int column, int row, MouseModifiers modifiers = MouseModifiers.None)
     {
-        if (mode == MouseTrackingMode.None) return null;
-        bool wheel = button is MouseButton.WheelUp or MouseButton.WheelDown;
-        switch (kind)
-        {
-            case MouseEventKind.Release when mode == MouseTrackingMode.X10 || wheel:
-                return null;
-            case MouseEventKind.Motion when mode == MouseTrackingMode.AnyEvent:
-                break;
-            case MouseEventKind.Motion when mode == MouseTrackingMode.ButtonEvent && button != MouseButton.None:
-                break;
-            case MouseEventKind.Motion:
-                return null;
-        }
+        if (mode == MouseTrackingMode.None || !IsReported(mode, kind, button)) return null;
 
         int code = (int)button;
         if (mode != MouseTrackingMode.X10) code |= (int)modifiers;
@@ -66,4 +54,11 @@ public static class MouseEncoder
         sb.Append((char)(32 + code)).Append((char)(32 + x)).Append((char)(32 + y));
         return sb.ToString();
     }
+
+    private static bool IsReported(MouseTrackingMode mode, MouseEventKind kind, MouseButton button) => kind switch
+    {
+        MouseEventKind.Release => mode != MouseTrackingMode.X10 && button is not (MouseButton.WheelUp or MouseButton.WheelDown),
+        MouseEventKind.Motion => mode == MouseTrackingMode.AnyEvent || (mode == MouseTrackingMode.ButtonEvent && button != MouseButton.None),
+        _ => true,
+    };
 }

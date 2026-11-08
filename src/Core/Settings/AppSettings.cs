@@ -69,7 +69,10 @@ public sealed class SettingsStore
             if (File.Exists(FilePath))
                 return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath), JsonOptions) ?? new AppSettings();
         }
-        catch (Exception e) when (e is JsonException or IOException or UnauthorizedAccessException) { }
+        catch (Exception e) when (e is JsonException or IOException or UnauthorizedAccessException)
+        {
+            // Unreadable or corrupt settings fall back to the defaults.
+        }
         return new AppSettings();
     }
 
