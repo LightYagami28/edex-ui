@@ -8,7 +8,7 @@ I test girano su Windows, Linux e macOS nella CI. Ogni sistema misura solo il co
 In locale su Windows, Linux si prova con Docker:
 
 ```
-docker run --rm -v "<repo>:/src:ro" mcr.microsoft.com/dotnet/sdk:10.0 bash -c "cp -r /src /work && cd /work && dotnet test"
+docker run --rm -v "<repo>:/src:ro" mcr.microsoft.com/dotnet/sdk:11.0 bash -c "cp -r /src /work && cd /work && dotnet test"
 ```
 
 ## Regole

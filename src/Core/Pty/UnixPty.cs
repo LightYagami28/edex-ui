@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 
@@ -25,12 +25,12 @@ internal sealed partial class UnixPty : IPtyConnection
         _pid = pid;
         _master = master;
         _output = new FileStream(new SafeFileHandle((IntPtr)master, ownsHandle: true), FileAccess.Read, 1, false);
-        _input = new FileStream(new SafeFileHandle((IntPtr)dup(master), ownsHandle: true), FileAccess.Write, 1, false);
+        _input = new FileStream(new SafeFileHandle((IntPtr)Dup(master), ownsHandle: true), FileAccess.Write, 1, false);
 
         var waiter = new Thread(() =>
         {
             int status;
-            while (waitpid(_pid, out status, 0) == -1 && Marshal.GetLastPInvokeError() == EINTR)
+            while (WaitPid(_pid, out status, 0) == -1 && Marshal.GetLastPInvokeError() == EINTR)
             {
                 // Interrupted by a signal: retry until the child state is available.
             }
@@ -42,7 +42,9 @@ internal sealed partial class UnixPty : IPtyConnection
         waiter.Start();
     }
 
-    public static UnixPty Spawn(PtyOptions options)
+    // Full optimisation from the first call: the child branch must not need the JIT after fork.
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public static unsafe UnixPty Spawn(PtyOptions options)
     {
         string executable = ResolveExecutable(options.Shell);
         var env = PtyFactory.BuildEnvironment(options.Environment);
@@ -52,7 +54,12 @@ internal sealed partial class UnixPty : IPtyConnection
 
         // Everything the child needs is marshalled before fork: after fork only async-signal-safe calls are made.
         var allocations = new List<IntPtr>();
-        static IntPtr Str(List<IntPtr> allocations, string s) { var p = Marshal.StringToHGlobalAnsi(s); allocations.Add(p); return p; }
+        static IntPtr Str(List<IntPtr> allocations, string s)
+        {
+            var p = Marshal.StringToHGlobalAnsi(s);
+            allocations.Add(p);
+            return p;
+        }
         static IntPtr Array(List<IntPtr> allocations, IEnumerable<string> items)
         {
             var pointers = items.Select(item => Str(allocations, item)).Append(IntPtr.Zero).ToArray();
@@ -68,25 +75,23 @@ internal sealed partial class UnixPty : IPtyConnection
         IntPtr dir = Str(allocations, cwd);
         var size = new WinSize { Rows = (ushort)Math.Max(2, options.Rows), Columns = (ushort)Math.Max(2, options.Columns) };
 
-        PrepareChildCalls();
-        int pid = forkpty(out int master, IntPtr.Zero, IntPtr.Zero, ref size);
+        // The child calls libc through raw function pointers resolved here, so it runs no marshalling stub.
+        var libc = NativeLibrary.Load("libc", typeof(UnixPty).Assembly, null);
+        var chdir = (delegate* unmanaged<IntPtr, int>)NativeLibrary.GetExport(libc, "chdir");
+        var execve = (delegate* unmanaged<IntPtr, IntPtr, IntPtr, int>)NativeLibrary.GetExport(libc, "execve");
+        var exit = (delegate* unmanaged<int, void>)NativeLibrary.GetExport(libc, "_exit");
+
+        int pid = ForkPty(out int master, IntPtr.Zero, IntPtr.Zero, ref size);
         // Child: only async-signal-safe calls. Exit 127 unless execve replaced the process.
-        if (pid == 0) _exit(chdir(dir) == 0 && execve(path, argv, envp) == 0 ? 0 : 127);
+        if (pid == 0)
+        {
+            exit(chdir(dir) == 0 && execve(path, argv, envp) == 0 ? 0 : ChildFailed);
+        }
 
         int error = Marshal.GetLastPInvokeError();
         foreach (var p in allocations) Marshal.FreeHGlobal(p);
         if (pid < 0) throw new IOException($"forkpty failed (errno {error})");
         return new UnixPty(pid, master);
-    }
-
-    private static void PrepareChildCalls()
-    {
-        // Generate the interop stubs now so the child never needs the JIT.
-        foreach (var name in new[] { nameof(chdir), nameof(execve), nameof(_exit) })
-        {
-            var method = typeof(UnixPty).GetMethod(name, BindingFlags.Public | BindingFlags.Static);
-            if (method is not null) Marshal.Prelink(method);
-        }
     }
 
     internal static string ResolveExecutable(string shell)
@@ -104,48 +109,36 @@ internal sealed partial class UnixPty : IPtyConnection
     {
         if (Volatile.Read(ref _disposed) != 0) return;
         var size = new WinSize { Rows = (ushort)Math.Max(2, rows), Columns = (ushort)Math.Max(2, columns) };
-        _ = ioctl(_master, OperatingSystem.IsMacOS() ? (UIntPtr)0x80087467u : (UIntPtr)0x5414u, ref size);
+        _ = Ioctl(_master, OperatingSystem.IsMacOS() ? (UIntPtr)0x80087467u : (UIntPtr)0x5414u, ref size);
     }
 
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
-        _ = kill(_pid, SIGHUP);
+        _ = Kill(_pid, SIGHUP);
         try { _input.Dispose(); } catch (IOException) { /* already closed */ }
         try { _output.Dispose(); } catch (IOException) { /* already closed */ }
     }
 
     private const int SIGHUP = 1;
     private const int EINTR = 4;
+    private const int ChildFailed = 127;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct WinSize { public ushort Rows, Columns, XPixels, YPixels; }
 
-    [LibraryImport("libc", SetLastError = true)]
-    private static partial int forkpty(out int master, IntPtr name, IntPtr termios, ref WinSize size);
+    [LibraryImport("libc", EntryPoint = "forkpty", SetLastError = true)]
+    private static partial int ForkPty(out int master, IntPtr name, IntPtr termios, ref WinSize size);
 
-    // The child calls chdir/execve/_exit right after fork, so their stubs are pre-linked with Marshal.Prelink.
-    // Prelink needs real DllImport methods (not LibraryImport wrappers), hence the suppression.
-#pragma warning disable SYSLIB1054
-    [DllImport("libc")]
-    public static extern int execve(IntPtr path, IntPtr argv, IntPtr envp);
+    [LibraryImport("libc", EntryPoint = "ioctl", SetLastError = true)]
+    private static partial int Ioctl(int fd, UIntPtr request, ref WinSize size);
 
-    [DllImport("libc")]
-    public static extern int chdir(IntPtr path);
+    [LibraryImport("libc", EntryPoint = "waitpid", SetLastError = true)]
+    private static partial int WaitPid(int pid, out int status, int options);
 
-    [DllImport("libc")]
-    public static extern void _exit(int status);
-#pragma warning restore SYSLIB1054
+    [LibraryImport("libc", EntryPoint = "dup", SetLastError = true)]
+    private static partial int Dup(int fd);
 
-    [LibraryImport("libc", SetLastError = true)]
-    private static partial int ioctl(int fd, UIntPtr request, ref WinSize size);
-
-    [LibraryImport("libc", SetLastError = true)]
-    private static partial int waitpid(int pid, out int status, int options);
-
-    [LibraryImport("libc", SetLastError = true)]
-    private static partial int dup(int fd);
-
-    [LibraryImport("libc")]
-    private static partial int kill(int pid, int signal);
+    [LibraryImport("libc", EntryPoint = "kill")]
+    private static partial int Kill(int pid, int signal);
 }

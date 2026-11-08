@@ -11,6 +11,8 @@ public class PtyTests
 {
     public TestContext TestContext { get; set; }
 
+    private const int ExitGraceSeconds = 10;
+
     [TestMethod]
     public async Task RunsCommandInPseudoTerminal()
     {
@@ -24,7 +26,11 @@ public class PtyTests
             await Task.Delay(50, TestContext.CancellationToken);
 
         Assert.Contains("EDEX_PTY_OK", session.Buffer.ScrollbackText());
-        while (DateTime.UtcNow < deadline.AddSeconds(10) && !session.HasExited) await Task.Delay(50, TestContext.CancellationToken);
+        var exitDeadline = deadline.AddSeconds(ExitGraceSeconds);
+        while (DateTime.UtcNow < exitDeadline && !session.HasExited)
+        {
+            await Task.Delay(50, TestContext.CancellationToken);
+        }
         Assert.IsTrue(session.HasExited);
         Assert.AreEqual(0, session.ExitCode);
     }

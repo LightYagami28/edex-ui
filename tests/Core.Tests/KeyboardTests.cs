@@ -15,8 +15,11 @@ public class KeyboardTests
         foreach (var layout in KeyboardLayout.All)
         {
             Assert.HasCount(5, layout.Rows);
-            Assert.Contains(k => k.Label == "q", layout.Rows[1]);
+            Assert.Contains(k => k.Action == KeyAction.Tab, layout.Rows[1]);
         }
+        Assert.HasCount(19, KeyboardLayout.All);
+        Assert.AreEqual("Z", Key(KeyboardLayout.Find("de-DE"), "z").ShiftLabel);
+        Assert.AreEqual("A", Key(KeyboardLayout.Find("fr-FR"), "a").ShiftLabel);
         Assert.AreEqual("é", Key(KeyboardLayout.ItIt, "è").ShiftLabel);
         Assert.AreEqual("{", Key(KeyboardLayout.EnUs, "[").ShiftLabel);
     }

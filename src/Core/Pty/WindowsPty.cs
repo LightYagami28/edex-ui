@@ -52,7 +52,7 @@ internal sealed partial class WindowsPty : IPtyConnection
         IntPtr pseudoConsole = IntPtr.Zero, attributeList = IntPtr.Zero, environmentBlock = IntPtr.Zero;
         try
         {
-            var size = new Coord { X = (short)Math.Clamp(options.Columns, 2, short.MaxValue), Y = (short)Math.Clamp(options.Rows, 2, short.MaxValue) };
+            var size = new Coord { X = (short)Math.Clamp(options.Columns, MinSize, short.MaxValue), Y = (short)Math.Clamp(options.Rows, MinSize, short.MaxValue) };
             Marshal.ThrowExceptionForHR(CreatePseudoConsole(size, inputRead, outputWrite, 0, out pseudoConsole));
             // The pseudo console duplicated these ends; we must release ours.
             inputRead.Dispose();
@@ -145,7 +145,7 @@ internal sealed partial class WindowsPty : IPtyConnection
     public void Resize(int columns, int rows)
     {
         if (Volatile.Read(ref _disposed) != 0) return;
-        _ = ResizePseudoConsole(_pseudoConsole, new Coord { X = (short)Math.Max(2, columns), Y = (short)Math.Max(2, rows) });
+        _ = ResizePseudoConsole(_pseudoConsole, new Coord { X = (short)Math.Max(MinSize, columns), Y = (short)Math.Max(MinSize, rows) });
     }
 
     public void Dispose()
@@ -162,6 +162,7 @@ internal sealed partial class WindowsPty : IPtyConnection
         });
     }
 
+    private const int MinSize = 2;
     private const uint INFINITE = 0xFFFFFFFF;
     private const int STARTF_USESTDHANDLES = 0x00000100;
     private const uint EXTENDED_STARTUPINFO_PRESENT = 0x00080000;
@@ -169,10 +170,10 @@ internal sealed partial class WindowsPty : IPtyConnection
     private const int PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = 0x00020016;
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct Coord { public short X; public short Y; }
+    private record struct Coord { public short X; public short Y; }
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct StartupInfo
+    private record struct StartupInfo
     {
         public int cb;
         public IntPtr lpReserved, lpDesktop, lpTitle;
@@ -182,10 +183,16 @@ internal sealed partial class WindowsPty : IPtyConnection
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct StartupInfoEx { public StartupInfo StartupInfo; public IntPtr lpAttributeList; }
+    private record struct StartupInfoEx { public StartupInfo StartupInfo; public IntPtr lpAttributeList; }
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct ProcessInformation { public IntPtr hProcess, hThread; public int dwProcessId, dwThreadId; }
+    private record struct ProcessInformation
+    {
+        public IntPtr hProcess;
+        public IntPtr hThread;
+        public int dwProcessId;
+        public int dwThreadId;
+    }
 
     [LibraryImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -213,8 +220,9 @@ internal sealed partial class WindowsPty : IPtyConnection
 
     [LibraryImport("kernel32.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool CreateProcessW(string? applicationName, [In, Out] char[] commandLine, IntPtr processAttributes, IntPtr threadAttributes,
-        [MarshalAs(UnmanagedType.Bool)] bool inheritHandles, uint creationFlags, IntPtr environment, string? currentDirectory, ref StartupInfoEx startupInfo, out ProcessInformation processInformation);
+    private static partial bool CreateProcessW(string? applicationName, [In, Out] char[] commandLine,
+        IntPtr processAttributes, IntPtr threadAttributes, [MarshalAs(UnmanagedType.Bool)] bool inheritHandles, uint creationFlags,
+        IntPtr environment, string? currentDirectory, ref StartupInfoEx startupInfo, out ProcessInformation processInformation);
 
     [LibraryImport("kernel32.dll")]
     private static partial uint WaitForSingleObject(IntPtr handle, uint milliseconds);

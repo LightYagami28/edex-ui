@@ -5,7 +5,7 @@ Questa è l'unica fonte di verità per funzioni, architettura e piano.
 
 ## 1. Regole
 
-- Runtime: ultima versione stabile di .NET, oggi **.NET 10** (`net10.0`, LTS). .NET 11 è ancora release candidate: si passa a 11 quando esce GA.
+- Runtime: **.NET 11** (`net11.0`), SDK fissato in `global.json`.
 - **Nessuna libreria di terzi**: niente Avalonia, Electron, xterm.js, NuGet di terzi. Ammessi solo BCL/.NET e le API del sistema operativo (Win32, libc, X11, Cocoa, ecc. via P/Invoke o interop).
   Unica eccezione di sviluppo (non entra nel prodotto): framework di test MSTest e strumenti di coverage Microsoft.
 - Codice con zero issue su SonarCloud (chiave `LightYagami28_edex-ui`) e Codacy A, coverage 100% dove c'è codice testabile, nessuna soppressione (`NOSONAR`, `#pragma warning disable`, `SuppressMessage`, esclusioni fittizie).
@@ -48,7 +48,7 @@ Fuori scopo: moduli Node/Electron (`multithread`, `ipc`), `--nointro` via riga d
 ## 3. Architettura
 
 ```
-Core (netstandard-free, net10.0, nessuna dipendenza)
+Core (netstandard-free, net11.0, nessuna dipendenza)
   Pty, Terminal, Input, Files, Monitoring, Networking, Geo, Themes, Settings, Shortcuts, Audio, Boot, Updates
   Ui (modello di scena senza disegno): layout a pannelli, stato di ogni modulo, hit-test, eventi
   Render (rasterizzatore software 2D su bitmap: rettangoli, linee, testo con font bitmap incorporato)
@@ -118,7 +118,7 @@ macOS (contatori `host_statistics`, `sysctl`), misurate dal job macOS della CI.
 
 Differenze rispetto alla tabella delle funzioni:
 - Le impostazioni usano nomi propri (`AppSettings`: Shell, Theme, FontSize, ...), non i campi di eDEX-UI; non c'è import dei vecchi `settings.json`.
-- Layout tastiera: due layout incorporati (en-US, it-IT); i 19 JSON di `assets/kb_layouts` non sono ancora caricati.
+- Layout tastiera: i 19 JSON di `assets/kb_layouts`, incorporati in Core.
 - `Ui` (scena) e `Render` (rasterizzatore per Linux e macOS) non sono in Core: si scrivono nelle fasi C2 e C3 insieme alle finestre.
 - Processi: l'elenco dei più attivi è in `SystemMonitor.Sample`; `HardwareInfo` legge produttore, modello e chassis.
 
@@ -128,4 +128,4 @@ Differenze rispetto alla tabella delle funzioni:
   serve un repo nuovo senza la storia GPL. Per ora i file portano `SPDX-License-Identifier: GPL-3.0-only`.
 - Test: MSTest (Microsoft) al posto di xUnit (terzi). Coverage con `Microsoft.CodeCoverage`.
 - Linux e macOS non sono eseguibili su questa macchina Windows: il loro stato "funziona" è quello dei runner CI e dei container, non dimostrabile in locale.
-- .NET 11 è RC: il progetto resta su .NET 10 finché 11 non è GA.
+- .NET 11 è ancora RC (go-live): a GA si aggiorna `global.json`.

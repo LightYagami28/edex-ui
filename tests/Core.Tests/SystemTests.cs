@@ -346,6 +346,10 @@ public class KeyboardExtraTests
             Assert.AreSame(KeyboardLayout.ItIt, KeyboardLayout.Find("auto"));
             CultureInfo.CurrentUICulture = new CultureInfo("en-US");
             Assert.AreSame(KeyboardLayout.EnUs, KeyboardLayout.Find(null));
+            CultureInfo.CurrentUICulture = new CultureInfo("de-DE");
+            Assert.AreEqual("de-DE", KeyboardLayout.Find("auto").Name);
+            CultureInfo.CurrentUICulture = new CultureInfo("it-CH");
+            Assert.AreSame(KeyboardLayout.ItIt, KeyboardLayout.Find("auto"));
         }
         finally
         {

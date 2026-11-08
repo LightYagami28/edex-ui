@@ -112,12 +112,14 @@ public class MonitorTests
 {
     public TestContext TestContext { get; set; }
 
+    private const int SampleIntervalMs = 200;
+
     [TestMethod]
     public async Task SamplesSystem()
     {
         var monitor = new SystemMonitor();
         monitor.Sample();
-        await Task.Delay(200, TestContext.CancellationToken);
+        await Task.Delay(SampleIntervalMs, TestContext.CancellationToken);
         var snap = monitor.Sample();
         Assert.IsGreaterThan(0UL, snap.Memory.TotalBytes);
         Assert.IsTrue(snap.Cpu.TotalPercent >= 0 && snap.Cpu.TotalPercent <= 100);
