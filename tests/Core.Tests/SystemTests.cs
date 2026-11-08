@@ -30,6 +30,8 @@ public class SafeTests
 [TestClass]
 public class MonitoringTests
 {
+    public TestContext TestContext { get; set; }
+
     private const int sampleGapMs = 30;
     private const int topProcessLimit = 3;
     private const int fullCpuPercent = 100;
@@ -39,7 +41,7 @@ public class MonitoringTests
     {
         var counter = CpuCounters.Create();
         Assert.IsGreaterThanOrEqualTo(0, counter.SampleTotalPercent());
-        await Task.Delay(sampleGapMs);
+        await Task.Delay(sampleGapMs, TestContext.CancellationToken);
         Assert.IsInRange(0, fullCpuPercent, counter.SampleTotalPercent());
         Assert.IsFalse(string.IsNullOrWhiteSpace(CpuInfo.ReadModel()));
         Assert.AreEqual(0, CpuCounters.Percent(5, 0));
@@ -101,7 +103,7 @@ public class MonitoringTests
     {
         var monitor = new SystemMonitor();
         monitor.Sample();
-        await Task.Delay(sampleGapMs);
+        await Task.Delay(sampleGapMs, TestContext.CancellationToken);
         var snapshot = monitor.Sample(topProcessLimit);
         Assert.IsLessThanOrEqualTo(topProcessLimit, snapshot.TopProcesses.Count);
         Assert.IsFalse(string.IsNullOrEmpty(snapshot.HostName));
@@ -147,7 +149,7 @@ public class FilesTests
     public void BrowserRootHasNoParentEntry()
     {
         var root = Path.GetPathRoot(Path.GetTempPath())!;
-        Assert.IsFalse(FileBrowser.List(root).Entries.Any(e => e.Name == ".."));
+        Assert.DoesNotContain(e => e.Name == "..", FileBrowser.List(root).Entries);
     }
 
     [TestMethod]
@@ -199,8 +201,8 @@ public class ThemeExtraTests
     [TestMethod]
     public void LoadAndFind()
     {
-        Assert.AreEqual(ThemeLibrary.BuiltIn.Count, ThemeLibrary.Load(null).Count);
-        Assert.AreEqual(ThemeLibrary.BuiltIn.Count, ThemeLibrary.Load("/does/not/exist").Count);
+        Assert.HasCount(ThemeLibrary.BuiltIn.Count, ThemeLibrary.Load(null));
+        Assert.HasCount(ThemeLibrary.BuiltIn.Count, ThemeLibrary.Load("/does/not/exist"));
         Assert.IsNull(ThemeLibrary.TryParse("null", "x"));
         Assert.AreEqual("fallback", ThemeLibrary.TryParse(ThemeLibrary.Serialize(ThemeLibrary.BuiltIn[0] with { Name = " " }), "fallback")?.Name);
         Assert.IsNull(ThemeLibrary.TryParse(ThemeLibrary.Serialize(ThemeLibrary.BuiltIn[0] with { Ansi = ["#000000"] }), "x"));
@@ -456,6 +458,8 @@ public class GeoLocatorTests
 [TestClass]
 public class PtyExtraTests
 {
+    public TestContext TestContext { get; set; }
+
     private sealed class Pipe : Stream
     {
         private readonly System.Collections.Concurrent.BlockingCollection<byte[]> _chunks = [];
@@ -525,7 +529,7 @@ public class PtyExtraTests
 
         pty.Out.Push("hello");
         WaitFor(() => session.Buffer.Snapshot().LineText(0) == "hello");
-        Assert.IsTrue(updates > 0);
+        Assert.IsGreaterThan(0, updates);
 
         session.Send("");
         session.Send("ls\r");
@@ -555,7 +559,7 @@ public class PtyExtraTests
         Assert.IsTrue(session.HasExited);
         var before = pty.In.Written.Count;
         session.Send("after exit");
-        Assert.AreEqual(before, pty.In.Written.Count);
+        Assert.HasCount(before, pty.In.Written);
 
         pty.Out.Complete();
         session.Dispose();
@@ -572,13 +576,13 @@ public class PtyExtraTests
         using (var session = TerminalSession.Attach(failing, "sh", new TerminalBuffer(10, 2)))
         {
             Assert.AreEqual(9, session.ExitCode);
-            await Task.Delay(50);
+            await Task.Delay(50, TestContext.CancellationToken);
         }
 
         var disposed = new FakePty();
         disposed.Out.DisposedFailure = true;
         using var second = TerminalSession.Attach(disposed, "sh", new TerminalBuffer(10, 2));
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.CancellationToken);
         Assert.IsFalse(second.HasExited);
     }
 
@@ -624,9 +628,9 @@ public class PtyExtraTests
     }
 
     [TestMethod]
+    [OSCondition(ConditionMode.Exclude, OperatingSystems.Windows)]
     public void ResolvesExecutablesOnPath()
     {
-        if (OperatingSystem.IsWindows()) return;
         Assert.AreEqual("/bin/sh", UnixPty.ResolveExecutable("/bin/sh"));
         Assert.EndsWith("/sh", UnixPty.ResolveExecutable("sh"));
         Assert.AreEqual("edex-missing-binary", UnixPty.ResolveExecutable("edex-missing-binary"));
@@ -637,10 +641,10 @@ public class PtyExtraTests
 public class MacSysctlTests
 {
     [TestMethod]
+    [OSCondition(OperatingSystems.OSX)]
     public void ReadsKeysOnMacOnly()
     {
-        if (!OperatingSystem.IsMacOS()) return;
-        Assert.IsTrue(MacSysctl.ReadUInt64("hw.memsize") > 0);
+        Assert.IsGreaterThan(0UL, MacSysctl.ReadUInt64("hw.memsize"));
         Assert.AreNotEqual("", MacSysctl.ReadString("machdep.cpu.brand_string"));
         Assert.AreEqual(0UL, MacSysctl.ReadUInt64("edex.no.such.key"));
         Assert.AreEqual("", MacSysctl.ReadString("edex.no.such.key"));

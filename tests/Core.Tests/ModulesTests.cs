@@ -64,6 +64,8 @@ public class BootSequenceTests
 [TestClass]
 public class UpdateCheckerTests
 {
+    public TestContext TestContext { get; set; }
+
     private sealed class Stub(HttpStatusCode status, string body, bool fail = false) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -89,24 +91,24 @@ public class UpdateCheckerTests
     {
         const string json = """{"tag_name":"v4.0.0","html_url":"https://example.test/r"}""";
         using var client = new HttpClient(new Stub(HttpStatusCode.OK, json));
-        var info = await UpdateChecker.CheckAsync(client, "o/r", "3.0.0");
+        var info = await UpdateChecker.CheckAsync(client, "o/r", "3.0.0", TestContext.CancellationToken);
         Assert.AreEqual(new UpdateInfo("4.0.0", "https://example.test/r"), info);
-        Assert.IsNull(await UpdateChecker.CheckAsync(client, "o/r", "4.0.0"));
+        Assert.IsNull(await UpdateChecker.CheckAsync(client, "o/r", "4.0.0", TestContext.CancellationToken));
     }
 
     [TestMethod]
     public async Task CheckReturnsNullOnErrors()
     {
         using var notFound = new HttpClient(new Stub(HttpStatusCode.NotFound, ""));
-        Assert.IsNull(await UpdateChecker.CheckAsync(notFound, "o/r", "3.0.0"));
+        Assert.IsNull(await UpdateChecker.CheckAsync(notFound, "o/r", "3.0.0", TestContext.CancellationToken));
         using var broken = new HttpClient(new Stub(HttpStatusCode.OK, "{"));
-        Assert.IsNull(await UpdateChecker.CheckAsync(broken, "o/r", "3.0.0"));
+        Assert.IsNull(await UpdateChecker.CheckAsync(broken, "o/r", "3.0.0", TestContext.CancellationToken));
         using var missing = new HttpClient(new Stub(HttpStatusCode.OK, "{}"));
-        Assert.IsNull(await UpdateChecker.CheckAsync(missing, "o/r", "3.0.0"));
+        Assert.IsNull(await UpdateChecker.CheckAsync(missing, "o/r", "3.0.0", TestContext.CancellationToken));
         using var nulls = new HttpClient(new Stub(HttpStatusCode.OK, """{"tag_name":null,"html_url":null}"""));
-        Assert.IsNull(await UpdateChecker.CheckAsync(nulls, "o/r", "3.0.0"));
+        Assert.IsNull(await UpdateChecker.CheckAsync(nulls, "o/r", "3.0.0", TestContext.CancellationToken));
         using var down = new HttpClient(new Stub(HttpStatusCode.OK, "", fail: true));
-        Assert.IsNull(await UpdateChecker.CheckAsync(down, "o/r", "3.0.0"));
+        Assert.IsNull(await UpdateChecker.CheckAsync(down, "o/r", "3.0.0", TestContext.CancellationToken));
     }
 }
 
