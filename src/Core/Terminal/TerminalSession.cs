@@ -83,7 +83,10 @@ public sealed class TerminalSession : IDisposable
                 _pty.Input.Flush();
             }
         }
-        catch (Exception e) when (e is IOException or ObjectDisposedException) { }
+        catch (Exception e) when (e is IOException or ObjectDisposedException)
+        {
+            // The shell already exited: input is dropped.
+        }
     }
 
     public void Paste(string text)

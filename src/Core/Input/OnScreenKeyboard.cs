@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 using System.Globalization;
+using System.Text;
+using System.Text.Json;
 
 namespace Edex.Core.Input;
 
@@ -63,24 +65,64 @@ public sealed record KeyboardLayout(string Name, IReadOnlyList<IReadOnlyList<Key
         return [row1, row2, row3, row4, row5];
     }
 
-    public static readonly KeyboardLayout EnUs = new("en-US", Build(
-        ("`1234567890-=", "~!@#$%^&*()_+"),
-        ("qwertyuiop[]\\", "QWERTYUIOP{}|"),
-        ("asdfghjkl;'", "ASDFGHJKL:\""),
-        ("zxcvbnm,./", "ZXCVBNM<>?")));
+    private const string ResourcePrefix = "Edex.Core.Input.Layouts.";
+    private static readonly string[] JsonRows = ["row_numbers", "row_1", "row_2", "row_3"];
 
-    public static readonly KeyboardLayout ItIt = new("it-IT", Build(
-        ("\\1234567890'ì", "|!\"£$%&/()=?^"),
-        ("qwertyuiopè+ù", "QWERTYUIOPé*§"),
-        ("asdfghjklòà", "ASDFGHJKLç°"),
-        ("<zxcvbnm,.-", ">ZXCVBNM;:_")));
+    /// <summary>The eDEX-UI layouts of <c>assets/kb_layouts</c>, embedded in the library.</summary>
+    public static IReadOnlyList<KeyboardLayout> All { get; } = LoadEmbedded();
 
-    public static IReadOnlyList<KeyboardLayout> All { get; } = [EnUs, ItIt];
+    public static KeyboardLayout EnUs { get; } = All.First(l => l.Name == "en-US");
+
+    public static KeyboardLayout ItIt { get; } = All.First(l => l.Name == "it-IT");
+
+    private static KeyboardLayout[] LoadEmbedded()
+    {
+        var assembly = typeof(KeyboardLayout).Assembly;
+        return [.. assembly.GetManifestResourceNames()
+            .Where(n => n.StartsWith(ResourcePrefix, StringComparison.Ordinal))
+            .Order(StringComparer.Ordinal)
+            .Select(n =>
+            {
+                using var stream = assembly.GetManifestResourceStream(n)!;
+                using var reader = new StreamReader(stream);
+                return FromJson(n[ResourcePrefix.Length..^".json".Length], reader.ReadToEnd());
+            })];
+    }
+
+    /// <summary>Reads an eDEX-UI layout file: the character keys of its four main rows; special keys come from <see cref="Build"/>.</summary>
+    public static KeyboardLayout FromJson(string name, string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        var rows = JsonRows
+            .Select(row => CharacterRow(document.RootElement.GetProperty(row)))
+            .ToArray();
+        return new KeyboardLayout(name, Build(rows));
+    }
+
+    private static (string normal, string shifted) CharacterRow(JsonElement keys)
+    {
+        var normal = new StringBuilder();
+        var shifted = new StringBuilder();
+        foreach (var key in keys.EnumerateArray())
+        {
+            var cmd = key.GetProperty("cmd").ToString();
+            // Tab, Enter, Shift, arrows and the other special keys have control or multi-character commands.
+            if (cmd.Length != 1 || char.IsControl(cmd[0]))
+            {
+                continue;
+            }
+            var shift = key.TryGetProperty("shift_cmd", out var value) ? value.GetString() : null;
+            normal.Append(cmd);
+            shifted.Append(shift is { Length: 1 } ? shift : cmd.ToUpperInvariant());
+        }
+        return (normal.ToString(), shifted.ToString());
+    }
 
     /// <summary>Layout by name; "auto" (or unknown) picks one from the UI culture.</summary>
     public static KeyboardLayout Find(string? name)
     {
         var match = All.FirstOrDefault(l => string.Equals(l.Name, name, StringComparison.OrdinalIgnoreCase));
+        match ??= All.FirstOrDefault(l => l.Name == CultureInfo.CurrentUICulture.Name);
         if (match is not null) return match;
         return CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "it" ? ItIt : EnUs;
     }
@@ -115,7 +157,14 @@ public sealed class KeyboardState
         }
 
         int modifier = 1 + (Shift ? 1 : 0) + (Alt ? 2 : 0) + (Control ? 4 : 0);
-        string Cursor(char final) => modifier > 1 ? $"\x1b[1;{modifier}{final}" : applicationCursorKeys ? $"\x1bO{final}" : $"\x1b[{final}";
+        string Cursor(char final)
+        {
+            if (modifier > 1)
+            {
+                return $"\x1b[1;{modifier}{final}";
+            }
+            return applicationCursorKeys ? $"\x1bO{final}" : $"\x1b[{final}";
+        }
         string Tilde(int code) => modifier > 1 ? $"\x1b[{code};{modifier}~" : $"\x1b[{code}~";
 
         string output = CreateOutput(key, Cursor, Tilde);

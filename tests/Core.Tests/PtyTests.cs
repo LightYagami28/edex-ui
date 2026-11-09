@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+using System.Runtime.Versioning;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Edex.Core.Pty;
 using Edex.Core.Terminal;
@@ -8,6 +9,11 @@ namespace Edex.Core.Tests;
 [TestClass]
 public class PtyTests
 {
+    public TestContext TestContext { get; set; }
+
+    private const int ExitGraceSeconds = 10;
+    private const int PollMs = 50;
+
     [TestMethod]
     public async Task RunsCommandInPseudoTerminal()
     {
@@ -18,18 +24,23 @@ public class PtyTests
         using var session = TerminalSession.Start(options);
         var deadline = DateTime.UtcNow.AddSeconds(15);
         while (DateTime.UtcNow < deadline && !session.Buffer.ScrollbackText().Contains("EDEX_PTY_OK"))
-            await Task.Delay(50);
+            await Task.Delay(PollMs, TestContext.CancellationToken);
 
         Assert.Contains("EDEX_PTY_OK", session.Buffer.ScrollbackText());
-        while (DateTime.UtcNow < deadline.AddSeconds(10) && !session.HasExited) await Task.Delay(50);
+        var exitDeadline = deadline.AddSeconds(ExitGraceSeconds);
+        while (DateTime.UtcNow < exitDeadline && !session.HasExited)
+        {
+            await Task.Delay(PollMs, TestContext.CancellationToken);
+        }
         Assert.IsTrue(session.HasExited);
         Assert.AreEqual(0, session.ExitCode);
     }
 
     [TestMethod]
+    [OSCondition(OperatingSystems.Windows)]
+    [SupportedOSPlatform("windows")]
     public void BuildsWindowsCommandLine()
     {
-        if (!OperatingSystem.IsWindows()) return;
         Assert.AreEqual("cmd.exe /c \"echo a b\" \"x\\\"y\"", WindowsPty.BuildCommandLine("cmd.exe", ["/c", "echo a b", "x\"y"]));
     }
 }

@@ -24,7 +24,7 @@ internal static class CpuCounters
 }
 
 [SupportedOSPlatform("windows")]
-internal sealed class WindowsCpuCounter : ICpuCounter
+internal sealed partial class WindowsCpuCounter : ICpuCounter
 {
     private ulong _idle, _total;
 
@@ -39,8 +39,9 @@ internal sealed class WindowsCpuCounter : ICpuCounter
         return result;
     }
 
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool GetSystemTimes(out ulong idle, out ulong kernel, out ulong user);
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool GetSystemTimes(out ulong idle, out ulong kernel, out ulong user);
 }
 
 internal sealed class LinuxCpuCounter(string path = "/proc/stat") : ICpuCounter
@@ -70,7 +71,7 @@ internal sealed class LinuxCpuCounter(string path = "/proc/stat") : ICpuCounter
 }
 
 [SupportedOSPlatform("macos")]
-internal sealed class MacCpuCounter : ICpuCounter
+internal sealed partial class MacCpuCounter : ICpuCounter
 {
     private ulong _idle, _total;
 
@@ -87,11 +88,11 @@ internal sealed class MacCpuCounter : ICpuCounter
         return result;
     }
 
-    [DllImport("libc")]
-    private static extern uint mach_host_self();
+    [LibraryImport("libc")]
+    private static partial uint mach_host_self();
 
-    [DllImport("libc")]
-    private static extern int host_statistics(uint host, int flavor, [Out] uint[] info, ref int count);
+    [LibraryImport("libc")]
+    private static partial int host_statistics(uint host, int flavor, [Out] uint[] info, ref int count);
 }
 
 internal static class CpuInfo

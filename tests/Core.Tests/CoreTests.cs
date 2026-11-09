@@ -19,7 +19,7 @@ public class ThemeTests
     [TestMethod]
     public void BuiltInThemesAreValid()
     {
-        Assert.IsTrue(ThemeLibrary.BuiltIn.Any(t => t.Name == "tron"));
+        Assert.Contains(t => t.Name == "tron", ThemeLibrary.BuiltIn);
         foreach (var theme in ThemeLibrary.BuiltIn)
         {
             Assert.IsNotNull(ThemeLibrary.TryParse(ThemeLibrary.Serialize(theme), "x"));
@@ -34,8 +34,8 @@ public class ThemeTests
             """{ "accent": "#00AAFF", "background": "#000010", "surface": "#000020", "foreground": "#DDEEFF", "muted": "#334455" }""");
         File.WriteAllText(System.IO.Path.Combine(dir.Path, "broken.json"), """{ "accent": "blue" }""");
         var themes = ThemeLibrary.Load(dir.Path);
-        Assert.IsTrue(themes.Any(t => t.Name == "ocean" && t.Accent == "#00AAFF"));
-        Assert.IsFalse(themes.Any(t => t.Name == "broken"));
+        Assert.Contains(t => t.Name == "ocean" && t.Accent == "#00AAFF", themes);
+        Assert.DoesNotContain(t => t.Name == "broken", themes);
     }
 
     [TestMethod]
@@ -89,7 +89,7 @@ public class FileBrowserTests
         Assert.IsNull(listing.Error);
         Assert.AreSequenceEqual(["..", "zdir", "afile.txt"], listing.Entries.Select(e => e.Name).ToArray());
         Assert.AreEqual(5, listing.Entries[2].Size);
-        Assert.IsTrue(FileBrowser.List(dir.Path, showHidden: true).Entries.Any(e => e.Name == ".hidden"));
+        Assert.Contains(e => e.Name == ".hidden", FileBrowser.List(dir.Path, showHidden: true).Entries);
     }
 
     [TestMethod]
@@ -110,16 +110,20 @@ public class FileBrowserTests
 [TestClass]
 public class MonitorTests
 {
+    public TestContext TestContext { get; set; }
+
+    private const int SampleIntervalMs = 200;
+
     [TestMethod]
     public async Task SamplesSystem()
     {
         var monitor = new SystemMonitor();
         monitor.Sample();
-        await Task.Delay(200);
+        await Task.Delay(SampleIntervalMs, TestContext.CancellationToken);
         var snap = monitor.Sample();
-        Assert.IsTrue(snap.Memory.TotalBytes > 0);
+        Assert.IsGreaterThan(0UL, snap.Memory.TotalBytes);
         Assert.IsTrue(snap.Cpu.TotalPercent >= 0 && snap.Cpu.TotalPercent <= 100);
-        Assert.IsTrue(snap.Cpu.LogicalCores > 0);
+        Assert.IsGreaterThan(0, snap.Cpu.LogicalCores);
         Assert.IsNotEmpty(snap.TopProcesses);
     }
 

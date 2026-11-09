@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Edex.Core.Monitoring;
 
-internal static class MemoryInfo
+internal static partial class MemoryInfo
 {
     public static MemorySample Read() => Safe.Run(ReadSystem, new MemorySample((ulong)GC.GetGCMemoryInfo().TotalAvailableMemoryBytes, 0));
 
@@ -17,7 +17,7 @@ internal static class MemoryInfo
 
     private static MemorySample ReadWindows()
     {
-        var status = new MEMORYSTATUSEX { dwLength = (uint)Marshal.SizeOf<MEMORYSTATUSEX>() };
+        var status = new MemoryStatusEx { dwLength = (uint)Marshal.SizeOf<MemoryStatusEx>() };
         if (!GlobalMemoryStatusEx(ref status)) return new MemorySample(0, 0);
         return new MemorySample(status.ullTotalPhys, status.ullAvailPhys);
     }
@@ -60,14 +60,15 @@ internal static class MemoryInfo
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct MEMORYSTATUSEX
+    private struct MemoryStatusEx
     {
         public uint dwLength, dwMemoryLoad;
         public ulong ullTotalPhys, ullAvailPhys, ullTotalPageFile, ullAvailPageFile, ullTotalVirtual, ullAvailVirtual, ullAvailExtendedVirtual;
     }
 
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX buffer);
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool GlobalMemoryStatusEx(ref MemoryStatusEx buffer);
 
     [DllImport("libc", CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
     private static extern uint mach_host_self();

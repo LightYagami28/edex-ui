@@ -11,6 +11,14 @@ public static class FileTypes
 {
     private static readonly Dictionary<string, FileCategory> ByExtension = Build();
 
+    private static readonly Dictionary<string, FileCategory> ByName = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["makefile"] = FileCategory.Code, ["dockerfile"] = FileCategory.Code, ["jenkinsfile"] = FileCategory.Code,
+        ["rakefile"] = FileCategory.Code, ["gemfile"] = FileCategory.Code,
+        ["readme"] = FileCategory.Text, ["license"] = FileCategory.Text, ["copying"] = FileCategory.Text,
+        ["authors"] = FileCategory.Text, ["changelog"] = FileCategory.Text,
+    };
+
     private static Dictionary<string, FileCategory> Build()
     {
         var map = new Dictionary<string, FileCategory>(StringComparer.OrdinalIgnoreCase);
@@ -42,15 +50,21 @@ public static class FileTypes
         var ext = Path.GetExtension(name);
         if (string.IsNullOrEmpty(ext))
         {
-            // Well-known extensionless files.
-            var lower = name.ToLowerInvariant();
-            if (lower is "makefile" or "dockerfile" or "jenkinsfile" or "rakefile" or "gemfile") return FileCategory.Code;
-            if (lower is "readme" or "license" or "copying" or "authors" or "changelog") return FileCategory.Text;
-            if (name.StartsWith('.')) return FileCategory.Data;
-            return kind == FileEntryKind.Link ? FileCategory.Link : FileCategory.Other;
+            return ClassifyExtensionless(name, kind);
         }
         if (ByExtension.TryGetValue(ext, out var category)) return category;
         if (name.StartsWith('.') && name.IndexOf('.', 1) < 0) return FileCategory.Data;
+        return kind == FileEntryKind.Link ? FileCategory.Link : FileCategory.Other;
+    }
+
+    // Well-known extensionless files.
+    private static FileCategory ClassifyExtensionless(string name, FileEntryKind kind)
+    {
+        if (ByName.TryGetValue(name, out var category))
+        {
+            return category;
+        }
+        if (name.StartsWith('.')) return FileCategory.Data;
         return kind == FileEntryKind.Link ? FileCategory.Link : FileCategory.Other;
     }
 

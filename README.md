@@ -1,6 +1,6 @@
 # eDEX-UI nativo (.NET)
 
-eDEX-UI riscritto da zero in .NET 10: un terminale a schermo intero con pannelli di sistema (CPU, RAM, rete, processi, file, globo) e tastiera su schermo.
+eDEX-UI riscritto da zero in .NET 11: un terminale a schermo intero con pannelli di sistema (CPU, RAM, rete, processi, file, globo) e tastiera su schermo.
 Un'applicazione nativa per ogni sistema, senza librerie di terzi: solo .NET e le API del sistema operativo.
 
 Il codice Electron originale è nella storia di `master` e nel tag `archivio/electron`.
@@ -18,7 +18,7 @@ Dettagli e piano in [SPEC.md](SPEC.md).
 
 ## Requisiti
 
-- .NET SDK 10
+- .NET SDK 11 (versione in `global.json`)
 - Windows 10 1809 o successivo (ConPTY), Linux con glibc o musl, macOS
 
 ## Compilare e provare

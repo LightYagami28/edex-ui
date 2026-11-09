@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="Geo/land-1deg.bin" LogicalName="Edex.Core.Geo.land-1deg.bin" />
+    <EmbeddedResource Include="../../assets/kb_layouts/*.json" LogicalName="Edex.Core.Input.Layouts.%(Filename).json" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Edex.Core.Tests" />
