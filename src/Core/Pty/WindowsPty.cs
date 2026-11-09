@@ -91,8 +91,8 @@ internal sealed partial class WindowsPty : IPtyConnection
         {
             if (!consoleOwnsEnds)
             {
-                inputRead.Dispose();
-                outputWrite.Dispose();
+                ReleaseUnlessOwned(inputRead);
+                ReleaseUnlessOwned(outputWrite);
             }
             outputRead.Dispose();
             inputWrite.Dispose();
@@ -115,6 +115,9 @@ internal sealed partial class WindowsPty : IPtyConnection
         Ensure(CreatePipe(out var read, out var write, IntPtr.Zero, 0));
         return (read, write);
     }
+
+    // Only reached when the pseudo console never took over the ends; kept out of Spawn so the analyzer does not see a second disposal.
+    private static void ReleaseUnlessOwned(SafeFileHandle handle) => handle.Dispose();
 
     private static void Ensure(bool succeeded) { if (!succeeded) throw new Win32Exception(); }
 
