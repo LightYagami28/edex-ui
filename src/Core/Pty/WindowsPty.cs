@@ -116,7 +116,7 @@ internal sealed partial class WindowsPty : IPtyConnection
         return (read, write);
     }
 
-    // Runs only after a Windows API call failed before the pseudo console took over the ends, which tests cannot provoke;
+    // Runs only after a Windows API call failed before the pseudo console took over the ends, which tests cannot provoke. It is
     // kept out of Spawn so the analyzer does not see a second disposal.
     [ExcludeFromCodeCoverage(Justification = "Failure cleanup that needs a failing ConPTY or pipe API call.")]
     private static void ReleaseUnownedEnds(params IDisposable[] ends)
