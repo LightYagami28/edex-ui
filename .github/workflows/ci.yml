@@ -58,6 +58,6 @@ jobs:
         if: env.SONAR_TOKEN != ''
         run: |
           dotnet tool install --global dotnet-sonarscanner --version 12.1.0
-          dotnet sonarscanner begin /k:"LightYagami28_edex-ui" /o:"lightyagami28" /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.coverageReportPaths="sonar-coverage.xml" /d:sonar.python.coverage.reportPaths="coverage-python.xml"
+          dotnet sonarscanner begin /k:"LightYagami28_edex-ui" /o:"lightyagami28" /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.coverageReportPaths="sonar-coverage.xml" /d:sonar.python.coverage.reportPaths="coverage-python.xml" /d:sonar.coverage.exclusions="tests/**"
           dotnet build --configuration Release
           dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"

@@ -1,0 +1,4 @@
+---
+exclude_paths:
+  # I test usano assert e nomi descrittivi lunghi: non entrano nel quality gate del prodotto.
+  - "tests/**"

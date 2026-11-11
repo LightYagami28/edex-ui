@@ -4,7 +4,8 @@
 Usage: coverage-to-sonar.py OUTPUT REPORT [REPORT ...]
 
 Each runner measures only the code that runs on its own operating system, so a line (and each
-branch condition of a line) counts as covered when any report covers it. Paths are made relative to the repository ("src/Core/...").
+branch condition of a line) counts as covered when any report covers it.
+Paths are made relative to the repository ("src/Core/...").
 """
 import sys
 import xml.etree.ElementTree as ET
@@ -21,7 +22,8 @@ def branch_details(line):
     if nodes:
         return len(nodes), {int(n.get("number")) for n in nodes if n.get("coverage") != "0%"}, 0
     condition = line.get("condition-coverage")
-    covered, total = (int(x) for x in condition[condition.index("(") + 1:-1].split("/"))
+    counts = condition[condition.index("(") + 1:-1]
+    covered, total = (int(x) for x in counts.split("/"))
     return total, set(), covered
 
 
