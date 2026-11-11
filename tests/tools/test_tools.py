@@ -56,6 +56,19 @@ class CoverageToSonarTests(unittest.TestCase):
         self.assertEqual(merged[("src/A.cs", 1)], (True, 0, 0))
         self.assertEqual(merged[("src/A.cs", 2)], (True, 2, 2))
 
+    def test_merge_unites_conditions_by_number(self):
+        def line(first, second):
+            return (
+                '<line number="5" hits="1" branch="True" condition-coverage="50% (1/2)"><conditions>'
+                f'<condition number="0" type="jump" coverage="{first}"/>'
+                f'<condition number="1" type="jump" coverage="{second}"/></conditions></line>'
+            )
+        windows, linux = self.root / "w.xml", self.root / "l.xml"
+        cobertura(windows, "/r/src/A.cs", [line("100%", "0%")])
+        cobertura(linux, "/r/src/A.cs", [line("0%", "100%")])
+        self.assertEqual(self.tool.merge([windows])[("src/A.cs", 5)], (True, 2, 1))
+        self.assertEqual(self.tool.merge([windows, linux])[("src/A.cs", 5)], (True, 2, 2))
+
     def test_write_emits_sonar_generic_coverage(self):
         output = self.root / "out.xml"
         self.tool.write({("src/A.cs", 1): (True, 0, 0), ("src/A.cs", 2): (False, 2, 1)}, output)
