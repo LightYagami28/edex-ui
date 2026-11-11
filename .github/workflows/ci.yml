@@ -51,7 +51,7 @@ jobs:
       - name: Test and measure coverage of tools/ scripts
         run: |
           python3 -m venv "$RUNNER_TEMP/coverage-venv"
-          "$RUNNER_TEMP/coverage-venv/bin/pip" install --quiet coverage==7.17.2
+          "$RUNNER_TEMP/coverage-venv/bin/pip" install --quiet --only-binary :all: coverage==7.17.2
           "$RUNNER_TEMP/coverage-venv/bin/coverage" run --include='*/tools/*.py' --omit='*/tests/*' -m unittest discover -s tests/tools
           "$RUNNER_TEMP/coverage-venv/bin/coverage" xml -o coverage-python.xml
       - name: Analyze
