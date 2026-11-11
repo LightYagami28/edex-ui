@@ -1,6 +1,34 @@
 version: 2
 updates:
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: github-actions
+    directory: /
     schedule:
-      interval: "weekly"
+      interval: daily
+    open-pull-requests-limit: 20
+    groups:
+      minori-e-patch:
+        update-types:
+          - minor
+          - patch
+  - package-ecosystem: nuget
+    directories:
+      - /src/Core
+      - /tests/Core.Tests
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 20
+    groups:
+      minori-e-patch:
+        update-types:
+          - minor
+          - patch
+  - package-ecosystem: dotnet-sdk
+    directory: /
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 20
+    groups:
+      minori-e-patch:
+        update-types:
+          - minor
+          - patch
