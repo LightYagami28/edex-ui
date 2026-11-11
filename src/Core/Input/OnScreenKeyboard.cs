@@ -174,11 +174,6 @@ public sealed class KeyboardState
 
     private String CreateOutput(KeyDefinition key, Func<char, string> cursor, Func<int, string> tilde)
     {
-        if (key == null)
-        {
-            return "";
-        }
-
         String? navigation = NavigationOutput(key.Action, cursor, tilde);
         if (navigation != null)
         {
@@ -248,11 +243,6 @@ public sealed class KeyboardState
 
     private String TypingOutput(KeyDefinition key)
     {
-        if (key == null)
-        {
-            return "";
-        }
-
         switch (key.Action)
         {
             case KeyAction.Character:
@@ -268,11 +258,6 @@ public sealed class KeyboardState
 
     private String MoreTyping(KeyDefinition key)
     {
-        if (key == null)
-        {
-            return "";
-        }
-
         switch (key.Action)
         {
             case KeyAction.Backspace:

@@ -60,11 +60,6 @@ public static class FileBrowser
 
     private static FileEntryKind GetKind(FileSystemInfo info)
     {
-        if (info == null)
-        {
-            return FileEntryKind.File;
-        }
-
         if (info is DirectoryInfo)
         {
             return FileEntryKind.Directory;

@@ -48,10 +48,16 @@ jobs:
           path: coverage
       - name: Merge coverage from all systems
         run: python3 tools/coverage-to-sonar.py sonar-coverage.xml $(find coverage -name cov.cobertura.xml)
+      - name: Test and measure coverage of tools/ scripts
+        run: |
+          python3 -m venv "$RUNNER_TEMP/coverage-venv"
+          "$RUNNER_TEMP/coverage-venv/bin/pip" install --quiet --only-binary :all: coverage==7.17.2
+          "$RUNNER_TEMP/coverage-venv/bin/coverage" run --include='*/tools/*.py' --omit='*/tests/*' -m unittest discover -s tests/tools
+          "$RUNNER_TEMP/coverage-venv/bin/coverage" xml -o coverage-python.xml
       - name: Analyze
         if: env.SONAR_TOKEN != ''
         run: |
           dotnet tool install --global dotnet-sonarscanner --version 12.1.0
-          dotnet sonarscanner begin /k:"LightYagami28_edex-ui" /o:"lightyagami28" /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.coverageReportPaths="sonar-coverage.xml"
+          dotnet sonarscanner begin /k:"LightYagami28_edex-ui" /o:"lightyagami28" /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.coverageReportPaths="sonar-coverage.xml" /d:sonar.python.coverage.reportPaths="coverage-python.xml" /d:sonar.coverage.exclusions="tests/**"
           dotnet build --configuration Release
           dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"

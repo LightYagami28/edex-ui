@@ -3,8 +3,9 @@
 
 Usage: coverage-to-sonar.py OUTPUT REPORT [REPORT ...]
 
-Each runner measures only the code that runs on its own operating system, so a line counts as
-covered when any report covers it. Paths are made relative to the repository ("src/Core/...").
+Each runner measures only the code that runs on its own operating system, so a line (and each
+branch condition of a line) counts as covered when any report covers it.
+Paths are made relative to the repository ("src/Core/...").
 """
 import sys
 import xml.etree.ElementTree as ET
@@ -15,6 +16,17 @@ def relative_path(filename):
     return path[path.index("src/"):]
 
 
+def branch_details(line):
+    """Return (total, indices of covered conditions, covered count when no per-condition detail)."""
+    nodes = line.findall("conditions/condition")
+    if nodes:
+        return len(nodes), {int(n.get("number")) for n in nodes if n.get("coverage") != "0%"}, 0
+    condition = line.get("condition-coverage", "")
+    counts = condition[condition.index("(") + 1:-1]
+    covered, total = (int(x) for x in counts.split("/"))
+    return total, set(), covered
+
+
 def merge(reports):
     lines = {}
     for report in reports:
@@ -23,14 +35,14 @@ def merge(reports):
             for line in cls.iter("line"):
                 key = (path, int(line.get("number")))
                 hits = int(line.get("hits")) > 0
-                branches = 0
-                covered = 0
+                total, indices, covered = (0, set(), 0)
                 if line.get("branch") == "True":
-                    condition = line.get("condition-coverage")
-                    covered, branches = (int(x) for x in condition[condition.index("(") + 1:-1].split("/"))
-                old = lines.get(key, (False, 0, 0))
-                lines[key] = (old[0] or hits, max(old[1], branches), max(old[2], covered))
-    return lines
+                    total, indices, covered = branch_details(line)
+                old = lines.get(key, (False, 0, set(), 0))
+                # Conditions are united by number: the OS-specific branch taken on one runner
+                # is not the one taken on another, so counts alone would lose coverage.
+                lines[key] = (old[0] or hits, max(old[1], total), old[2] | indices, max(old[3], covered))
+    return {key: (hit, total, max(len(indices), covered)) for key, (hit, total, indices, covered) in lines.items()}
 
 
 def write(lines, output):
