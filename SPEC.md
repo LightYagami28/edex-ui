@@ -129,3 +129,40 @@ Differenze rispetto alla tabella delle funzioni:
 - Test: MSTest (Microsoft) al posto di xUnit (terzi). Coverage con `Microsoft.CodeCoverage`.
 - Linux e macOS non sono eseguibili su questa macchina Windows: il loro stato "funziona" è quello dei runner CI e dei container, non dimostrabile in locale.
 - .NET 11 è ancora RC (go-live): a GA si aggiorna `global.json`.
+
+## 7. Evoluzione: .NET 11 definitivo e versione macOS in Swift (2026-11-10)
+
+Decisione di Light: portare tutto su .NET 11 in versione definitiva e sviluppare la versione macOS in Swift. Questa sezione descrive il lavoro; lo sviluppo lo fa chi prende in carico il ramo.
+
+Stato verificato il 2026-11-10:
+- `global.json` usa l'SDK `11.0.100-rc.3.26522.148` con `allowPrerelease: true`; `Directory.Build.props` ha `TargetFramework` `net11.0`.
+- .NET 11 è ancora release candidate «go-live» (`11.0.0-rc.3`); l'ultima versione stabile è .NET 10 LTS (`10.0.14`). Fonte: `https://dotnetcli.blob.core.windows.net/dotnet/release-metadata/releases-index.json`.
+
+### 7.1 .NET 11 definitivo
+
+- Appena esce la GA: `global.json` sulla versione GA, `allowPrerelease: false`, `rollForward: latestFeature`.
+- CI: `actions/setup-dotnet` su `11.0.x`, stesse verifiche di oggi.
+- Pacchetti di sviluppo (MSTest, `Microsoft.CodeCoverage`) all'ultima versione compatibile con .NET 11.
+- Build senza avvisi (`dotnet build -warnaserror`), nessuna API obsoleta (CS0618, CS0612, SYSLIB*).
+- Fatto quando: `dotnet test` verde con copertura del Core invariata, 0 issue su SonarCloud, smoke test Windows e Linux verdi in CI.
+
+### 7.2 Versione macOS in Swift
+
+Sostituisce la riga «macOS: AppKit via runtime Objective-C» della sezione 3 e la fase C3 della sezione 5.
+
+- App nativa in Swift, solo framework Apple (SwiftUI e/o AppKit, CoreGraphics, Foundation): resta valida la regola «nessuna libreria di terzi».
+- Ramo `native/macos`, codice in `platform/macos/` (Swift Package o progetto Xcode), test con Swift Testing o XCTest.
+- Logica condivisa, due strade da scegliere:
+  1. **Core .NET come libreria nativa**: Core compilato con NativeAOT in una libreria dinamica per macOS con funzioni esportate (`UnmanagedCallersOnly`), chiamata da Swift. Una sola fonte di logica e test esistenti riusati.
+  2. **Core riscritto in Swift**: nessun runtime .NET nell'app, ma doppia logica da mantenere e da testare.
+- Toolchain: l'interfaccia (SwiftUI/AppKit) si compila solo su macOS con Xcode. Lo Swift per Windows (swift.org) serve solo a compilare e testare codice Swift senza interfaccia. Build e test dell'app vanno sul runner `macos-latest` di GitHub Actions o su un Mac.
+- Distribuzione: `.app` firmata e notarizzata (serve un account Apple Developer), immagine `.dmg`, cask Homebrew.
+- Fatto quando: build e test verdi sul runner macOS, smoke test (`--smoke-test`: avvia, scrive un comando nel terminale, controlla l'output, salva uno screenshot, esce con 0), app firmata e notarizzata.
+
+### 7.3 Decisioni aperte
+
+- Core condiviso via NativeAOT oppure riscritto in Swift.
+- SwiftUI, AppKit o entrambi.
+- Versione minima di macOS da supportare.
+- Account Apple Developer per firma e notarizzazione.
+- Licenza GPL-3.0 del repo (vedi sezione 6).
