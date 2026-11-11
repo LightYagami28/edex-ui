@@ -56,3 +56,6 @@ TestResults/
 *.cobertura.xml
 cov.xml
 sonar-coverage.xml
+coverage-python.xml
+.coverage
+__pycache__/
