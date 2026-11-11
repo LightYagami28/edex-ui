@@ -90,7 +90,10 @@ internal sealed partial class WindowsPty : IPtyConnection
         }
         catch
         {
-            if (!consoleOwnsEnds) ReleaseUnownedEnds(inputRead, outputWrite);
+            if (!consoleOwnsEnds)
+            {
+                ReleaseUnownedEnds(inputRead, outputWrite);
+            }
             outputRead.Dispose();
             inputWrite.Dispose();
             if (pseudoConsole != IntPtr.Zero) ClosePseudoConsole(pseudoConsole);
@@ -113,13 +116,15 @@ internal sealed partial class WindowsPty : IPtyConnection
         return (read, write);
     }
 
-    // Only reached when a Windows API call failed before the pseudo console took over the ends, which tests cannot provoke;
+    // Runs only after a Windows API call failed before the pseudo console took over the ends, which tests cannot provoke;
     // kept out of Spawn so the analyzer does not see a second disposal.
     [ExcludeFromCodeCoverage(Justification = "Failure cleanup that needs a failing ConPTY or pipe API call.")]
-    private static void ReleaseUnownedEnds(SafeFileHandle inputRead, SafeFileHandle outputWrite)
+    private static void ReleaseUnownedEnds(params IDisposable[] ends)
     {
-        inputRead.Dispose();
-        outputWrite.Dispose();
+        foreach (var end in ends)
+        {
+            end.Dispose();
+        }
     }
 
     private static void Ensure(bool succeeded) { if (!succeeded) throw new Win32Exception(); }

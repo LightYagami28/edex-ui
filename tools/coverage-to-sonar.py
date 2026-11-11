@@ -21,7 +21,7 @@ def branch_details(line):
     nodes = line.findall("conditions/condition")
     if nodes:
         return len(nodes), {int(n.get("number")) for n in nodes if n.get("coverage") != "0%"}, 0
-    condition = line.get("condition-coverage")
+    condition = line.get("condition-coverage", "")
     counts = condition[condition.index("(") + 1:-1]
     covered, total = (int(x) for x in counts.split("/"))
     return total, set(), covered
