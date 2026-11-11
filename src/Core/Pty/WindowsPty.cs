@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
@@ -89,11 +90,7 @@ internal sealed partial class WindowsPty : IPtyConnection
         }
         catch
         {
-            if (!consoleOwnsEnds)
-            {
-                ReleaseUnlessOwned(inputRead);
-                ReleaseUnlessOwned(outputWrite);
-            }
+            if (!consoleOwnsEnds) ReleaseUnownedEnds(inputRead, outputWrite);
             outputRead.Dispose();
             inputWrite.Dispose();
             if (pseudoConsole != IntPtr.Zero) ClosePseudoConsole(pseudoConsole);
@@ -116,8 +113,14 @@ internal sealed partial class WindowsPty : IPtyConnection
         return (read, write);
     }
 
-    // Only reached when the pseudo console never took over the ends; kept out of Spawn so the analyzer does not see a second disposal.
-    private static void ReleaseUnlessOwned(SafeFileHandle handle) => handle.Dispose();
+    // Only reached when a Windows API call failed before the pseudo console took over the ends, which tests cannot provoke;
+    // kept out of Spawn so the analyzer does not see a second disposal.
+    [ExcludeFromCodeCoverage(Justification = "Failure cleanup that needs a failing ConPTY or pipe API call.")]
+    private static void ReleaseUnownedEnds(SafeFileHandle inputRead, SafeFileHandle outputWrite)
+    {
+        inputRead.Dispose();
+        outputWrite.Dispose();
+    }
 
     private static void Ensure(bool succeeded) { if (!succeeded) throw new Win32Exception(); }
 
