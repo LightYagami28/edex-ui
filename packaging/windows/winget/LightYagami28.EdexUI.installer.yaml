@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
+PackageIdentifier: LightYagami28.EdexUI
+PackageVersion: @VERSION@
+InstallerType: zip
+NestedInstallerType: portable
+Commands:
+- edex-ui
+Installers:
+- Architecture: x64
+  InstallerUrl: @URL_BASE@/edex-ui-@VERSION@-win-x64.zip
+  InstallerSha256: @SHA256_WIN_X64@
+  NestedInstallerFiles:
+  - RelativeFilePath: edex-ui-@VERSION@-win-x64\edex-ui.exe
+    PortableCommandAlias: edex-ui
+- Architecture: arm64
+  InstallerUrl: @URL_BASE@/edex-ui-@VERSION@-win-arm64.zip
+  InstallerSha256: @SHA256_WIN_ARM64@
+  NestedInstallerFiles:
+  - RelativeFilePath: edex-ui-@VERSION@-win-arm64\edex-ui.exe
+    PortableCommandAlias: edex-ui
+ManifestType: installer
+ManifestVersion: 1.12.0

@@ -1,0 +1,85 @@
+name: Packaging
+
+# Costruisce gli standalone di tutti i RID e valida i manifest. Non pubblica nulla.
+on:
+  pull_request:
+    paths: ['packaging/**', 'src/**', 'Directory.Build.props', 'global.json', '.github/workflows/packaging.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows (win-x64, win-arm64)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - name: Build standalone e manifest
+        shell: pwsh
+        run: ./packaging/build.ps1
+      - name: Avvio win-x64
+        shell: pwsh
+        run: |
+          Expand-Archive packaging/dist/edex-ui-*-win-x64.zip $env:RUNNER_TEMP/x64
+          $exe = Get-ChildItem $env:RUNNER_TEMP/x64 -Recurse -Filter edex-ui.exe | Select-Object -First 1
+          & $exe.FullName --version
+          if ($LASTEXITCODE -ne 0) { throw 'edex-ui --version fallito' }
+      - name: Valida winget
+        shell: pwsh
+        run: winget validate --manifest packaging/dist/windows/winget
+      - name: Valida Scoop (schema ufficiale)
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://raw.githubusercontent.com/ScoopInstaller/Scoop/master/schema.json -OutFile $env:RUNNER_TEMP/scoop-schema.json
+          if (-not (Test-Json -Path packaging/dist/windows/scoop/edex-ui.json -SchemaFile $env:RUNNER_TEMP/scoop-schema.json)) { throw 'manifest Scoop non valido' }
+      - name: Controlla nuspec Chocolatey
+        shell: pwsh
+        run: choco pack packaging/dist/windows/chocolatey/edex-ui.nuspec --outputdirectory $env:RUNNER_TEMP
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: packaging-windows
+          path: |
+            packaging/dist/*.zip
+            packaging/dist/*.sha256
+          retention-days: 7
+
+  linux:
+    name: Linux (glibc e musl, x64 e arm64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - name: Build standalone e file dei pacchetti
+        run: bash packaging/build.sh
+      - name: Avvio linux-x64
+        run: |
+          tar -xzf packaging/dist/edex-ui-*-linux-x64.tar.gz -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP"/edex-ui-*-linux-x64/edex-ui --version
+      - name: Verifica somme
+        working-directory: packaging/dist
+        run: sha256sum -c ./*.sha256
+      - name: Strumenti di validazione
+        run: sudo apt-get update && sudo apt-get install -y desktop-file-utils appstream
+      - name: Valida .desktop e AppStream
+        run: |
+          desktop-file-validate packaging/linux/shared/edex-ui.desktop
+          appstreamcli validate --no-net packaging/dist/linux/flatpak/io.github.lightyagami28.EdexUI.metainfo.xml
+      - name: Costruisce e ispeziona il .deb
+        run: |
+          bash packaging/dist/linux/deb/build-deb.sh amd64
+          dpkg-deb --info packaging/dist/edex-ui_*_amd64.deb
+          dpkg-deb --contents packaging/dist/edex-ui_*_amd64.deb
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: packaging-linux
+          path: |
+            packaging/dist/*.tar.gz
+            packaging/dist/*.sha256
+            packaging/dist/*.deb
+          retention-days: 7

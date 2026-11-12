@@ -1,0 +1,31 @@
+# Maintainer: Light Yagami <maule2703@gmail.com>
+pkgname=edex-ui
+pkgver=@VERSION@
+pkgrel=0
+pkgdesc="Terminale a schermo intero in stile fantascienza con pannelli di sistema"
+url="https://github.com/LightYagami28/edex-ui"
+arch="x86_64 aarch64"
+license="GPL-3.0-only"
+depends="libstdc++ libgcc zlib openssl"
+# Single-file .NET: strip lo corromperebbe. Nessun test nel pacchetto binario.
+options="!strip !check"
+source="
+	$pkgname-$pkgver-linux-musl-x64.tar.gz::@URL_BASE@/$pkgname-$pkgver-linux-musl-x64.tar.gz
+	$pkgname-$pkgver-linux-musl-arm64.tar.gz::@URL_BASE@/$pkgname-$pkgver-linux-musl-arm64.tar.gz
+	"
+builddir="$srcdir"
+
+sha256sums="
+@SHA256_LINUX_MUSL_X64@  $pkgname-$pkgver-linux-musl-x64.tar.gz
+@SHA256_LINUX_MUSL_ARM64@  $pkgname-$pkgver-linux-musl-arm64.tar.gz
+"
+
+package() {
+	local rid=linux-musl-x64
+	[ "$CARCH" = aarch64 ] && rid=linux-musl-arm64
+	cd "$srcdir/$pkgname-$pkgver-$rid"
+	install -Dm755 edex-ui "$pkgdir/usr/bin/edex-ui"
+	install -Dm644 share/applications/edex-ui.desktop "$pkgdir/usr/share/applications/edex-ui.desktop"
+	install -Dm644 share/icons/hicolor/256x256/apps/edex-ui.png "$pkgdir/usr/share/icons/hicolor/256x256/apps/edex-ui.png"
+	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

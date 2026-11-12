@@ -1,0 +1,37 @@
+id: io.github.lightyagami28.EdexUI
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+command: edex-ui
+finish-args:
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --device=dri
+  - --share=network
+  - --filesystem=home
+modules:
+  - name: edex-ui
+    buildsystem: simple
+    # Single-file .NET: strip lo corromperebbe.
+    strip: false
+    no-debuginfo: true
+    build-commands:
+      - install -Dm755 edex-ui /app/bin/edex-ui
+      - install -Dm644 share/applications/edex-ui.desktop /app/share/applications/io.github.lightyagami28.EdexUI.desktop
+      - install -Dm644 share/icons/hicolor/256x256/apps/edex-ui.png /app/share/icons/hicolor/256x256/apps/io.github.lightyagami28.EdexUI.png
+      - install -Dm644 io.github.lightyagami28.EdexUI.metainfo.xml /app/share/metainfo/io.github.lightyagami28.EdexUI.metainfo.xml
+      - desktop-file-edit --set-key=Icon --set-value=io.github.lightyagami28.EdexUI /app/share/applications/io.github.lightyagami28.EdexUI.desktop
+    sources:
+      - type: archive
+        only-arches: [x86_64]
+        url: @URL_BASE@/edex-ui-@VERSION@-linux-x64.tar.gz
+        sha256: @SHA256_LINUX_X64@
+        strip-components: 1
+      - type: archive
+        only-arches: [aarch64]
+        url: @URL_BASE@/edex-ui-@VERSION@-linux-arm64.tar.gz
+        sha256: @SHA256_LINUX_ARM64@
+        strip-components: 1
+      - type: file
+        path: io.github.lightyagami28.EdexUI.metainfo.xml

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=eDEX-UI
+GenericName=Terminal
+Comment=Terminale a schermo intero in stile fantascienza con pannelli di sistema
+Exec=edex-ui
+Icon=edex-ui
+Terminal=false
+Categories=System;TerminalEmulator;
+Keywords=terminal;shell;sci-fi;
