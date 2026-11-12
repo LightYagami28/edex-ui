@@ -98,7 +98,10 @@ public static class SoundSynth
         w.Write("data"u8);
         w.Write(dataBytes);
         foreach (var s in samples)
+        {
             w.Write((short)Math.Clamp(Math.Round(s * volume * short.MaxValue), short.MinValue, short.MaxValue));
+        }
+
         w.Flush();
         return ms.ToArray();
     }

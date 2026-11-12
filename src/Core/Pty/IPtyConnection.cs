@@ -46,14 +46,20 @@ public static class PtyFactory
         var env = new Dictionary<string, string>(comparer);
         foreach (System.Collections.DictionaryEntry entry in System.Environment.GetEnvironmentVariables())
         {
-            if (entry.Key is string key && key.Length > 0) env[key] = entry.Value as string ?? "";
+            if (entry.Key is string key && key.Length > 0)
+            {
+                env[key] = entry.Value as string ?? "";
+            }
         }
         env["TERM"] = "xterm-256color";
         env["COLORTERM"] = "truecolor";
         env["TERM_PROGRAM"] = "eDEX-UI";
         if (extra is not null)
         {
-            foreach (var (key, value) in extra) env[key] = value;
+            foreach (var (key, value) in extra)
+            {
+                env[key] = value;
+            }
         }
         return env;
     }

@@ -14,7 +14,11 @@ public static class HardwareInfo
             const string key = @"HKEY_LOCAL_MACHINE\HARDWARE\DESCRIPTION\System\BIOS";
             return new HardwareSample(Registry("SystemManufacturer", key), Registry("SystemProductName", key), "");
         }
-        if (OperatingSystem.IsMacOS()) return new HardwareSample("Apple", MacSysctl.ReadString("hw.model"), "");
+        if (OperatingSystem.IsMacOS())
+        {
+            return new HardwareSample("Apple", MacSysctl.ReadString("hw.model"), "");
+        }
+
         return new HardwareSample(Dmi("sys_vendor"), Dmi("product_name"), ChassisName(Dmi("chassis_type")));
     }
 

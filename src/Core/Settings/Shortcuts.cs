@@ -50,11 +50,19 @@ public static class Shortcuts
     /// <summary>Parses a shortcuts JSON array. Invalid JSON gives the defaults; entries without keys or action are dropped.</summary>
     public static IReadOnlyList<Shortcut> Parse(string? json)
     {
-        if (string.IsNullOrWhiteSpace(json)) return Defaults;
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return Defaults;
+        }
+
         try
         {
             var list = JsonSerializer.Deserialize<List<Shortcut>>(json, JsonOptions);
-            if (list is null) return Defaults;
+            if (list is null)
+            {
+                return Defaults;
+            }
+
             return list.Where(s => !string.IsNullOrWhiteSpace(s.Keys) && !string.IsNullOrWhiteSpace(s.Action)).ToList();
         }
         catch (JsonException)

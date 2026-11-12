@@ -58,7 +58,11 @@ public sealed class TerminalBuffer
     private static TerminalCell[][] NewScreen(int columns, int rows)
     {
         var screen = new TerminalCell[rows][];
-        for (int i = 0; i < rows; i++) screen[i] = NewLine(columns);
+        for (int i = 0; i < rows; i++)
+        {
+            screen[i] = NewLine(columns);
+        }
+
         return screen;
     }
 
@@ -78,16 +82,27 @@ public sealed class TerminalBuffer
         string? responses = null;
         lock (_gate)
         {
-            if (_charBuffer.Length < data.Length + 4) _charBuffer = new char[data.Length + 4];
+            if (_charBuffer.Length < data.Length + 4)
+            {
+                _charBuffer = new char[data.Length + 4];
+            }
+
             int count = _decoder.GetChars(data, _charBuffer, flush: false);
-            for (int i = 0; i < count; i++) Process(_charBuffer[i]);
+            for (int i = 0; i < count; i++)
+            {
+                Process(_charBuffer[i]);
+            }
+
             if (_responses.Length > 0)
             {
                 responses = _responses.ToString();
                 _responses.Clear();
             }
         }
-        if (responses is not null) Response?.Invoke(responses);
+        if (responses is not null)
+        {
+            Response?.Invoke(responses);
+        }
     }
 
     public void Resize(int columns, int rows)
@@ -96,11 +111,19 @@ public sealed class TerminalBuffer
         rows = Math.Max(2, rows);
         lock (_gate)
         {
-            if (columns == Columns && rows == Rows) return;
+            if (columns == Columns && rows == Rows)
+            {
+                return;
+            }
+
             bool alternate = IsAlternateScreen;
             int oldCursorY = _cursorY;
             _main = ResizeScreen(_main, columns, rows, pushToScrollback: !alternate, alternate ? rows - 1 : oldCursorY);
-            if (_alternate is not null) _alternate = ResizeScreen(_alternate, columns, rows, pushToScrollback: false, oldCursorY);
+            if (_alternate is not null)
+            {
+                _alternate = ResizeScreen(_alternate, columns, rows, pushToScrollback: false, oldCursorY);
+            }
+
             _screen = alternate ? _alternate! : _main;
             int shift = Math.Max(0, (oldCursorY + 1) - rows);
             Columns = columns;
@@ -120,18 +143,33 @@ public sealed class TerminalBuffer
         // When shrinking, first drop empty rows below the cursor, then push rows from the top into scrollback.
         while (lines.Count > rows)
         {
-            if (lines.Count - 1 > cursorY && IsBlank(lines[^1])) lines.RemoveAt(lines.Count - 1);
+            if (lines.Count - 1 > cursorY && IsBlank(lines[^1]))
+            {
+                lines.RemoveAt(lines.Count - 1);
+            }
             else
             {
-                if (pushToScrollback) PushScrollback(lines[0]);
+                if (pushToScrollback)
+                {
+                    PushScrollback(lines[0]);
+                }
+
                 lines.RemoveAt(0);
                 cursorY--;
             }
         }
-        while (lines.Count < rows) lines.Add(NewLine(columns));
+        while (lines.Count < rows)
+        {
+            lines.Add(NewLine(columns));
+        }
+
         for (int i = 0; i < lines.Count; i++)
         {
-            if (lines[i].Length == columns) continue;
+            if (lines[i].Length == columns)
+            {
+                continue;
+            }
+
             var line = NewLine(columns);
             Array.Copy(lines[i], line, Math.Min(columns, lines[i].Length));
             lines[i] = line;
@@ -144,19 +182,31 @@ public sealed class TerminalBuffer
     private void PushScrollback(TerminalCell[] line)
     {
         _scrollback.Add(line);
-        if (_scrollback.Count > ScrollbackLimit) _scrollback.RemoveAt(0);
-        else if (_scrollOffset > 0) _scrollOffset++;
+        if (_scrollback.Count > ScrollbackLimit)
+        {
+            _scrollback.RemoveAt(0);
+        }
+        else if (_scrollOffset > 0)
+        {
+            _scrollOffset++;
+        }
     }
 
     /// <summary>Scrolls the viewport into history. Positive = older lines.</summary>
     public void ScrollViewport(int delta)
     {
-        lock (_gate) _scrollOffset = Math.Clamp(_scrollOffset + delta, 0, _scrollback.Count);
+        lock (_gate)
+        {
+            _scrollOffset = Math.Clamp(_scrollOffset + delta, 0, _scrollback.Count);
+        }
     }
 
     public void ResetViewport()
     {
-        lock (_gate) _scrollOffset = 0;
+        lock (_gate)
+        {
+            _scrollOffset = 0;
+        }
     }
 
     public TerminalSnapshot Snapshot()
@@ -193,7 +243,10 @@ public sealed class TerminalBuffer
         {
             var sb = new StringBuilder();
             foreach (var line in _scrollback.Concat(_main))
+            {
                 sb.Append(new string(line.Select(c => c.Glyph).ToArray()).TrimEnd()).Append('\n');
+            }
+
             return sb.ToString().TrimEnd('\n');
         }
     }
@@ -211,7 +264,11 @@ public sealed class TerminalBuffer
                 EscapeChar(c);
                 break;
             case State.EscapeIntermediate:
-                if (c >= 0x30 && c <= 0x7E) _state = State.Ground; // e.g. ESC # 8, ESC % G
+                if (c >= 0x30 && c <= 0x7E)
+                {
+                    _state = State.Ground; // e.g. ESC # 8, ESC % G
+                }
+
                 break;
             case State.Charset:
                 _state = State.Ground; // character set designation is ignored (UTF-8 only)
@@ -223,7 +280,11 @@ public sealed class TerminalBuffer
                 ProcessOsc(c);
                 break;
             case State.OscEscape:
-                if (c == '\\') Osc();
+                if (c == '\\')
+                {
+                    Osc();
+                }
+
                 _state = State.Ground;
                 break;
             case State.Dcs:
@@ -237,30 +298,60 @@ public sealed class TerminalBuffer
 
     private void ProcessGround(char c)
     {
-        if (c < 0x20 || c == 0x7F) Control(c);
-        else Print(c);
+        if (c < 0x20 || c == 0x7F)
+        {
+            Control(c);
+        }
+        else
+        {
+            Print(c);
+        }
     }
 
     private void ProcessCsi(char c)
     {
         if (c >= 0x40 && c <= 0x7E) { Csi(c); _state = State.Ground; }
-        else if (c == 0x1B) _state = State.Escape;
-        else if (c == 0x18 || c == 0x1A) _state = State.Ground;
-        else if (c >= 0x20) _params.Append(c);
-        else Control(c);
+        else if (c == 0x1B)
+        {
+            _state = State.Escape;
+        }
+        else if (c == 0x18 || c == 0x1A)
+        {
+            _state = State.Ground;
+        }
+        else if (c >= 0x20)
+        {
+            _params.Append(c);
+        }
+        else
+        {
+            Control(c);
+        }
     }
 
     private void ProcessOsc(char c)
     {
         if (c == 0x07) { Osc(); _state = State.Ground; }
-        else if (c == 0x1B) _state = State.OscEscape;
-        else if (_osc.Length < 4096) _osc.Append(c);
+        else if (c == 0x1B)
+        {
+            _state = State.OscEscape;
+        }
+        else if (_osc.Length < 4096)
+        {
+            _osc.Append(c);
+        }
     }
 
     private void ProcessDcs(char c)
     {
-        if (c == 0x1B) _state = State.DcsEscape;
-        else if (c == 0x07) _state = State.Ground;
+        if (c == 0x1B)
+        {
+            _state = State.DcsEscape;
+        }
+        else if (c == 0x07)
+        {
+            _state = State.Ground;
+        }
     }
 
     private void EscapeChar(char c)
@@ -303,8 +394,15 @@ public sealed class TerminalBuffer
             case '\r': _cursorX = 0; _wrapPending = false; break;
             case '\n': case '\v': case '\f': LineFeed(); break;
             case '\b':
-                if (_wrapPending) _wrapPending = false;
-                else if (_cursorX > 0) _cursorX--;
+                if (_wrapPending)
+                {
+                    _wrapPending = false;
+                }
+                else if (_cursorX > 0)
+                {
+                    _cursorX--;
+                }
+
                 break;
             case '\t':
                 _wrapPending = false;
@@ -322,22 +420,40 @@ public sealed class TerminalBuffer
             _wrapPending = false;
         }
         _screen[_cursorY][_cursorX] = new TerminalCell(c, _fg, _bg, _attrs);
-        if (_cursorX == Columns - 1) _wrapPending = true;
-        else _cursorX++;
+        if (_cursorX == Columns - 1)
+        {
+            _wrapPending = true;
+        }
+        else
+        {
+            _cursorX++;
+        }
     }
 
     private void LineFeed()
     {
         _wrapPending = false;
-        if (_cursorY == _scrollBottom) ScrollUp(1);
-        else if (_cursorY < Rows - 1) _cursorY++;
+        if (_cursorY == _scrollBottom)
+        {
+            ScrollUp(1);
+        }
+        else if (_cursorY < Rows - 1)
+        {
+            _cursorY++;
+        }
     }
 
     private void ReverseIndex()
     {
         _wrapPending = false;
-        if (_cursorY == _scrollTop) ScrollDown(1);
-        else if (_cursorY > 0) _cursorY--;
+        if (_cursorY == _scrollTop)
+        {
+            ScrollDown(1);
+        }
+        else if (_cursorY > 0)
+        {
+            _cursorY--;
+        }
     }
 
     private void ScrollUp(int count)
@@ -346,8 +462,16 @@ public sealed class TerminalBuffer
         for (int n = 0; n < count; n++)
         {
             var top = _screen[_scrollTop];
-            if (_scrollTop == 0 && !IsAlternateScreen) PushScrollback(top);
-            for (int row = _scrollTop; row < _scrollBottom; row++) _screen[row] = _screen[row + 1];
+            if (_scrollTop == 0 && !IsAlternateScreen)
+            {
+                PushScrollback(top);
+            }
+
+            for (int row = _scrollTop; row < _scrollBottom; row++)
+            {
+                _screen[row] = _screen[row + 1];
+            }
+
             _screen[_scrollBottom] = NewLine(Columns, BlankWithBackground);
         }
     }
@@ -357,7 +481,11 @@ public sealed class TerminalBuffer
         count = Math.Min(count, _scrollBottom - _scrollTop + 1);
         for (int n = 0; n < count; n++)
         {
-            for (int row = _scrollBottom; row > _scrollTop; row--) _screen[row] = _screen[row - 1];
+            for (int row = _scrollBottom; row > _scrollTop; row--)
+            {
+                _screen[row] = _screen[row - 1];
+            }
+
             _screen[_scrollTop] = NewLine(Columns, BlankWithBackground);
         }
     }
@@ -391,9 +519,16 @@ public sealed class TerminalBuffer
     {
         var text = _osc.ToString();
         int sep = text.IndexOf(';');
-        if (sep <= 0) return;
+        if (sep <= 0)
+        {
+            return;
+        }
+
         var kind = text[..sep];
-        if (kind is "0" or "2") Title = text[(sep + 1)..];
+        if (kind is "0" or "2")
+        {
+            Title = text[(sep + 1)..];
+        }
     }
 
     private int[] ParseParams()
@@ -404,7 +539,11 @@ public sealed class TerminalBuffer
             _csiPrefix = raw[0];
             raw = raw[1..];
         }
-        if (raw.Length == 0) return [];
+        if (raw.Length == 0)
+        {
+            return [];
+        }
+
         var parts = raw.Split(ParamSeparators);
         var values = new int[parts.Length];
         for (int i = 0; i < parts.Length; i++)
@@ -425,18 +564,29 @@ public sealed class TerminalBuffer
         bool intermediate = _params.Length > 0 && _params[^1] is ' ' or '!' or '"' or '$' or '\'';
         if (intermediate)
         {
-            if (final == 'p' && _params.ToString() == "!") FullReset();
+            if (final == 'p' && _params.ToString() == "!")
+            {
+                FullReset();
+            }
+
             return;
         }
         if (_csiPrefix == '?') { PrivateMode(final, p); return; }
         if (_csiPrefix is '>' or '<' or '=')
         {
-            if (final == 'c' && _csiPrefix == '>') _responses.Append("\x1b[>0;10;0c");
+            if (final == 'c' && _csiPrefix == '>')
+            {
+                _responses.Append("\x1b[>0;10;0c");
+            }
+
             return;
         }
 
         CsiCommand(final, p);
-        if (final != 'm' && final != 'n' && final != 'c') _wrapPending = false;
+        if (final != 'm' && final != 'n' && final != 'c')
+        {
+            _wrapPending = false;
+        }
     }
 
     private void CsiCommand(char final, int[] p)
@@ -473,14 +623,21 @@ public sealed class TerminalBuffer
             case 'u': RestoreCursor(); break;
             case 'n': DeviceStatus(Arg(p, 0, 0)); break;
             case 'c':
-                if (Arg(p, 0, 0) == 0) _responses.Append("\x1b[?62;22c");
+                if (Arg(p, 0, 0) == 0)
+                {
+                    _responses.Append("\x1b[?62;22c");
+                }
+
                 break;
         }
     }
 
     private void EraseChars(int count)
     {
-        for (int i = 0; i < count && _cursorX + i < Columns; i++) _screen[_cursorY][_cursorX + i] = BlankWithBackground;
+        for (int i = 0; i < count && _cursorX + i < Columns; i++)
+        {
+            _screen[_cursorY][_cursorX + i] = BlankWithBackground;
+        }
     }
 
     private void SetScrollRegion(int[] p)
@@ -494,15 +651,28 @@ public sealed class TerminalBuffer
 
     private void DeviceStatus(int request)
     {
-        if (request == 6) _responses.Append(System.Globalization.CultureInfo.InvariantCulture, $"\x1b[{_cursorY + 1};{_cursorX + 1}R");
-        else if (request == 5) _responses.Append("\x1b[0n");
+        if (request == 6)
+        {
+            _responses.Append(System.Globalization.CultureInfo.InvariantCulture, $"\x1b[{_cursorY + 1};{_cursorX + 1}R");
+        }
+        else if (request == 5)
+        {
+            _responses.Append("\x1b[0n");
+        }
     }
 
     private void PrivateMode(char final, int[] p)
     {
-        if (final != 'h' && final != 'l') return;
+        if (final != 'h' && final != 'l')
+        {
+            return;
+        }
+
         bool on = final == 'h';
-        foreach (var mode in p) SetPrivateMode(mode, on);
+        foreach (var mode in p)
+        {
+            SetPrivateMode(mode, on);
+        }
     }
 
     private void SetPrivateMode(int mode, bool on)
@@ -527,7 +697,11 @@ public sealed class TerminalBuffer
     {
         if (on && !IsAlternateScreen)
         {
-            if (mode == 1049) SaveCursor();
+            if (mode == 1049)
+            {
+                SaveCursor();
+            }
+
             _alternate = NewScreen(Columns, Rows);
             _screen = _alternate;
             _cursorX = _cursorY = 0;
@@ -536,7 +710,10 @@ public sealed class TerminalBuffer
         {
             _screen = _main;
             _alternate = null;
-            if (mode == 1049) RestoreCursor();
+            if (mode == 1049)
+            {
+                RestoreCursor();
+            }
         }
         _scrollTop = 0;
         _scrollBottom = Rows - 1;
@@ -548,14 +725,26 @@ public sealed class TerminalBuffer
         {
             case 0:
                 EraseLine(0);
-                for (int r = _cursorY + 1; r < Rows; r++) _screen[r] = NewLine(Columns, BlankWithBackground);
+                for (int r = _cursorY + 1; r < Rows; r++)
+                {
+                    _screen[r] = NewLine(Columns, BlankWithBackground);
+                }
+
                 break;
             case 1:
                 EraseLine(1);
-                for (int r = 0; r < _cursorY; r++) _screen[r] = NewLine(Columns, BlankWithBackground);
+                for (int r = 0; r < _cursorY; r++)
+                {
+                    _screen[r] = NewLine(Columns, BlankWithBackground);
+                }
+
                 break;
             case 2:
-                for (int r = 0; r < Rows; r++) _screen[r] = NewLine(Columns, BlankWithBackground);
+                for (int r = 0; r < Rows; r++)
+                {
+                    _screen[r] = NewLine(Columns, BlankWithBackground);
+                }
+
                 break;
             case 3:
                 _scrollback.Clear();
@@ -569,16 +758,27 @@ public sealed class TerminalBuffer
         var line = _screen[_cursorY];
         int from = mode == 0 ? _cursorX : 0;
         int to = mode == 1 ? _cursorX : Columns - 1;
-        for (int x = from; x <= to && x < Columns; x++) line[x] = BlankWithBackground;
+        for (int x = from; x <= to && x < Columns; x++)
+        {
+            line[x] = BlankWithBackground;
+        }
     }
 
     private void InsertLines(int count)
     {
-        if (_cursorY < _scrollTop || _cursorY > _scrollBottom) return;
+        if (_cursorY < _scrollTop || _cursorY > _scrollBottom)
+        {
+            return;
+        }
+
         count = Math.Min(count, _scrollBottom - _cursorY + 1);
         for (int n = 0; n < count; n++)
         {
-            for (int row = _scrollBottom; row > _cursorY; row--) _screen[row] = _screen[row - 1];
+            for (int row = _scrollBottom; row > _cursorY; row--)
+            {
+                _screen[row] = _screen[row - 1];
+            }
+
             _screen[_cursorY] = NewLine(Columns, BlankWithBackground);
         }
         _cursorX = 0;
@@ -586,11 +786,19 @@ public sealed class TerminalBuffer
 
     private void DeleteLines(int count)
     {
-        if (_cursorY < _scrollTop || _cursorY > _scrollBottom) return;
+        if (_cursorY < _scrollTop || _cursorY > _scrollBottom)
+        {
+            return;
+        }
+
         count = Math.Min(count, _scrollBottom - _cursorY + 1);
         for (int n = 0; n < count; n++)
         {
-            for (int row = _cursorY; row < _scrollBottom; row++) _screen[row] = _screen[row + 1];
+            for (int row = _cursorY; row < _scrollBottom; row++)
+            {
+                _screen[row] = _screen[row + 1];
+            }
+
             _screen[_scrollBottom] = NewLine(Columns, BlankWithBackground);
         }
         _cursorX = 0;
@@ -601,7 +809,10 @@ public sealed class TerminalBuffer
         var line = _screen[_cursorY];
         count = Math.Min(count, Columns - _cursorX);
         Array.Copy(line, _cursorX + count, line, _cursorX, Columns - _cursorX - count);
-        for (int x = Columns - count; x < Columns; x++) line[x] = BlankWithBackground;
+        for (int x = Columns - count; x < Columns; x++)
+        {
+            line[x] = BlankWithBackground;
+        }
     }
 
     private void InsertChars(int count)
@@ -609,7 +820,10 @@ public sealed class TerminalBuffer
         var line = _screen[_cursorY];
         count = Math.Min(count, Columns - _cursorX);
         Array.Copy(line, _cursorX, line, _cursorX + count, Columns - _cursorX - count);
-        for (int x = _cursorX; x < _cursorX + count; x++) line[x] = BlankWithBackground;
+        for (int x = _cursorX; x < _cursorX + count; x++)
+        {
+            line[x] = BlankWithBackground;
+        }
     }
 
     private void Sgr(int[] p)
@@ -655,8 +869,20 @@ public sealed class TerminalBuffer
         int end;
         if (next + 1 < p.Length && p[next] == 5) { color = TerminalCell.Palette(p[next + 1]); end = next + 2; }
         else if (next + 3 < p.Length && p[next] == 2) { color = TerminalCell.Rgb(p[next + 1], p[next + 2], p[next + 3]); end = next + 4; }
-        else return p.Length;
-        if (foreground) _fg = color; else _bg = color;
+        else
+        {
+            return p.Length;
+        }
+
+        if (foreground)
+        {
+            _fg = color;
+        }
+        else
+        {
+            _bg = color;
+        }
+
         return end;
     }
 }

@@ -70,7 +70,11 @@ public class UpdateCheckerTests
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            if (fail) throw new HttpRequestException("down");
+            if (fail)
+            {
+                throw new HttpRequestException("down");
+            }
+
             return Task.FromResult(new HttpResponseMessage(status) { Content = new StringContent(body) });
         }
     }
@@ -157,7 +161,10 @@ public class HardwareInfoTests
     {
         var sample = HardwareInfo.Read();
         Assert.IsNotNull(sample.Manufacturer);
-        if (OperatingSystem.IsMacOS()) Assert.AreEqual("Apple", sample.Manufacturer);
+        if (OperatingSystem.IsMacOS())
+        {
+            Assert.AreEqual("Apple", sample.Manufacturer);
+        }
     }
 
     [TestMethod]

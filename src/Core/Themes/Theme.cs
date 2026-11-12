@@ -62,7 +62,10 @@ public static class ThemeLibrary
             foreach (var file in Directory.EnumerateFiles(directory, "*.json"))
             {
                 var theme = TryParse(File.ReadAllText(file), Path.GetFileNameWithoutExtension(file));
-                if (theme is not null) themes[theme.Name] = theme;
+                if (theme is not null)
+                {
+                    themes[theme.Name] = theme;
+                }
             }
         }
         return themes.Values.ToList();
@@ -73,10 +76,22 @@ public static class ThemeLibrary
         try
         {
             var theme = JsonSerializer.Deserialize<Theme>(json, JsonOptions);
-            if (theme is null) return null;
-            if (string.IsNullOrWhiteSpace(theme.Name)) theme = theme with { Name = fallbackName };
+            if (theme is null)
+            {
+                return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(theme.Name))
+            {
+                theme = theme with { Name = fallbackName };
+            }
+
             string[] colors = [theme.Accent, theme.Background, theme.Surface, theme.Foreground, theme.Muted];
-            if (!colors.All(ColorUtil.IsValidHex) || theme.Ansi.Count != 16 || !theme.Ansi.All(ColorUtil.IsValidHex)) return null;
+            if (!colors.All(ColorUtil.IsValidHex) || theme.Ansi.Count != 16 || !theme.Ansi.All(ColorUtil.IsValidHex))
+            {
+                return null;
+            }
+
             return theme;
         }
         catch (JsonException)
@@ -98,7 +113,11 @@ public static class ColorUtil
 
     public static (byte R, byte G, byte B) Parse(string hex)
     {
-        if (!IsValidHex(hex)) return (255, 255, 255);
+        if (!IsValidHex(hex))
+        {
+            return (255, 255, 255);
+        }
+
         uint value = uint.Parse(hex.AsSpan(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
         return ((byte)(value >> 16), (byte)(value >> 8), (byte)value);
     }
@@ -106,7 +125,11 @@ public static class ColorUtil
     /// <summary>RGB of an xterm 256 color palette entry (16-255); 0-15 come from the theme.</summary>
     public static (byte R, byte G, byte B) Xterm256(int index)
     {
-        if (index < 16) return (0, 0, 0);
+        if (index < 16)
+        {
+            return (0, 0, 0);
+        }
+
         if (index < 232)
         {
             int i = index - 16;

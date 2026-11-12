@@ -74,7 +74,10 @@ internal sealed partial class WindowsPty : IPtyConnection
 
             var env = new StringBuilder();
             foreach (var (key, value) in PtyFactory.BuildEnvironment(options.Environment).OrderBy(e => e.Key, StringComparer.OrdinalIgnoreCase))
+            {
                 env.Append(key).Append('=').Append(value).Append('\0');
+            }
+
             env.Append('\0');
             environmentBlock = Marshal.StringToHGlobalUni(env.ToString());
 
@@ -84,7 +87,9 @@ internal sealed partial class WindowsPty : IPtyConnection
 
             if (!CreateProcessW(null, commandLine, IntPtr.Zero, IntPtr.Zero, false,
                     EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT, environmentBlock, cwd, ref startup, out var info))
+            {
                 throw new Win32Exception(Marshal.GetLastWin32Error(), $"Cannot start '{options.Shell}'");
+            }
 
             return new WindowsPty(pseudoConsole, info, outputRead, inputWrite);
         }
@@ -96,7 +101,11 @@ internal sealed partial class WindowsPty : IPtyConnection
             }
             outputRead.Dispose();
             inputWrite.Dispose();
-            if (pseudoConsole != IntPtr.Zero) ClosePseudoConsole(pseudoConsole);
+            if (pseudoConsole != IntPtr.Zero)
+            {
+                ClosePseudoConsole(pseudoConsole);
+            }
+
             throw;
         }
         finally
@@ -106,7 +115,10 @@ internal sealed partial class WindowsPty : IPtyConnection
                 DeleteProcThreadAttributeList(attributeList);
                 Marshal.FreeHGlobal(attributeList);
             }
-            if (environmentBlock != IntPtr.Zero) Marshal.FreeHGlobal(environmentBlock);
+            if (environmentBlock != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(environmentBlock);
+            }
         }
     }
 
@@ -127,25 +139,44 @@ internal sealed partial class WindowsPty : IPtyConnection
         }
     }
 
-    private static void Ensure(bool succeeded) { if (!succeeded) throw new Win32Exception(); }
+    private static void Ensure(bool succeeded) { if (!succeeded)
+        {
+            throw new Win32Exception();
+        }
+    }
 
     internal static string BuildCommandLine(string executable, IReadOnlyList<string> args)
     {
         var sb = new StringBuilder(Quote(executable));
-        foreach (var arg in args) sb.Append(' ').Append(Quote(arg));
+        foreach (var arg in args)
+        {
+            sb.Append(' ').Append(Quote(arg));
+        }
+
         return sb.ToString();
     }
 
     private static string Quote(string value)
     {
-        if (value.Length > 0 && value.IndexOfAny([' ', '\t', '"']) < 0) return value;
+        if (value.Length > 0 && value.IndexOfAny([' ', '\t', '"']) < 0)
+        {
+            return value;
+        }
+
         var sb = new StringBuilder("\"");
         int backslashes = 0;
         foreach (char c in value)
         {
             if (c == '\\') { backslashes++; continue; }
-            if (c == '"') sb.Append('\\', backslashes * 2 + 1);
-            else sb.Append('\\', backslashes);
+            if (c == '"')
+            {
+                sb.Append('\\', backslashes * 2 + 1);
+            }
+            else
+            {
+                sb.Append('\\', backslashes);
+            }
+
             backslashes = 0;
             sb.Append(c);
         }
@@ -155,13 +186,21 @@ internal sealed partial class WindowsPty : IPtyConnection
 
     public void Resize(int columns, int rows)
     {
-        if (Volatile.Read(ref _disposed) != 0) return;
+        if (Volatile.Read(ref _disposed) != 0)
+        {
+            return;
+        }
+
         _ = ResizePseudoConsole(_pseudoConsole, new Coord { X = (short)Math.Max(MinSize, columns), Y = (short)Math.Max(MinSize, rows) });
     }
 
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
         try { _input.Dispose(); } catch (IOException) { /* already closed */ }
         // ClosePseudoConsole can block until pending output is drained, so never run it on the UI thread.
         var hpc = _pseudoConsole;

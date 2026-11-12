@@ -24,7 +24,10 @@ public static class FileTypes
         var map = new Dictionary<string, FileCategory>(StringComparer.OrdinalIgnoreCase);
         void Add(FileCategory category, string list)
         {
-            foreach (var ext in list.Split(' ', StringSplitOptions.RemoveEmptyEntries)) map["." + ext] = category;
+            foreach (var ext in list.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            {
+                map["." + ext] = category;
+            }
         }
         Add(FileCategory.Text, "txt md markdown rst log nfo readme license changelog tex");
         Add(FileCategory.Code, "c h cc cpp cxx hpp hh cs fs vb java kt kts scala go rs swift m mm py rb pl pm php js mjs cjs ts tsx jsx vue svelte " +
@@ -46,14 +49,26 @@ public static class FileTypes
 
     public static FileCategory Classify(string name, FileEntryKind kind = FileEntryKind.File)
     {
-        if (kind == FileEntryKind.Directory) return FileCategory.Folder;
+        if (kind == FileEntryKind.Directory)
+        {
+            return FileCategory.Folder;
+        }
+
         var ext = Path.GetExtension(name);
         if (string.IsNullOrEmpty(ext))
         {
             return ClassifyExtensionless(name, kind);
         }
-        if (ByExtension.TryGetValue(ext, out var category)) return category;
-        if (name.StartsWith('.') && name.IndexOf('.', 1) < 0) return FileCategory.Data;
+        if (ByExtension.TryGetValue(ext, out var category))
+        {
+            return category;
+        }
+
+        if (name.StartsWith('.') && name.IndexOf('.', 1) < 0)
+        {
+            return FileCategory.Data;
+        }
+
         return kind == FileEntryKind.Link ? FileCategory.Link : FileCategory.Other;
     }
 
@@ -64,7 +79,11 @@ public static class FileTypes
         {
             return category;
         }
-        if (name.StartsWith('.')) return FileCategory.Data;
+        if (name.StartsWith('.'))
+        {
+            return FileCategory.Data;
+        }
+
         return kind == FileEntryKind.Link ? FileCategory.Link : FileCategory.Other;
     }
 

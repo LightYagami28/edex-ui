@@ -41,7 +41,12 @@ public sealed class LandMask
             // Fewer samples near the poles keeps the dot density even on the sphere.
             double lonStep = step / Math.Max(0.2, Math.Cos(lat * Math.PI / 180));
             for (double lon = -180 + lonStep / 2; lon < 180; lon += lonStep)
-                if (IsLand(lat, lon)) points.Add((lat, lon));
+            {
+                if (IsLand(lat, lon))
+                {
+                    points.Add((lat, lon));
+                }
+            }
         }
         return points;
     }
@@ -80,11 +85,17 @@ public static class GeoLocator
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
                 cts.CancelAfter(TimeSpan.FromSeconds(6));
                 var json = await http.GetFromJsonAsync<JsonElement>(url, cts.Token).ConfigureAwait(false);
-                if (parse(json) is { } location) return location;
+                if (parse(json) is { } location)
+                {
+                    return location;
+                }
             }
             catch (Exception e) when (e is HttpRequestException or TaskCanceledException or JsonException or NotSupportedException)
             {
-                if (token.IsCancellationRequested) return null;
+                if (token.IsCancellationRequested)
+                {
+                    return null;
+                }
             }
         }
         return null;
@@ -92,22 +103,42 @@ public static class GeoLocator
 
     public static GeoLocation? ParseIpWhoIs(JsonElement json)
     {
-        if (json.TryGetProperty("success", out var ok) && ok.ValueKind == JsonValueKind.False) return null;
+        if (json.TryGetProperty("success", out var ok) && ok.ValueKind == JsonValueKind.False)
+        {
+            return null;
+        }
+
         return Build(json, "latitude", "longitude", "city", "country", "ip", "ipwho.is");
     }
 
     public static GeoLocation? ParseIpApiCo(JsonElement json)
     {
-        if (json.TryGetProperty("error", out var err) && err.ValueKind == JsonValueKind.True) return null;
+        if (json.TryGetProperty("error", out var err) && err.ValueKind == JsonValueKind.True)
+        {
+            return null;
+        }
+
         return Build(json, "latitude", "longitude", "city", "country_name", "ip", "ipapi.co");
     }
 
     private static GeoLocation? Build(JsonElement json, string lat, string lon, string city, string country, string ip, string source)
     {
-        if (!json.TryGetProperty(lat, out var la) || !json.TryGetProperty(lon, out var lo)) return null;
-        if (la.ValueKind != JsonValueKind.Number || lo.ValueKind != JsonValueKind.Number) return null;
+        if (!json.TryGetProperty(lat, out var la) || !json.TryGetProperty(lon, out var lo))
+        {
+            return null;
+        }
+
+        if (la.ValueKind != JsonValueKind.Number || lo.ValueKind != JsonValueKind.Number)
+        {
+            return null;
+        }
+
         double latitude = la.GetDouble(), longitude = lo.GetDouble();
-        if (latitude is < -90 or > 90 || longitude is < -180 or > 180) return null;
+        if (latitude is < -90 or > 90 || longitude is < -180 or > 180)
+        {
+            return null;
+        }
+
         return new GeoLocation(latitude, longitude, Text(json, city), Text(json, country), Text(json, ip), source);
     }
 

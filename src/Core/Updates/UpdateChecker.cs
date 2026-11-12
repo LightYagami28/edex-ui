@@ -16,7 +16,11 @@ public static class UpdateChecker
     {
         var text = value.Trim().TrimStart('v', 'V');
         int cut = text.IndexOfAny(['-', '+']);
-        if (cut >= 0) text = text[..cut];
+        if (cut >= 0)
+        {
+            text = text[..cut];
+        }
+
         return Version.TryParse(text, out version!);
     }
 
@@ -28,7 +32,11 @@ public static class UpdateChecker
             using var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{repository}/releases/latest");
             request.Headers.UserAgent.Add(new ProductInfoHeaderValue("edex-ui", currentVersion));
             using var response = await client.SendAsync(request, cancel).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode) return null;
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
             using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancel).ConfigureAwait(false));
             var tag = doc.RootElement.GetProperty("tag_name").GetString() ?? "";
             var url = doc.RootElement.GetProperty("html_url").GetString() ?? "";

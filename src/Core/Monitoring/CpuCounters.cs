@@ -14,8 +14,16 @@ internal static class CpuCounters
 {
     public static ICpuCounter Create()
     {
-        if (OperatingSystem.IsWindows()) return new WindowsCpuCounter();
-        if (OperatingSystem.IsMacOS()) return new MacCpuCounter();
+        if (OperatingSystem.IsWindows())
+        {
+            return new WindowsCpuCounter();
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            return new MacCpuCounter();
+        }
+
         return new LinuxCpuCounter();
     }
 
@@ -30,7 +38,10 @@ internal sealed partial class WindowsCpuCounter : ICpuCounter
 
     public double SampleTotalPercent()
     {
-        if (!GetSystemTimes(out var idle, out var kernel, out var user)) return 0;
+        if (!GetSystemTimes(out var idle, out var kernel, out var user))
+        {
+            return 0;
+        }
         // Kernel time already includes idle time.
         ulong total = kernel + user;
         double result = _total == 0 ? 0 : CpuCounters.Percent(idle - _idle, total - _total);
@@ -64,7 +75,11 @@ internal sealed class LinuxCpuCounter(string path = "/proc/stat") : ICpuCounter
     {
         var values = line.Split(' ', StringSplitOptions.RemoveEmptyEntries).Skip(1).Select(ulong.Parse).ToArray();
         ulong total = 0;
-        for (int i = 0; i < Math.Min(values.Length, 8); i++) total += values[i];
+        for (int i = 0; i < Math.Min(values.Length, 8); i++)
+        {
+            total += values[i];
+        }
+
         ulong idle = values[3] + (values.Length > 4 ? values[4] : 0);
         return (idle, total);
     }
@@ -79,7 +94,11 @@ internal sealed partial class MacCpuCounter : ICpuCounter
     {
         var info = new uint[4]; // user, system, idle, nice
         int count = 4;
-        if (host_statistics(mach_host_self(), 3 /* HOST_CPU_LOAD_INFO */, info, ref count) != 0) return 0;
+        if (host_statistics(mach_host_self(), 3 /* HOST_CPU_LOAD_INFO */, info, ref count) != 0)
+        {
+            return 0;
+        }
+
         ulong idle = info[2];
         ulong total = (ulong)info[0] + info[1] + info[2] + info[3];
         double result = _total == 0 ? 0 : CpuCounters.Percent(idle - _idle, total - _total);
@@ -106,8 +125,15 @@ internal static class CpuInfo
     private static string Read()
     {
         if (OperatingSystem.IsWindows())
+        {
             return Convert.ToString(Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\HARDWARE\DESCRIPTION\System\CentralProcessor\0", "ProcessorNameString", ""), System.Globalization.CultureInfo.InvariantCulture)!.Trim();
-        if (OperatingSystem.IsMacOS()) return MacSysctl.ReadString("machdep.cpu.brand_string");
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            return MacSysctl.ReadString("machdep.cpu.brand_string");
+        }
+
         var line = File.ReadLines("/proc/cpuinfo").FirstOrDefault(l => l.StartsWith("model name", StringComparison.Ordinal)) ?? ":";
         return line[(line.IndexOf(':') + 1)..].Trim();
     }

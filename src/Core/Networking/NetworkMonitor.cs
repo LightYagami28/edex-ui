@@ -69,7 +69,11 @@ public sealed class SystemNetworkProbe : INetworkProbe
 
     public async Task<double?> PingAsync(string host, CancellationToken cancellationToken)
     {
-        if (!IPAddress.TryParse(host, out var address)) return null;
+        if (!IPAddress.TryParse(host, out var address))
+        {
+            return null;
+        }
+
         try
         {
             using var ping = new Ping();
@@ -106,7 +110,9 @@ public sealed class NetworkMonitor
     {
         var nic = FindPrimaryInterface(_probe.Interfaces());
         if (nic is null)
+        {
             return new NetworkSnapshot(false, "offline", null, null, null, 0, 0, 0, 0, null, 0);
+        }
 
         var ipv4 = nic.Addresses.FirstOrDefault(IsIPv4)?.ToString();
         var gateway = nic.Gateways.FirstOrDefault(IsUsableGateway)?.ToString();

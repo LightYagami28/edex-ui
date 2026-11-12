@@ -35,7 +35,11 @@ public sealed record AppSettings
                 .Any(dir => File.Exists(Path.Combine(dir, "pwsh.exe")));
             return onPath ? "pwsh.exe" : "powershell.exe";
         }
-        if (!string.IsNullOrWhiteSpace(shellVariable)) return shellVariable;
+        if (!string.IsNullOrWhiteSpace(shellVariable))
+        {
+            return shellVariable;
+        }
+
         return OperatingSystem.IsMacOS() ? "/bin/zsh" : "/bin/bash";
     }
 }
@@ -67,7 +71,9 @@ public sealed class SettingsStore
         try
         {
             if (File.Exists(FilePath))
+            {
                 return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath), JsonOptions) ?? new AppSettings();
+            }
         }
         catch (Exception e) when (e is JsonException or IOException or UnauthorizedAccessException)
         {

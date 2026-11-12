@@ -25,7 +25,11 @@ public sealed record KeyboardLayout(string Name, IReadOnlyList<IReadOnlyList<Key
         var list = new List<KeyDefinition>();
         var n = StringInfo.GetTextElementEnumerator(normal);
         var s = StringInfo.GetTextElementEnumerator(shifted);
-        while (n.MoveNext() && s.MoveNext()) list.Add(C(n.GetTextElement(), s.GetTextElement()));
+        while (n.MoveNext() && s.MoveNext())
+        {
+            list.Add(C(n.GetTextElement(), s.GetTextElement()));
+        }
+
         return list;
     }
 
@@ -123,7 +127,11 @@ public sealed record KeyboardLayout(string Name, IReadOnlyList<IReadOnlyList<Key
     {
         var match = All.FirstOrDefault(l => string.Equals(l.Name, name, StringComparison.OrdinalIgnoreCase));
         match ??= All.FirstOrDefault(l => l.Name == CultureInfo.CurrentUICulture.Name);
-        if (match is not null) return match;
+        if (match is not null)
+        {
+            return match;
+        }
+
         return CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "it" ? ItIt : EnUs;
     }
 }
@@ -324,7 +332,11 @@ public sealed class KeyboardState
     /// <summary>The label a character key shows with the current modifiers.</summary>
     public string Display(KeyDefinition key)
     {
-        if (key.Action != KeyAction.Character) return key.Label;
+        if (key.Action != KeyAction.Character)
+        {
+            return key.Label;
+        }
+
         bool letter = key.Label.Length == 1 && char.IsLetter(key.Label[0]);
         bool upper = letter ? Shift ^ CapsLock : Shift;
         return upper ? key.ShiftLabel ?? key.Label.ToUpperInvariant() : key.Label;
@@ -336,8 +348,14 @@ public sealed class KeyboardState
         if (Control && text.Length == 1)
         {
             char c = char.ToUpperInvariant(text[0]);
-            if (c is >= '@' and <= '_') text = ((char)(c - '@')).ToString();
-            else if (c == '?') text = "\x7f";
+            if (c is >= '@' and <= '_')
+            {
+                text = ((char)(c - '@')).ToString();
+            }
+            else if (c == '?')
+            {
+                text = "\x7f";
+            }
         }
         return Alt ? "\x1b" + text : text;
     }

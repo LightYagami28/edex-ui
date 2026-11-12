@@ -38,8 +38,16 @@ public readonly record struct TextSelection(CellPosition Anchor, CellPosition Ac
             int from = row == start.Row ? Math.Clamp(start.Column, 0, line.Length) : 0;
             int to = row == end.Row ? Math.Clamp(end.Column, -1, line.Length - 1) : line.Length - 1;
             var part = new StringBuilder();
-            for (int c = from; c <= to; c++) part.Append(line[c].Glyph == '\0' ? ' ' : line[c].Glyph);
-            if (row > start.Row) sb.Append('\n');
+            for (int c = from; c <= to; c++)
+            {
+                part.Append(line[c].Glyph == '\0' ? ' ' : line[c].Glyph);
+            }
+
+            if (row > start.Row)
+            {
+                sb.Append('\n');
+            }
+
             sb.Append(part.ToString().TrimEnd());
         }
         return sb.ToString();
@@ -48,14 +56,26 @@ public readonly record struct TextSelection(CellPosition Anchor, CellPosition Ac
     /// <summary>Selects the word (letters, digits and path characters) around a cell.</summary>
     public static TextSelection Word(TerminalSnapshot snapshot, CellPosition at)
     {
-        if (at.Row < 0 || at.Row >= snapshot.Rows) return new TextSelection(at, at);
+        if (at.Row < 0 || at.Row >= snapshot.Rows)
+        {
+            return new TextSelection(at, at);
+        }
+
         var line = snapshot.Lines[at.Row];
         int col = Math.Clamp(at.Column, 0, line.Length - 1);
         char glyph = line[col].Glyph;
         Func<char, bool> same = Classify();
         int from = col, to = col;
-        while (from > 0 && same(line[from - 1].Glyph)) from--;
-        while (to < line.Length - 1 && same(line[to + 1].Glyph)) to++;
+        while (from > 0 && same(line[from - 1].Glyph))
+        {
+            from--;
+        }
+
+        while (to < line.Length - 1 && same(line[to + 1].Glyph))
+        {
+            to++;
+        }
+
         return new TextSelection(new CellPosition(from, at.Row), new CellPosition(to, at.Row));
 
         Func<char, bool> Classify()

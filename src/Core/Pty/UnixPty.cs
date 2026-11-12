@@ -61,7 +61,11 @@ internal sealed partial class UnixPty : IPtyConnection
         {
             var pointers = items.Select(item => Str(allocations, item)).Append(IntPtr.Zero).ToArray();
             var block = Marshal.AllocHGlobal(IntPtr.Size * pointers.Length);
-            for (int i = 0; i < pointers.Length; i++) Marshal.WriteIntPtr(block, i * IntPtr.Size, pointers[i]);
+            for (int i = 0; i < pointers.Length; i++)
+            {
+                Marshal.WriteIntPtr(block, i * IntPtr.Size, pointers[i]);
+            }
+
             allocations.Add(block);
             return block;
         }
@@ -82,32 +86,55 @@ internal sealed partial class UnixPty : IPtyConnection
         }
 
         int error = Marshal.GetLastPInvokeError();
-        foreach (var p in allocations) Marshal.FreeHGlobal(p);
-        if (pid < 0) throw new IOException($"forkpty failed (errno {error})");
+        foreach (var p in allocations)
+        {
+            Marshal.FreeHGlobal(p);
+        }
+
+        if (pid < 0)
+        {
+            throw new IOException($"forkpty failed (errno {error})");
+        }
+
         return new UnixPty(pid, master);
     }
 
     internal static string ResolveExecutable(string shell)
     {
-        if (shell.Contains('/')) return shell;
+        if (shell.Contains('/'))
+        {
+            return shell;
+        }
+
         foreach (var dir in (Environment.GetEnvironmentVariable("PATH") ?? "/usr/bin:/bin").Split(':', StringSplitOptions.RemoveEmptyEntries))
         {
             var candidate = Path.Combine(dir, shell);
-            if (File.Exists(candidate)) return candidate;
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
         }
         return shell;
     }
 
     public void Resize(int columns, int rows)
     {
-        if (Volatile.Read(ref _disposed) != 0) return;
+        if (Volatile.Read(ref _disposed) != 0)
+        {
+            return;
+        }
+
         var size = new WinSize { Rows = (ushort)Math.Max(2, rows), Columns = (ushort)Math.Max(2, columns) };
         _ = Ioctl(_master, OperatingSystem.IsMacOS() ? TiocswinszMac : TiocswinszLinux, ref size);
     }
 
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
         _ = Kill(_pid, SIGHUP);
         try { _input.Dispose(); } catch (IOException) { /* already closed */ }
         try { _output.Dispose(); } catch (IOException) { /* already closed */ }
