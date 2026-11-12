@@ -3,50 +3,50 @@
 # versioning-strategy: increase alza anche i range nel manifest all'ultima versione.
 version: 2
 updates:
-- package-ecosystem: github-actions
-  directory: /
-  schedule:
-    interval: daily
-  open-pull-requests-limit: 20
-  commit-message:
-    prefix: dipendenze(github-actions)
-  groups:
-    minori-e-patch:
-      update-types:
-      - minor
-      - patch
-    major:
-      update-types:
-      - major
-- package-ecosystem: nuget
-  directories:
-  - /src/Core
-  - /tests/Core.Tests
-  schedule:
-    interval: daily
-  open-pull-requests-limit: 20
-  commit-message:
-    prefix: dipendenze(nuget)
-  groups:
-    minori-e-patch:
-      update-types:
-      - minor
-      - patch
-    major:
-      update-types:
-      - major
-- package-ecosystem: dotnet-sdk
-  directory: /
-  schedule:
-    interval: daily
-  open-pull-requests-limit: 20
-  commit-message:
-    prefix: dipendenze(dotnet-sdk)
-  groups:
-    minori-e-patch:
-      update-types:
-      - minor
-      - patch
-    major:
-      update-types:
-      - major
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 20
+    commit-message:
+      prefix: dipendenze(github-actions)
+    groups:
+      minori-e-patch:
+        update-types:
+          - minor
+          - patch
+      major:
+        update-types:
+          - major
+  - package-ecosystem: nuget
+    directories:
+      - /src/Core
+      - /tests/Core.Tests
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 20
+    commit-message:
+      prefix: dipendenze(nuget)
+    groups:
+      minori-e-patch:
+        update-types:
+          - minor
+          - patch
+      major:
+        update-types:
+          - major
+  - package-ecosystem: dotnet-sdk
+    directory: /
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 20
+    commit-message:
+      prefix: dipendenze(dotnet-sdk)
+    groups:
+      minori-e-patch:
+        update-types:
+          - minor
+          - patch
+      major:
+        update-types:
+          - major
