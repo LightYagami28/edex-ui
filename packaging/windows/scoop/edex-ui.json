@@ -1,0 +1,35 @@
+{
+    "version": "@VERSION@",
+    "description": "Terminale a schermo intero in stile fantascienza con pannelli di sistema.",
+    "homepage": "https://github.com/LightYagami28/edex-ui",
+    "license": "GPL-3.0-only",
+    "architecture": {
+        "64bit": {
+            "url": "@URL_BASE@/edex-ui-@VERSION@-win-x64.zip",
+            "hash": "@SHA256_WIN_X64@",
+            "extract_dir": "edex-ui-@VERSION@-win-x64"
+        },
+        "arm64": {
+            "url": "@URL_BASE@/edex-ui-@VERSION@-win-arm64.zip",
+            "hash": "@SHA256_WIN_ARM64@",
+            "extract_dir": "edex-ui-@VERSION@-win-arm64"
+        }
+    },
+    "bin": "edex-ui.exe",
+    "checkver": "github",
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/LightYagami28/edex-ui/releases/download/v$version/edex-ui-$version-win-x64.zip",
+                "extract_dir": "edex-ui-$version-win-x64"
+            },
+            "arm64": {
+                "url": "https://github.com/LightYagami28/edex-ui/releases/download/v$version/edex-ui-$version-win-arm64.zip",
+                "extract_dir": "edex-ui-$version-win-arm64"
+            }
+        },
+        "hash": {
+            "url": "$url.sha256"
+        }
+    }
+}

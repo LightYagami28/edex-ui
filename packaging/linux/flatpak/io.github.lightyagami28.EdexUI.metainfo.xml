@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.lightyagami28.EdexUI</id>
+  <name>eDEX-UI</name>
+  <summary>Terminale a schermo intero in stile fantascienza</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+  <developer id="io.github.lightyagami28">
+    <name>Light Yagami</name>
+  </developer>
+  <url type="homepage">https://github.com/LightYagami28/edex-ui</url>
+  <url type="bugtracker">https://github.com/LightYagami28/edex-ui/issues</url>
+  <description>
+    <p>eDEX-UI nativo (.NET): un terminale a schermo intero con pannelli di sistema (CPU, RAM, rete, processi, file) e tastiera su schermo.</p>
+  </description>
+  <launchable type="desktop-id">io.github.lightyagami28.EdexUI.desktop</launchable>
+  <releases>
+    <release version="@VERSION@" date="2026-11-11"/>
+  </releases>
+  <content_rating type="oars-1.1"/>
+</component>

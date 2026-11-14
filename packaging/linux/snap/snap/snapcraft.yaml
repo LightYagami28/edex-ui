@@ -1,0 +1,26 @@
+name: edex-ui
+base: core24
+version: '@VERSION@'
+summary: Terminale a schermo intero in stile fantascienza
+description: |
+  eDEX-UI nativo (.NET) con pannelli di sistema: CPU, RAM, rete, processi,
+  file e tastiera su schermo. Eseguibile autonomo, non richiede il runtime .NET.
+license: GPL-3.0-only
+grade: stable
+confinement: classic
+platforms:
+  amd64:
+  arm64:
+apps:
+  edex-ui:
+    command: edex-ui
+parts:
+  edex-ui:
+    plugin: dump
+    source:
+      - on amd64: @URL_BASE@/edex-ui-@VERSION@-linux-x64.tar.gz
+      - on arm64: @URL_BASE@/edex-ui-@VERSION@-linux-arm64.tar.gz
+    source-type: tar
+    source-checksum:
+      - on amd64: sha256/@SHA256_LINUX_X64@
+      - on arm64: sha256/@SHA256_LINUX_ARM64@
