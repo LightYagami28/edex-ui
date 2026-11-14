@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
@@ -6,7 +7,6 @@ namespace Edex.Core.Monitoring;
 
 internal interface ICpuCounter
 {
-    /// <summary>Overall CPU usage since the previous call, in percent.</summary>
     double SampleTotalPercent();
 }
 
@@ -42,7 +42,6 @@ internal sealed partial class WindowsCpuCounter : ICpuCounter
         {
             return 0;
         }
-        // Kernel time already includes idle time.
         ulong total = kernel + user;
         double result = _total == 0 ? 0 : CpuCounters.Percent(idle - _idle, total - _total);
         _idle = idle;
@@ -57,6 +56,10 @@ internal sealed partial class WindowsCpuCounter : ICpuCounter
 
 internal sealed class LinuxCpuCounter(string path = "/proc/stat") : ICpuCounter
 {
+    private const int CpuFieldsCount = 8;
+    private const int IdleFieldIndex = 3;
+    private const int IoWaitFieldIndex = 4;
+
     private ulong _idle, _total;
 
     public double SampleTotalPercent() => Safe.Run(Sample, 0);
@@ -73,14 +76,15 @@ internal sealed class LinuxCpuCounter(string path = "/proc/stat") : ICpuCounter
 
     internal static (ulong Idle, ulong Total) Parse(string line)
     {
-        var values = line.Split(' ', StringSplitOptions.RemoveEmptyEntries).Skip(1).Select(ulong.Parse).ToArray();
+        var values = line.Split(' ', StringSplitOptions.RemoveEmptyEntries).Skip(1)
+            .Select(v => ulong.Parse(v, CultureInfo.InvariantCulture)).ToArray();
         ulong total = 0;
-        for (int i = 0; i < Math.Min(values.Length, 8); i++)
+        for (int i = 0; i < Math.Min(values.Length, CpuFieldsCount); i++)
         {
             total += values[i];
         }
 
-        ulong idle = values[3] + (values.Length > 4 ? values[4] : 0);
+        ulong idle = values[IdleFieldIndex] + (values.Length > IoWaitFieldIndex ? values[IoWaitFieldIndex] : 0);
         return (idle, total);
     }
 }
@@ -88,19 +92,26 @@ internal sealed class LinuxCpuCounter(string path = "/proc/stat") : ICpuCounter
 [SupportedOSPlatform("macos")]
 internal sealed partial class MacCpuCounter : ICpuCounter
 {
+    private const int HostCpuLoadInfo = 3;
+    private const int CpuStateCount = 4;
+    private const int UserIndex = 0;
+    private const int SystemIndex = 1;
+    private const int IdleIndex = 2;
+    private const int NiceIndex = 3;
+
     private ulong _idle, _total;
 
     public double SampleTotalPercent()
     {
-        var info = new uint[4]; // user, system, idle, nice
-        int count = 4;
-        if (host_statistics(mach_host_self(), 3 /* HOST_CPU_LOAD_INFO */, info, ref count) != 0)
+        var info = new uint[CpuStateCount];
+        int count = CpuStateCount;
+        if (host_statistics(mach_host_self(), HostCpuLoadInfo, info, ref count) != 0)
         {
             return 0;
         }
 
-        ulong idle = info[2];
-        ulong total = (ulong)info[0] + info[1] + info[2] + info[3];
+        ulong idle = info[IdleIndex];
+        ulong total = (ulong)info[UserIndex] + info[SystemIndex] + info[IdleIndex] + info[NiceIndex];
         double result = _total == 0 ? 0 : CpuCounters.Percent(idle - _idle, total - _total);
         _idle = idle;
         _total = total;

@@ -4,9 +4,10 @@ using Edex.Core.Pty;
 
 namespace Edex.Core.Terminal;
 
-/// <summary>Couples a pseudo terminal with a <see cref="TerminalBuffer"/> and pumps output on a background thread.</summary>
 public sealed class TerminalSession : IDisposable
 {
+    private const int ReadChunkSize = 16 * 1024;
+
     private readonly IPtyConnection _pty;
     private readonly object _writeGate = new();
     private int _disposed;
@@ -18,7 +19,6 @@ public sealed class TerminalSession : IDisposable
     public bool HasExited { get; private set; }
     public int? ExitCode { get; private set; }
 
-    /// <summary>Raised on the reader thread whenever new output has been parsed.</summary>
     public event EventHandler? Updated;
     public event EventHandler<int>? Exited;
 
@@ -29,7 +29,6 @@ public sealed class TerminalSession : IDisposable
         Shell = shell;
         Buffer.Response += Send;
         _pty.Exited += (_, code) => OnExited(code);
-        // The child may already be gone before we subscribed.
         if (_pty.ExitCode is int early)
         {
             OnExited(early);
@@ -44,7 +43,6 @@ public sealed class TerminalSession : IDisposable
         return Attach(PtyFactory.Spawn(options), options.Shell, new TerminalBuffer(options.Columns, options.Rows, scrollback));
     }
 
-    /// <summary>Wraps an already running pseudo terminal. <see cref="Start"/> uses it; tests pass a fake connection.</summary>
     internal static TerminalSession Attach(IPtyConnection pty, string shell, TerminalBuffer buffer) => new(pty, buffer, shell);
 
     private void OnExited(int code)
@@ -61,19 +59,22 @@ public sealed class TerminalSession : IDisposable
 
     private void ReadLoop()
     {
-        var chunk = new byte[16 * 1024];
+        var chunk = new byte[ReadChunkSize];
         try
         {
-            while (Volatile.Read(ref _disposed) == 0)
+            bool running = true;
+            while (running && Volatile.Read(ref _disposed) == 0)
             {
                 int read = _pty.Output.Read(chunk, 0, chunk.Length);
                 if (read <= 0)
                 {
-                    break;
+                    running = false;
                 }
-
-                Buffer.Feed(chunk.AsSpan(0, read));
-                Updated?.Invoke(this, EventArgs.Empty);
+                else
+                {
+                    Buffer.Feed(chunk.AsSpan(0, read));
+                    Updated?.Invoke(this, EventArgs.Empty);
+                }
             }
         }
         catch (Exception e) when (e is IOException or ObjectDisposedException)
@@ -101,7 +102,6 @@ public sealed class TerminalSession : IDisposable
         }
         catch (Exception e) when (e is IOException or ObjectDisposedException)
         {
-            // The shell already exited: input is dropped.
         }
     }
 

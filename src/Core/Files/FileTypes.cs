@@ -6,7 +6,6 @@ public enum FileCategory
     Folder, Link, Text, Code, Data, Image, Audio, Video, Archive, Pdf, Document, Spreadsheet, Presentation, Executable, Font, Disk, Other,
 }
 
-/// <summary>Classifies files by extension for icons and the built-in viewers.</summary>
 public static class FileTypes
 {
     private static readonly Dictionary<string, FileCategory> ByExtension = Build();
@@ -72,7 +71,6 @@ public static class FileTypes
         return kind == FileEntryKind.Link ? FileCategory.Link : FileCategory.Other;
     }
 
-    // Well-known extensionless files.
     private static FileCategory ClassifyExtensionless(string name, FileEntryKind kind)
     {
         if (ByName.TryGetValue(name, out var category))
@@ -87,13 +85,11 @@ public static class FileTypes
         return kind == FileEntryKind.Link ? FileCategory.Link : FileCategory.Other;
     }
 
-    /// <summary>Short upper-case label drawn on generic icons, e.g. "PDF".</summary>
     public static string Label(string name)
     {
         var ext = Path.GetExtension(name).TrimStart('.');
         return ext.Length is > 0 and <= 4 ? ext.ToUpperInvariant() : "";
     }
 
-    /// <summary>True for files the text viewer can show.</summary>
     public static bool IsTextLike(FileCategory category) => category is FileCategory.Text or FileCategory.Code or FileCategory.Data;
 }

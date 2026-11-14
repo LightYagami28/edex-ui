@@ -34,7 +34,6 @@ public static class HardwareInfo
 
     internal static string Clean(string? value) => value?.Trim() ?? "";
 
-    /// <summary>SMBIOS chassis type number to a name.</summary>
     internal static string ChassisName(string code) => code switch
     {
         "3" or "4" or "5" or "6" or "7" or "15" or "16" => "Desktop",

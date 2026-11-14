@@ -130,7 +130,6 @@ public class FilesTests
         const int entriesWithHidden = 4;
         Assert.HasCount(entriesWithHidden, FileBrowser.List(dir.Path, showHidden: true).Entries);
 
-        // A file is not a folder.
         Assert.IsNotNull(FileBrowser.List(Path.Combine(dir.Path, "a.txt")).Error);
 
         try
@@ -141,8 +140,10 @@ public class FilesTests
             Assert.AreEqual(FileEntryKind.Link, links.Single(e => e.Name == "link").Kind);
             Assert.AreEqual(FileEntryKind.Link, links.Single(e => e.Name == "dangling").Kind);
         }
-        catch (IOException) { /* no symlink privilege on this machine */ }
-        catch (UnauthorizedAccessException) { /* no symlink privilege on this machine */ }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            _ = e;
+        }
     }
 
     [TestMethod]

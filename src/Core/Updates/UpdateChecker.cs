@@ -8,7 +8,6 @@ public sealed record UpdateInfo(string Version, string Url);
 
 public static class UpdateChecker
 {
-    /// <summary>True when <paramref name="latest"/> is a higher version than <paramref name="current"/>. Unparsable versions are never newer.</summary>
     public static bool IsNewer(string current, string latest) =>
         TryParse(current, out var c) && TryParse(latest, out var l) && l > c;
 
@@ -24,7 +23,6 @@ public static class UpdateChecker
         return Version.TryParse(text, out version!);
     }
 
-    /// <summary>Reads the latest GitHub release of <paramref name="repository"/> ("owner/name"). Null when up to date or on any network or format error.</summary>
     public static async Task<UpdateInfo?> CheckAsync(HttpClient client, string repository, string currentVersion, CancellationToken cancel = default)
     {
         try

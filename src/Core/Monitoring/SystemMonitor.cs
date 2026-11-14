@@ -26,7 +26,6 @@ public sealed record SystemSnapshot(
     IReadOnlyList<ProcessSample> TopProcesses,
     IReadOnlyList<DiskSample> Disks);
 
-/// <summary>Cross-platform system sampler. Call <see cref="Sample"/> periodically (e.g. once per second).</summary>
 public sealed class SystemMonitor
 {
     private readonly ICpuCounter _cpu = CpuCounters.Create();
@@ -79,7 +78,6 @@ public sealed class SystemMonitor
                 }
                 catch (Exception e) when (e is InvalidOperationException or System.ComponentModel.Win32Exception or NotSupportedException or UnauthorizedAccessException)
                 {
-                    // Access denied (system processes) or the process already exited.
                 }
             }
         }
@@ -123,7 +121,6 @@ public sealed class SystemMonitor
         return new DiskSample(label, drive.RootDirectory.FullName, drive.DriveFormat, drive.TotalSize, drive.AvailableFreeSpace);
     }
 
-    /// <summary>Mount points that are plumbing rather than user storage (snaps, runtime folders, EFI, macOS system volumes).</summary>
     internal static bool IsHiddenMount(string name, long totalSize) =>
         name.StartsWith("/snap", StringComparison.Ordinal)
         || name.StartsWith("/System/Volumes/", StringComparison.Ordinal) && name != "/System/Volumes/Data"

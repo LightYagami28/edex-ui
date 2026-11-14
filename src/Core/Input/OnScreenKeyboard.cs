@@ -10,7 +10,6 @@ public enum KeyAction
     Character, Space, Enter, Backspace, Tab, Escape, Delete, Shift, Control, Alt, CapsLock, Up, Down, Left, Right, Home, End, PageUp, PageDown,
 }
 
-/// <summary>One key: label, label with Shift, behaviour and relative width (1 = standard key).</summary>
 public sealed record KeyDefinition(string Label, string? ShiftLabel = null, KeyAction Action = KeyAction.Character, double Width = 1)
 {
     public bool IsModifier => Action is KeyAction.Shift or KeyAction.Control or KeyAction.Alt or KeyAction.CapsLock;
@@ -72,7 +71,6 @@ public sealed record KeyboardLayout(string Name, IReadOnlyList<IReadOnlyList<Key
     private const string ResourcePrefix = "Edex.Core.Input.Layouts.";
     private static readonly string[] JsonRows = ["row_numbers", "row_1", "row_2", "row_3"];
 
-    /// <summary>The eDEX-UI layouts of <c>assets/kb_layouts</c>, embedded in the library.</summary>
     public static IReadOnlyList<KeyboardLayout> All { get; } = LoadEmbedded();
 
     public static KeyboardLayout EnUs { get; } = All.First(l => l.Name == "en-US");
@@ -93,7 +91,6 @@ public sealed record KeyboardLayout(string Name, IReadOnlyList<IReadOnlyList<Key
             })];
     }
 
-    /// <summary>Reads an eDEX-UI layout file: the character keys of its four main rows; special keys come from <see cref="Build"/>.</summary>
     public static KeyboardLayout FromJson(string name, string json)
     {
         using var document = JsonDocument.Parse(json);
@@ -110,7 +107,6 @@ public sealed record KeyboardLayout(string Name, IReadOnlyList<IReadOnlyList<Key
         foreach (var key in keys.EnumerateArray())
         {
             var cmd = key.GetProperty("cmd").ToString();
-            // Tab, Enter, Shift, arrows and the other special keys have control or multi-character commands.
             if (cmd.Length != 1 || char.IsControl(cmd[0]))
             {
                 continue;
@@ -122,7 +118,6 @@ public sealed record KeyboardLayout(string Name, IReadOnlyList<IReadOnlyList<Key
         return (normal.ToString(), shifted.ToString());
     }
 
-    /// <summary>Layout by name; "auto" (or unknown) picks one from the UI culture.</summary>
     public static KeyboardLayout Find(string? name)
     {
         var match = All.FirstOrDefault(l => string.Equals(l.Name, name, StringComparison.OrdinalIgnoreCase));
@@ -136,7 +131,6 @@ public sealed record KeyboardLayout(string Name, IReadOnlyList<IReadOnlyList<Key
     }
 }
 
-/// <summary>Turns on-screen key presses into terminal input. Shift, Ctrl and Alt are one-shot; Caps Lock toggles.</summary>
 public sealed class KeyboardState
 {
     public bool Shift { get; private set; }
@@ -148,7 +142,6 @@ public sealed class KeyboardState
     private const int pageUpSequence = 5;
     private const int pageDownSequence = 6;
 
-    /// <summary>Returns the bytes to send, or null when the key only changed a modifier.</summary>
     public string? Press(KeyDefinition key, bool applicationCursorKeys = false)
     {
         if (key == null)
@@ -329,7 +322,6 @@ public sealed class KeyboardState
         return "\t";
     }
 
-    /// <summary>The label a character key shows with the current modifiers.</summary>
     public string Display(KeyDefinition key)
     {
         if (key.Action != KeyAction.Character)
@@ -347,16 +339,18 @@ public sealed class KeyboardState
         string text = Display(key);
         if (Control && text.Length == 1)
         {
-            char c = char.ToUpperInvariant(text[0]);
-            if (c is >= '@' and <= '_')
-            {
-                text = ((char)(c - '@')).ToString();
-            }
-            else if (c == '?')
-            {
-                text = "\x7f";
-            }
+            text = ControlChar(char.ToUpperInvariant(text[0]), text);
         }
         return Alt ? "\x1b" + text : text;
+    }
+
+    private static string ControlChar(char c, string fallback)
+    {
+        if (c is >= '@' and <= '_')
+        {
+            return ((char)(c - '@')).ToString(CultureInfo.InvariantCulture);
+        }
+
+        return c == '?' ? "\x7f" : fallback;
     }
 }

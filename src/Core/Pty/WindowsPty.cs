@@ -8,10 +8,12 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Edex.Core.Pty;
 
-/// <summary>Pseudo terminal backed by the Windows ConPTY API (Windows 10 1809+).</summary>
 [SupportedOSPlatform("windows")]
 internal sealed partial class WindowsPty : IPtyConnection
 {
+    private const int QuoteEscapeMultiplier = 2;
+    private const int QuoteEscapeOffset = 1;
+
     private readonly IntPtr _pseudoConsole;
     private readonly IntPtr _process;
     private readonly FileStream _output;
@@ -55,7 +57,6 @@ internal sealed partial class WindowsPty : IPtyConnection
         {
             var size = new Coord { X = (short)Math.Clamp(options.Columns, MinSize, short.MaxValue), Y = (short)Math.Clamp(options.Rows, MinSize, short.MaxValue) };
             Marshal.ThrowExceptionForHR(CreatePseudoConsole(size, inputRead, outputWrite, 0, out pseudoConsole));
-            // The pseudo console duplicated these ends; we must release ours.
             inputRead.Dispose();
             outputWrite.Dispose();
             consoleOwnsEnds = true;
@@ -68,7 +69,6 @@ internal sealed partial class WindowsPty : IPtyConnection
 
             var startup = new StartupInfoEx();
             startup.StartupInfo.cb = Marshal.SizeOf<StartupInfoEx>();
-            // Do not let the child inherit the standard handles of a GUI host.
             startup.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
             startup.lpAttributeList = attributeList;
 
@@ -81,7 +81,6 @@ internal sealed partial class WindowsPty : IPtyConnection
             env.Append('\0');
             environmentBlock = Marshal.StringToHGlobalUni(env.ToString());
 
-            // CreateProcessW may modify the command line, so it gets its own writable, null-terminated buffer.
             var commandLine = (BuildCommandLine(options.Shell, options.Args) + "\0").ToCharArray();
             string? cwd = Directory.Exists(options.WorkingDirectory) ? options.WorkingDirectory : null;
 
@@ -128,8 +127,6 @@ internal sealed partial class WindowsPty : IPtyConnection
         return (read, write);
     }
 
-    // Runs only after a Windows API call failed before the pseudo console took over the ends, which tests cannot provoke. It is
-    // kept out of Spawn so the analyzer does not see a second disposal.
     [ExcludeFromCodeCoverage(Justification = "Failure cleanup that needs a failing ConPTY or pipe API call.")]
     private static void ReleaseUnownedEnds(params IDisposable[] ends)
     {
@@ -167,20 +164,17 @@ internal sealed partial class WindowsPty : IPtyConnection
         int backslashes = 0;
         foreach (char c in value)
         {
-            if (c == '\\') { backslashes++; continue; }
-            if (c == '"')
+            if (c == '\\')
             {
-                sb.Append('\\', backslashes * 2 + 1);
-            }
-            else
-            {
-                sb.Append('\\', backslashes);
+                backslashes++;
+                continue;
             }
 
+            sb.Append('\\', c == '"' ? backslashes * QuoteEscapeMultiplier + QuoteEscapeOffset : backslashes);
             backslashes = 0;
             sb.Append(c);
         }
-        sb.Append('\\', backslashes * 2).Append('"');
+        sb.Append('\\', backslashes * QuoteEscapeMultiplier).Append('"');
         return sb.ToString();
     }
 
@@ -201,15 +195,26 @@ internal sealed partial class WindowsPty : IPtyConnection
             return;
         }
 
-        try { _input.Dispose(); } catch (IOException) { /* already closed */ }
-        // ClosePseudoConsole can block until pending output is drained, so never run it on the UI thread.
+        DisposeQuietly(_input);
         var hpc = _pseudoConsole;
         var output = _output;
         ThreadPool.QueueUserWorkItem(_ =>
         {
             ClosePseudoConsole(hpc);
-            try { output.Dispose(); } catch (IOException) { /* already closed */ }
+            DisposeQuietly(output);
         });
+    }
+
+    private static void DisposeQuietly(Stream stream)
+    {
+        try
+        {
+            stream.Dispose();
+        }
+        catch (IOException e)
+        {
+            _ = e;
+        }
     }
 
     private const int MinSize = 2;

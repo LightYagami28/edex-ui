@@ -4,7 +4,6 @@ using System.Text.Json;
 
 namespace Edex.Core.Geo;
 
-/// <summary>1-degree land/water mask rasterized from Natural Earth 1:110m land polygons (public domain).</summary>
 public sealed class LandMask
 {
     public const int Width = 360, Height = 180;
@@ -32,13 +31,11 @@ public sealed class LandMask
         return (_bits[i >> 3] >> (i & 7) & 1) == 1;
     }
 
-    /// <summary>Land sample points on a regular grid (cell centres every <paramref name="step"/> degrees).</summary>
     public IReadOnlyList<(double Latitude, double Longitude)> LandPoints(double step)
     {
         var points = new List<(double, double)>();
         for (double lat = 90 - step / 2; lat > -90; lat -= step)
         {
-            // Fewer samples near the poles keeps the dot density even on the sphere.
             double lonStep = step / Math.Max(0.2, Math.Cos(lat * Math.PI / 180));
             for (double lon = -180 + lonStep / 2; lon < 180; lon += lonStep)
             {
@@ -52,10 +49,8 @@ public sealed class LandMask
     }
 }
 
-/// <summary>Orthographic projection of a sphere seen from above (<see cref="CenterLatitude"/>, <see cref="CenterLongitude"/>).</summary>
 public readonly record struct Orthographic(double CenterLatitude, double CenterLongitude)
 {
-    /// <summary>Projects to unit-disc coordinates (x right, y down). Visible is false on the far hemisphere.</summary>
     public (double X, double Y, bool Visible) Project(double latitude, double longitude)
     {
         double phi = latitude * Math.PI / 180, lambda = (longitude - CenterLongitude) * Math.PI / 180;
@@ -69,9 +64,11 @@ public readonly record struct Orthographic(double CenterLatitude, double CenterL
 
 public sealed record GeoLocation(double Latitude, double Longitude, string? City, string? Country, string? Ip, string Source);
 
-/// <summary>Finds the approximate location of the public IP through keyless public services.</summary>
 public static class GeoLocator
 {
+    private const double MaxLatitude = 90;
+    private const double MaxLongitude = 180;
+
     public static async Task<GeoLocation?> LocateAsync(HttpClient http, CancellationToken token)
     {
         foreach (var (url, parse) in new (string, Func<JsonElement, GeoLocation?>)[]
@@ -134,7 +131,7 @@ public static class GeoLocator
         }
 
         double latitude = la.GetDouble(), longitude = lo.GetDouble();
-        if (latitude is < -90 or > 90 || longitude is < -180 or > 180)
+        if (latitude is < -MaxLatitude or > MaxLatitude || longitude is < -MaxLongitude or > MaxLongitude)
         {
             return null;
         }

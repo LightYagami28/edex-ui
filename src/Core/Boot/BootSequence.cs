@@ -3,7 +3,6 @@ namespace Edex.Core.Boot;
 
 public sealed record BootLine(string Text, int DelayMs);
 
-/// <summary>Turns the boot log text into timed lines for the start-up screen. The timing is deterministic.</summary>
 public static class BootSequence
 {
     private const int greetingDelayMs = 400;
@@ -19,7 +18,6 @@ public static class BootSequence
         var result = new List<BootLine>(lines.Length);
         for (int i = 0; i < lines.Length; i++)
         {
-            // The greeting waits longer; the rest scrolls fast with a pause every 17th line.
             int delay = greetingDelayMs;
             if (i != 0)
             {

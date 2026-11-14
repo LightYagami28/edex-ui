@@ -20,7 +20,7 @@ public class SoundSynthTests
         Assert.AreEqual("RIFF", System.Text.Encoding.ASCII.GetString(wav, 0, 4));
         Assert.AreEqual("WAVE", System.Text.Encoding.ASCII.GetString(wav, 8, 4));
         Assert.AreEqual(wav.Length - 8, BitConverter.ToInt32(wav, 4));
-        Assert.AreEqual(1, BitConverter.ToInt16(wav, 20));            // PCM
+        Assert.AreEqual(1, BitConverter.ToInt16(wav, 20));
         Assert.AreEqual(SoundSynth.SampleRate, BitConverter.ToInt32(wav, 24));
         int dataBytes = BitConverter.ToInt32(wav, 40);
         Assert.AreEqual(wav.Length - 44, dataBytes);
@@ -31,7 +31,7 @@ public class SoundSynthTests
             peak = Math.Max(peak, Math.Abs(BitConverter.ToInt16(wav, i)));
         }
 
-        Assert.IsTrue(peak >= 1000 && peak <= short.MaxValue);                // audible and not clipped beyond range
+        Assert.IsTrue(peak >= 1000 && peak <= short.MaxValue);
     }
 
     [TestMethod]

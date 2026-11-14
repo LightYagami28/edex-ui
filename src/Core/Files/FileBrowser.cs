@@ -7,7 +7,6 @@ public sealed record FileEntry(string Name, string FullPath, FileEntryKind Kind,
 
 public sealed record DirectoryListing(string Path, IReadOnlyList<FileEntry> Entries, string? Error);
 
-/// <summary>Lists directories for the file browser panel. Never throws for IO errors: they are reported in <see cref="DirectoryListing.Error"/>.</summary>
 public static class FileBrowser
 {
     public static DirectoryListing List(string path, bool showHidden = false)
@@ -38,7 +37,6 @@ public static class FileBrowser
         return new DirectoryListing(full, entries, null);
     }
 
-    /// <summary>The entries of a folder, or null when it does not exist.</summary>
     private static List<FileEntry>? Enumerate(string full, bool showHidden)
     {
         var dir = new DirectoryInfo(full);

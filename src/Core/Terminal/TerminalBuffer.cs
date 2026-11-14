@@ -1,15 +1,29 @@
 // SPDX-License-Identifier: GPL-3.0-only
+using System.Globalization;
 using System.Text;
 
 namespace Edex.Core.Terminal;
 
-/// <summary>
-/// Screen model plus a VT100/xterm escape sequence parser covering what common shells and TUI programs use.
-/// Thread-safe: <see cref="Feed(ReadOnlySpan{byte})"/> may run on a reader thread while the UI takes snapshots.
-/// </summary>
 public sealed class TerminalBuffer
 {
     private enum State { Ground, Escape, EscapeIntermediate, Csi, Osc, OscEscape, Charset, Dcs, DcsEscape }
+
+    private const int CharBufferInitialSize = 4096;
+    private const int CharBufferSlack = 4;
+    private const int MaxOscLength = 4096;
+    private const int TabWidth = 8;
+    private const int DeviceStatusReportCursorPosition = 6;
+    private const int DeviceStatusReportTerminal = 5;
+    private const int AlternateScreenSaveCursorMode = 1049;
+    private const char Bell = '\a';
+    private const char Cancel = '\x18';
+    private const char Substitute = '\x1A';
+    private const char Escape = '\x1B';
+    private const char Delete = '\x7F';
+    private const char CsiFinalFirst = '@';
+    private const char CsiFinalLast = '~';
+    private const char IntermediateFirst = '0';
+    private const char IntermediateLast = '~';
 
     private readonly object _gate = new();
     private readonly Decoder _decoder = new UTF8Encoding(false).GetDecoder();
@@ -17,7 +31,7 @@ public sealed class TerminalBuffer
     private readonly StringBuilder _params = new();
     private readonly StringBuilder _osc = new();
     private readonly StringBuilder _responses = new();
-    private char[] _charBuffer = new char[4096];
+    private char[] _charBuffer = new char[CharBufferInitialSize];
 
     private TerminalCell[][] _main;
     private TerminalCell[][]? _alternate;
@@ -42,7 +56,6 @@ public sealed class TerminalBuffer
     public bool SgrMouse { get; private set; }
     public bool IsAlternateScreen => _alternate is not null && ReferenceEquals(_screen, _alternate);
 
-    /// <summary>Raised (outside the lock) with bytes the terminal must send back to the program, e.g. cursor position reports.</summary>
     public event Action<string>? Response;
 
     public TerminalBuffer(int columns = 80, int rows = 24, int scrollbackLimit = 2000)
@@ -82,9 +95,9 @@ public sealed class TerminalBuffer
         string? responses = null;
         lock (_gate)
         {
-            if (_charBuffer.Length < data.Length + 4)
+            if (_charBuffer.Length < data.Length + CharBufferSlack)
             {
-                _charBuffer = new char[data.Length + 4];
+                _charBuffer = new char[data.Length + CharBufferSlack];
             }
 
             int count = _decoder.GetChars(data, _charBuffer, flush: false);
@@ -140,7 +153,6 @@ public sealed class TerminalBuffer
     private TerminalCell[][] ResizeScreen(TerminalCell[][] screen, int columns, int rows, bool pushToScrollback, int cursorY)
     {
         var lines = screen.ToList();
-        // When shrinking, first drop empty rows below the cursor, then push rows from the top into scrollback.
         while (lines.Count > rows)
         {
             if (lines.Count - 1 > cursorY && IsBlank(lines[^1]))
@@ -185,14 +197,15 @@ public sealed class TerminalBuffer
         if (_scrollback.Count > ScrollbackLimit)
         {
             _scrollback.RemoveAt(0);
+            return;
         }
-        else if (_scrollOffset > 0)
+
+        if (_scrollOffset > 0)
         {
             _scrollOffset++;
         }
     }
 
-    /// <summary>Scrolls the viewport into history. Positive = older lines.</summary>
     public void ScrollViewport(int delta)
     {
         lock (_gate)
@@ -251,8 +264,6 @@ public sealed class TerminalBuffer
         }
     }
 
-    // ---------------------------------------------------------------- parser
-
     private void Process(char c)
     {
         switch (_state)
@@ -264,14 +275,14 @@ public sealed class TerminalBuffer
                 EscapeChar(c);
                 break;
             case State.EscapeIntermediate:
-                if (c >= 0x30 && c <= 0x7E)
+                if (c >= IntermediateFirst && c <= IntermediateLast)
                 {
-                    _state = State.Ground; // e.g. ESC # 8, ESC % G
+                    _state = State.Ground;
                 }
 
                 break;
             case State.Charset:
-                _state = State.Ground; // character set designation is ignored (UTF-8 only)
+                _state = State.Ground;
                 break;
             case State.Csi:
                 ProcessCsi(c);
@@ -298,7 +309,7 @@ public sealed class TerminalBuffer
 
     private void ProcessGround(char c)
     {
-        if (c < 0x20 || c == 0x7F)
+        if (c < ' ' || c == Delete)
         {
             Control(c);
         }
@@ -310,16 +321,16 @@ public sealed class TerminalBuffer
 
     private void ProcessCsi(char c)
     {
-        if (c >= 0x40 && c <= 0x7E) { Csi(c); _state = State.Ground; }
-        else if (c == 0x1B)
+        if (c >= CsiFinalFirst && c <= CsiFinalLast) { Csi(c); _state = State.Ground; }
+        else if (c == Escape)
         {
             _state = State.Escape;
         }
-        else if (c == 0x18 || c == 0x1A)
+        else if (c == Cancel || c == Substitute)
         {
             _state = State.Ground;
         }
-        else if (c >= 0x20)
+        else if (c >= ' ')
         {
             _params.Append(c);
         }
@@ -331,12 +342,20 @@ public sealed class TerminalBuffer
 
     private void ProcessOsc(char c)
     {
-        if (c == 0x07) { Osc(); _state = State.Ground; }
-        else if (c == 0x1B)
+        if (c == Bell)
+        {
+            Osc();
+            _state = State.Ground;
+            return;
+        }
+
+        if (c == Escape)
         {
             _state = State.OscEscape;
+            return;
         }
-        else if (_osc.Length < 4096)
+
+        if (_osc.Length < MaxOscLength)
         {
             _osc.Append(c);
         }
@@ -344,11 +363,13 @@ public sealed class TerminalBuffer
 
     private void ProcessDcs(char c)
     {
-        if (c == 0x1B)
+        if (c == Escape)
         {
             _state = State.DcsEscape;
+            return;
         }
-        else if (c == 0x07)
+
+        if (c == Bell)
         {
             _state = State.Ground;
         }
@@ -398,15 +419,15 @@ public sealed class TerminalBuffer
                 {
                     _wrapPending = false;
                 }
-                else if (_cursorX > 0)
+                else
                 {
-                    _cursorX--;
+                    _cursorX = Math.Max(0, _cursorX - 1);
                 }
 
                 break;
             case '\t':
                 _wrapPending = false;
-                _cursorX = Math.Min(Columns - 1, (_cursorX / 8 + 1) * 8);
+                _cursorX = Math.Min(Columns - 1, (_cursorX / TabWidth + 1) * TabWidth);
                 break;
         }
     }
@@ -437,9 +458,9 @@ public sealed class TerminalBuffer
         {
             ScrollUp(1);
         }
-        else if (_cursorY < Rows - 1)
+        else
         {
-            _cursorY++;
+            _cursorY = Math.Min(_cursorY + 1, Rows - 1);
         }
     }
 
@@ -450,9 +471,9 @@ public sealed class TerminalBuffer
         {
             ScrollDown(1);
         }
-        else if (_cursorY > 0)
+        else
         {
-            _cursorY--;
+            _cursorY = Math.Max(_cursorY - 1, 0);
         }
     }
 
@@ -651,11 +672,11 @@ public sealed class TerminalBuffer
 
     private void DeviceStatus(int request)
     {
-        if (request == 6)
+        if (request == DeviceStatusReportCursorPosition)
         {
-            _responses.Append(System.Globalization.CultureInfo.InvariantCulture, $"\x1b[{_cursorY + 1};{_cursorX + 1}R");
+            _responses.Append(CultureInfo.InvariantCulture, $"\x1b[{_cursorY + 1};{_cursorX + 1}R");
         }
-        else if (request == 5)
+        else if (request == DeviceStatusReportTerminal)
         {
             _responses.Append("\x1b[0n");
         }
@@ -697,7 +718,7 @@ public sealed class TerminalBuffer
     {
         if (on && !IsAlternateScreen)
         {
-            if (mode == 1049)
+            if (mode == AlternateScreenSaveCursorMode)
             {
                 SaveCursor();
             }
@@ -710,7 +731,7 @@ public sealed class TerminalBuffer
         {
             _screen = _main;
             _alternate = null;
-            if (mode == 1049)
+            if (mode == AlternateScreenSaveCursorMode)
             {
                 RestoreCursor();
             }
@@ -862,7 +883,6 @@ public sealed class TerminalBuffer
         }
     }
 
-    /// <summary>Applies a 256-color or RGB color whose arguments start at <paramref name="next"/>; returns the index after them.</summary>
     private int ExtendedColor(int[] p, int next, bool foreground)
     {
         uint color;

@@ -5,7 +5,6 @@ using System.Text.Json.Serialization;
 
 namespace Edex.Core.Themes;
 
-/// <summary>A color scheme for the whole UI. Colors are "#RRGGBB" strings.</summary>
 public sealed record Theme
 {
     public string Name { get; init; } = "";
@@ -20,7 +19,6 @@ public sealed record Theme
     public string Cursor { get; init; } = "";
     public string FontFamily { get; init; } = "Cascadia Mono, Consolas, JetBrains Mono, DejaVu Sans Mono, Menlo, monospace";
 
-    /// <summary>16 ANSI colors (normal 0-7, bright 8-15).</summary>
     public IReadOnlyList<string> Ansi { get; init; } = ThemeLibrary.DefaultAnsi;
 
     [JsonIgnore] public string EffectiveTerminalForeground => string.IsNullOrEmpty(TerminalForeground) ? Foreground : TerminalForeground;
@@ -30,6 +28,8 @@ public sealed record Theme
 
 public static class ThemeLibrary
 {
+    public const int AnsiColorCount = 16;
+
     public static readonly IReadOnlyList<string> DefaultAnsi =
     [
         "#1B1E25", "#FF5370", "#C3E88D", "#FFCB6B", "#82AAFF", "#C792EA", "#89DDFF", "#D0D7DE",
@@ -53,7 +53,6 @@ public static class ThemeLibrary
         WriteIndented = true,
     };
 
-    /// <summary>Built-in themes followed by valid *.json themes from <paramref name="directory"/> (same name overrides).</summary>
     public static IReadOnlyList<Theme> Load(string? directory)
     {
         var themes = BuiltIn.ToDictionary(t => t.Name, StringComparer.OrdinalIgnoreCase);
@@ -87,7 +86,7 @@ public static class ThemeLibrary
             }
 
             string[] colors = [theme.Accent, theme.Background, theme.Surface, theme.Foreground, theme.Muted];
-            if (!colors.All(ColorUtil.IsValidHex) || theme.Ansi.Count != 16 || !theme.Ansi.All(ColorUtil.IsValidHex))
+            if (!colors.All(ColorUtil.IsValidHex) || theme.Ansi.Count != AnsiColorCount || !theme.Ansi.All(ColorUtil.IsValidHex))
             {
                 return null;
             }
@@ -108,6 +107,10 @@ public static class ThemeLibrary
 
 public static class ColorUtil
 {
+    public const byte MaxChannel = 255;
+
+    public const int ThemePaletteSize = 16;
+
     public static bool IsValidHex(string? value) =>
         value is { Length: 7 } && value[0] == '#' && uint.TryParse(value.AsSpan(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _);
 
@@ -115,24 +118,23 @@ public static class ColorUtil
     {
         if (!IsValidHex(hex))
         {
-            return (255, 255, 255);
+            return (MaxChannel, MaxChannel, MaxChannel);
         }
 
         uint value = uint.Parse(hex.AsSpan(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
         return ((byte)(value >> 16), (byte)(value >> 8), (byte)value);
     }
 
-    /// <summary>RGB of an xterm 256 color palette entry (16-255); 0-15 come from the theme.</summary>
     public static (byte R, byte G, byte B) Xterm256(int index)
     {
-        if (index < 16)
+        if (index < ThemePaletteSize)
         {
             return (0, 0, 0);
         }
 
         if (index < 232)
         {
-            int i = index - 16;
+            int i = index - ThemePaletteSize;
             static byte Level(int v) => (byte)(v == 0 ? 0 : 55 + v * 40);
             return (Level(i / 36), Level(i / 6 % 6), Level(i % 6));
         }
