@@ -1,6 +1,5 @@
 name: Packaging
 
-# Costruisce gli standalone di tutti i RID e valida i manifest. Non pubblica nulla.
 on:
   pull_request:
     paths: ['packaging/**', 'src/**', 'Directory.Build.props', 'global.json', '.github/workflows/packaging.yml']
@@ -30,7 +29,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'edex-ui --version fallito' }
       - name: Valida winget
         shell: pwsh
-        run: winget validate --manifest packaging/dist/windows/winget
+        run: |
+          winget --version
+          $out = winget validate --manifest packaging/dist/windows/winget 2>&1 | Out-String
+          Write-Output $out
+          if ($out -match 'Manifest Error') { throw 'manifest winget non valido' }
       - name: Valida Scoop (schema ufficiale)
         shell: pwsh
         run: |
@@ -64,6 +67,15 @@ jobs:
       - name: Verifica somme
         working-directory: packaging/dist
         run: sha256sum -c ./*.sha256
+      - name: Permessi dell'archivio
+        run: |
+          tmp="$(mktemp -d)"
+          tar -xzf packaging/dist/edex-ui-*-linux-x64.tar.gz -C "$tmp"
+          test -x "$tmp"/edex-ui-*-linux-x64/edex-ui
+          bad="$(find "$tmp" -type d ! -perm -u+rwx -print)"
+          rm -rf "$tmp"
+          test -z "$bad"
+          tar -tvzf packaging/dist/edex-ui-*-linux-x64.tar.gz
       - name: Strumenti di validazione
         run: sudo apt-get update && sudo apt-get install -y desktop-file-utils appstream
       - name: Valida .desktop e AppStream

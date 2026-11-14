@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-only
-# Costruisce il .deb dal tar.gz standalone. Uso: bash build-deb.sh amd64|arm64
-# Da eseguire da packaging/dist/linux/deb (i tar.gz sono in packaging/dist).
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 dist="$(cd "$here/../.." && pwd)"

@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-only
-# Costruisce l'AppImage dal tar.gz standalone. Uso: bash build-appimage.sh x86_64|aarch64
-# Da eseguire da packaging/dist/linux/appimage. Richiede appimagetool nel PATH (https://github.com/AppImage/appimagetool/releases).
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 dist="$(cd "$here/../.." && pwd)"

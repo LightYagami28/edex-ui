@@ -1,6 +1,4 @@
 # SPDX-License-Identifier: GPL-3.0-only
-# Costruisce gli standalone Windows (win-x64, win-arm64), calcola le somme SHA-256 e genera i manifest dei gestori di pacchetti in packaging/dist.
-# Uso: pwsh packaging/build.ps1
 [CmdletBinding()]
 param()
 $ErrorActionPreference = 'Stop'
@@ -10,7 +8,6 @@ $repo = 'LightYagami28/edex-ui'
 $version = ([xml](Get-Content -Raw (Join-Path $root 'Directory.Build.props'))).SelectSingleNode('//Version').InnerText
 $dist = Join-Path $PSScriptRoot 'dist'
 $stage = Join-Path $dist 'stage'
-# Pulisce solo i propri artefatti: build.sh scrive nella stessa cartella.
 foreach ($old in $stage, (Join-Path $dist 'windows')) { if (Test-Path $old) { Remove-Item -Recurse -Force $old } }
 Get-ChildItem $dist -Filter 'edex-ui-*-win-*' -ErrorAction SilentlyContinue | Remove-Item -Force
 New-Item -ItemType Directory -Force $stage | Out-Null
@@ -42,7 +39,6 @@ foreach ($fmt in Get-ChildItem (Join-Path $PSScriptRoot 'windows') -Directory) {
     }
 }
 
-# Fallisce se un segnaposto non è stato sostituito.
 $left = Get-ChildItem (Join-Path $dist 'windows') -Recurse -File | Select-String -Pattern '@[A-Z][A-Z0-9_]*@'
 if ($left) { $left | ForEach-Object { Write-Error "Segnaposto non sostituito: $($_.Path):$($_.LineNumber) $($_.Matches.Value)" }; throw 'Segnaposto rimasti' }
 Write-Host "Pronto in $dist (versione $version)"

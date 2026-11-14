@@ -7,7 +7,6 @@ url="https://github.com/LightYagami28/edex-ui"
 arch="x86_64 aarch64"
 license="GPL-3.0-only"
 depends="libstdc++ libgcc zlib openssl"
-# Single-file .NET: strip lo corromperebbe. Nessun test nel pacchetto binario.
 options="!strip !check"
 source="
 	$pkgname-$pkgver-linux-musl-x64.tar.gz::@URL_BASE@/$pkgname-$pkgver-linux-musl-x64.tar.gz

@@ -7,7 +7,6 @@ description: |
   file e tastiera su schermo. Eseguibile autonomo, non richiede il runtime .NET.
 license: GPL-3.0-only
 grade: stable
-# Un terminale deve poter avviare la shell dell'utente: serve confinement classic (richiede approvazione dello Snap Store).
 confinement: classic
 platforms:
   amd64:

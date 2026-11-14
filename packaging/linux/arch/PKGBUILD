@@ -10,7 +10,6 @@ license=('GPL-3.0-only')
 depends=('glibc' 'gcc-libs' 'zlib' 'openssl')
 provides=('edex-ui')
 conflicts=('edex-ui')
-# Single-file .NET: strip lo corromperebbe.
 options=('!strip' '!debug')
 source_x86_64=("$_name-$pkgver-linux-x64.tar.gz::@URL_BASE@/$_name-$pkgver-linux-x64.tar.gz")
 source_aarch64=("$_name-$pkgver-linux-arm64.tar.gz::@URL_BASE@/$_name-$pkgver-linux-arm64.tar.gz")

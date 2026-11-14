@@ -13,7 +13,6 @@ finish-args:
 modules:
   - name: edex-ui
     buildsystem: simple
-    # Single-file .NET: strip lo corromperebbe.
     strip: false
     no-debuginfo: true
     build-commands:

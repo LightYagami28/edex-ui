@@ -26,7 +26,6 @@
           src = pkgs.fetchurl sources.${system};
           nativeBuildInputs = [ pkgs.autoPatchelfHook ];
           buildInputs = [ pkgs.stdenv.cc.cc.lib pkgs.zlib pkgs.openssl ];
-          # Single-file .NET: strip lo corromperebbe.
           dontStrip = true;
           installPhase = ''
             runHook preInstall

@@ -15,7 +15,6 @@ ExclusiveArch:  x86_64 aarch64
 
 Source0:        @URL_BASE@/edex-ui-%{version}-%{rid}.tar.gz
 
-# L'eseguibile è un single-file .NET: strip e debuginfo lo corromperebbero.
 %global debug_package %{nil}
 %global __strip /bin/true
 
