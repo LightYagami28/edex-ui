@@ -74,6 +74,7 @@ public sealed class SettingsStore
         }
         catch (Exception e) when (e is JsonException or IOException or UnauthorizedAccessException)
         {
+            _ = e;
         }
         return new AppSettings();
     }

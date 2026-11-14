@@ -78,6 +78,7 @@ public sealed class SystemMonitor
                 }
                 catch (Exception e) when (e is InvalidOperationException or System.ComponentModel.Win32Exception or NotSupportedException or UnauthorizedAccessException)
                 {
+                    _ = e;
                 }
             }
         }

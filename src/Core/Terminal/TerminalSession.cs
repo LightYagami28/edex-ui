@@ -102,6 +102,7 @@ public sealed class TerminalSession : IDisposable
         }
         catch (Exception e) when (e is IOException or ObjectDisposedException)
         {
+            _ = e;
         }
     }
 
