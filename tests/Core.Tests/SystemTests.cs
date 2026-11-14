@@ -130,7 +130,6 @@ public class FilesTests
         const int entriesWithHidden = 4;
         Assert.HasCount(entriesWithHidden, FileBrowser.List(dir.Path, showHidden: true).Entries);
 
-        // A file is not a folder.
         Assert.IsNotNull(FileBrowser.List(Path.Combine(dir.Path, "a.txt")).Error);
 
         try
@@ -141,8 +140,10 @@ public class FilesTests
             Assert.AreEqual(FileEntryKind.Link, links.Single(e => e.Name == "link").Kind);
             Assert.AreEqual(FileEntryKind.Link, links.Single(e => e.Name == "dangling").Kind);
         }
-        catch (IOException) { /* no symlink privilege on this machine */ }
-        catch (UnauthorizedAccessException) { /* no symlink privilege on this machine */ }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            _ = e;
+        }
     }
 
     [TestMethod]
@@ -282,7 +283,11 @@ public class KeyboardExtraTests
             [KeyAction.Right] = "\x1b[C", [KeyAction.Left] = "\x1b[D", [KeyAction.Home] = "\x1b[H", [KeyAction.End] = "\x1b[F",
             [KeyAction.PageUp] = "\x1b[5~", [KeyAction.PageDown] = "\x1b[6~",
         };
-        foreach (var (action, text) in expected) Assert.AreEqual(text, state.Press(K(action)), action.ToString());
+        foreach (var (action, text) in expected)
+        {
+            Assert.AreEqual(text, state.Press(K(action)), action.ToString());
+        }
+
         Assert.AreEqual("\x1bOA", state.Press(K(KeyAction.Up), applicationCursorKeys: true));
         Assert.AreEqual("", state.Press(new KeyDefinition("?", null, (KeyAction)99)));
 
@@ -482,9 +487,17 @@ public class PtyExtraTests
         public override void Flush() { }
         public override int Read(byte[] buffer, int offset, int count)
         {
-            if (FailReads) throw new IOException("eio");
+            if (FailReads)
+            {
+                throw new IOException("eio");
+            }
+
             ObjectDisposedException.ThrowIf(DisposedFailure, this);
-            if (!_chunks.TryTake(out var chunk, Timeout.Infinite)) return 0;
+            if (!_chunks.TryTake(out var chunk, Timeout.Infinite))
+            {
+                return 0;
+            }
+
             chunk.CopyTo(buffer, offset);
             return chunk.Length;
         }
@@ -493,7 +506,11 @@ public class PtyExtraTests
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count)
         {
-            if (FailWrites) throw new IOException("closed");
+            if (FailWrites)
+            {
+                throw new IOException("closed");
+            }
+
             Written.AddRange(buffer.AsSpan(offset, count).ToArray());
         }
     }
@@ -517,7 +534,11 @@ public class PtyExtraTests
     private static void WaitFor(Func<bool> condition)
     {
         var deadline = DateTime.UtcNow.AddSeconds(10);
-        while (!condition() && DateTime.UtcNow < deadline) Thread.Sleep(10);
+        while (!condition() && DateTime.UtcNow < deadline)
+        {
+            Thread.Sleep(10);
+        }
+
         Assert.IsTrue(condition());
     }
 

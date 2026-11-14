@@ -24,7 +24,9 @@ public class PtyTests
         using var session = TerminalSession.Start(options);
         var deadline = DateTime.UtcNow.AddSeconds(15);
         while (DateTime.UtcNow < deadline && !session.Buffer.ScrollbackText().Contains("EDEX_PTY_OK"))
+        {
             await Task.Delay(PollMs, TestContext.CancellationToken);
+        }
 
         Assert.Contains("EDEX_PTY_OK", session.Buffer.ScrollbackText());
         var exitDeadline = deadline.AddSeconds(ExitGraceSeconds);

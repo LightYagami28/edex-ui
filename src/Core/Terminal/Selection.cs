@@ -3,7 +3,6 @@ using System.Text;
 
 namespace Edex.Core.Terminal;
 
-/// <summary>A cell position in a snapshot: zero-based column and viewport row.</summary>
 public readonly record struct CellPosition(int Column, int Row) : IComparable<CellPosition>
 {
     public int CompareTo(CellPosition other) => Row != other.Row ? Row.CompareTo(other.Row) : Column.CompareTo(other.Column);
@@ -13,7 +12,6 @@ public readonly record struct CellPosition(int Column, int Row) : IComparable<Ce
     public static bool operator >=(CellPosition a, CellPosition b) => a.CompareTo(b) >= 0;
 }
 
-/// <summary>A linear (stream) text selection between two cells, inclusive.</summary>
 public readonly record struct TextSelection(CellPosition Anchor, CellPosition Active)
 {
     public CellPosition Start => Anchor.CompareTo(Active) <= 0 ? Anchor : Active;
@@ -26,7 +24,6 @@ public readonly record struct TextSelection(CellPosition Anchor, CellPosition Ac
         return p.CompareTo(Start) >= 0 && p.CompareTo(End) <= 0;
     }
 
-    /// <summary>Text covered by the selection. Trailing blanks of each line are dropped and lines are joined with '\n'.</summary>
     public string GetText(TerminalSnapshot snapshot)
     {
         var start = Start;
@@ -38,24 +35,43 @@ public readonly record struct TextSelection(CellPosition Anchor, CellPosition Ac
             int from = row == start.Row ? Math.Clamp(start.Column, 0, line.Length) : 0;
             int to = row == end.Row ? Math.Clamp(end.Column, -1, line.Length - 1) : line.Length - 1;
             var part = new StringBuilder();
-            for (int c = from; c <= to; c++) part.Append(line[c].Glyph == '\0' ? ' ' : line[c].Glyph);
-            if (row > start.Row) sb.Append('\n');
+            for (int c = from; c <= to; c++)
+            {
+                part.Append(line[c].Glyph == '\0' ? ' ' : line[c].Glyph);
+            }
+
+            if (row > start.Row)
+            {
+                sb.Append('\n');
+            }
+
             sb.Append(part.ToString().TrimEnd());
         }
         return sb.ToString();
     }
 
-    /// <summary>Selects the word (letters, digits and path characters) around a cell.</summary>
     public static TextSelection Word(TerminalSnapshot snapshot, CellPosition at)
     {
-        if (at.Row < 0 || at.Row >= snapshot.Rows) return new TextSelection(at, at);
+        if (at.Row < 0 || at.Row >= snapshot.Rows)
+        {
+            return new TextSelection(at, at);
+        }
+
         var line = snapshot.Lines[at.Row];
         int col = Math.Clamp(at.Column, 0, line.Length - 1);
         char glyph = line[col].Glyph;
         Func<char, bool> same = Classify();
         int from = col, to = col;
-        while (from > 0 && same(line[from - 1].Glyph)) from--;
-        while (to < line.Length - 1 && same(line[to + 1].Glyph)) to++;
+        while (from > 0 && same(line[from - 1].Glyph))
+        {
+            from--;
+        }
+
+        while (to < line.Length - 1 && same(line[to + 1].Glyph))
+        {
+            to++;
+        }
+
         return new TextSelection(new CellPosition(from, at.Row), new CellPosition(to, at.Row));
 
         Func<char, bool> Classify()
@@ -74,7 +90,6 @@ public readonly record struct TextSelection(CellPosition Anchor, CellPosition Ac
         }
     }
 
-    /// <summary>Selects a whole line.</summary>
     public static TextSelection Line(TerminalSnapshot snapshot, int row) =>
         new(new CellPosition(0, row), new CellPosition(snapshot.Columns - 1, row));
 

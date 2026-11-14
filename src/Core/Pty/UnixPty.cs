@@ -4,7 +4,6 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Edex.Core.Pty;
 
-/// <summary>Pseudo terminal for Linux and macOS based on forkpty(3).</summary>
 internal sealed partial class UnixPty : IPtyConnection
 {
     private readonly int _pid;
@@ -31,7 +30,6 @@ internal sealed partial class UnixPty : IPtyConnection
             int status;
             while (WaitPid(_pid, out status, 0) == -1 && Marshal.GetLastPInvokeError() == EINTR)
             {
-                // Interrupted by a signal: retry until the child state is available.
             }
             int code = (status & 0x7f) == 0 ? (status >> 8) & 0xff : 128 + (status & 0x7f);
             ExitCode = code;
@@ -49,7 +47,6 @@ internal sealed partial class UnixPty : IPtyConnection
             ? options.WorkingDirectory
             : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
-        // Everything the child needs is marshalled before fork: after fork only async-signal-safe calls are made.
         var allocations = new List<IntPtr>();
         static IntPtr Str(List<IntPtr> allocations, string s)
         {
@@ -61,7 +58,11 @@ internal sealed partial class UnixPty : IPtyConnection
         {
             var pointers = items.Select(item => Str(allocations, item)).Append(IntPtr.Zero).ToArray();
             var block = Marshal.AllocHGlobal(IntPtr.Size * pointers.Length);
-            for (int i = 0; i < pointers.Length; i++) Marshal.WriteIntPtr(block, i * IntPtr.Size, pointers[i]);
+            for (int i = 0; i < pointers.Length; i++)
+            {
+                Marshal.WriteIntPtr(block, i * IntPtr.Size, pointers[i]);
+            }
+
             allocations.Add(block);
             return block;
         }
@@ -72,45 +73,78 @@ internal sealed partial class UnixPty : IPtyConnection
         IntPtr dir = Str(allocations, cwd);
         var size = new WinSize { Rows = (ushort)Math.Max(2, options.Rows), Columns = (ushort)Math.Max(2, options.Columns) };
 
-        // Bind and compile every libc stub now, so the child never needs the JIT or the loader.
         Marshal.PrelinkAll(typeof(UnixPty));
         int pid = ForkPty(out int master, IntPtr.Zero, IntPtr.Zero, ref size);
-        // Child: only async-signal-safe calls. Exit 127 unless execve replaced the process.
         if (pid == 0)
         {
             Exit(ChDir(dir) == 0 && ExecVe(path, argv, envp) == 0 ? 0 : ChildFailed);
         }
 
         int error = Marshal.GetLastPInvokeError();
-        foreach (var p in allocations) Marshal.FreeHGlobal(p);
-        if (pid < 0) throw new IOException($"forkpty failed (errno {error})");
+        foreach (var p in allocations)
+        {
+            Marshal.FreeHGlobal(p);
+        }
+
+        if (pid < 0)
+        {
+            throw new IOException($"forkpty failed (errno {error})");
+        }
+
         return new UnixPty(pid, master);
     }
 
     internal static string ResolveExecutable(string shell)
     {
-        if (shell.Contains('/')) return shell;
+        if (shell.Contains('/'))
+        {
+            return shell;
+        }
+
         foreach (var dir in (Environment.GetEnvironmentVariable("PATH") ?? "/usr/bin:/bin").Split(':', StringSplitOptions.RemoveEmptyEntries))
         {
             var candidate = Path.Combine(dir, shell);
-            if (File.Exists(candidate)) return candidate;
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
         }
         return shell;
     }
 
     public void Resize(int columns, int rows)
     {
-        if (Volatile.Read(ref _disposed) != 0) return;
+        if (Volatile.Read(ref _disposed) != 0)
+        {
+            return;
+        }
+
         var size = new WinSize { Rows = (ushort)Math.Max(2, rows), Columns = (ushort)Math.Max(2, columns) };
         _ = Ioctl(_master, OperatingSystem.IsMacOS() ? TiocswinszMac : TiocswinszLinux, ref size);
     }
 
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
         _ = Kill(_pid, SIGHUP);
-        try { _input.Dispose(); } catch (IOException) { /* already closed */ }
-        try { _output.Dispose(); } catch (IOException) { /* already closed */ }
+        DisposeQuietly(_input);
+        DisposeQuietly(_output);
+    }
+
+    private static void DisposeQuietly(Stream stream)
+    {
+        try
+        {
+            stream.Dispose();
+        }
+        catch (IOException e)
+        {
+            _ = e;
+        }
     }
 
     private const int SIGHUP = 1;
@@ -125,7 +159,6 @@ internal sealed partial class UnixPty : IPtyConnection
     [LibraryImport("libc", EntryPoint = "forkpty", SetLastError = true)]
     private static partial int ForkPty(out int master, IntPtr name, IntPtr termios, ref WinSize size);
 
-    // Blittable, no SetLastError: the generator emits plain DllImport methods, which PrelinkAll prepares.
     [LibraryImport("libc", EntryPoint = "chdir")]
     private static partial int ChDir(IntPtr path);
 

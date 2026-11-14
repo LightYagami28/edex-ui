@@ -8,7 +8,6 @@ public sealed record UpdateInfo(string Version, string Url);
 
 public static class UpdateChecker
 {
-    /// <summary>True when <paramref name="latest"/> is a higher version than <paramref name="current"/>. Unparsable versions are never newer.</summary>
     public static bool IsNewer(string current, string latest) =>
         TryParse(current, out var c) && TryParse(latest, out var l) && l > c;
 
@@ -16,11 +15,14 @@ public static class UpdateChecker
     {
         var text = value.Trim().TrimStart('v', 'V');
         int cut = text.IndexOfAny(['-', '+']);
-        if (cut >= 0) text = text[..cut];
+        if (cut >= 0)
+        {
+            text = text[..cut];
+        }
+
         return Version.TryParse(text, out version!);
     }
 
-    /// <summary>Reads the latest GitHub release of <paramref name="repository"/> ("owner/name"). Null when up to date or on any network or format error.</summary>
     public static async Task<UpdateInfo?> CheckAsync(HttpClient client, string repository, string currentVersion, CancellationToken cancel = default)
     {
         try
@@ -28,7 +30,11 @@ public static class UpdateChecker
             using var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{repository}/releases/latest");
             request.Headers.UserAgent.Add(new ProductInfoHeaderValue("edex-ui", currentVersion));
             using var response = await client.SendAsync(request, cancel).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode) return null;
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
             using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancel).ConfigureAwait(false));
             var tag = doc.RootElement.GetProperty("tag_name").GetString() ?? "";
             var url = doc.RootElement.GetProperty("html_url").GetString() ?? "";

@@ -22,7 +22,6 @@ public class TerminalParserTests
         Assert.AreEqual("x", b.Snapshot().LineText(1));
         Assert.AreEqual("y", b.Snapshot().LineText(2).Trim());
         Assert.AreEqual("z     w", b.Snapshot().LineText(3).TrimStart());
-        // backspace at column 0 does nothing; backspace right after filling the last column clears the pending wrap
         var c = Make("\b0123456789\bX");
         Assert.AreEqual("012345678X", c.Snapshot().LineText(0));
         var d = Make("0123456789\t");
@@ -47,14 +46,11 @@ public class TerminalParserTests
         b.Feed("\x1b" + "Mnew");
         Assert.AreEqual("new", b.Snapshot().LineText(0));
         Assert.AreEqual("abXd", b.Snapshot().LineText(2));
-        // charset designation, intermediates and unknown escapes are swallowed
         b.Feed("\x1b(B\x1b)0\x1b*B\x1b+B\x1b#8\x1b%G\x1b Fq\x1b=Z");
         var quiet = new TerminalBuffer(30, 2);
         quiet.Feed("\x1bPignored\x1b\\ok\x1bXjunk\x1b\\more");
         Assert.AreEqual("okmore", quiet.Snapshot().Text);
-        // DCS and friends are swallowed up to ST or BEL
         b.Feed("\x1b^pm\x1bq\x1b\\\x1b_apc\x1b\\");
-        // full reset
         b.Feed("\x1b[?1h\x1b[?25l\x1b[?2004h\x1b[?1000h\x1b[?1006h");
         b.Feed("\x1b" + "c");
         Assert.AreEqual("", b.Snapshot().Text);
@@ -145,7 +141,6 @@ public class TerminalParserTests
         Assert.AreEqual(5, b.Snapshot().CursorY);
         b.Feed("\x1b[6;1H\x1b[10F");
         Assert.AreEqual(0, b.Snapshot().CursorY);
-        // invalid region resets to the full screen
         b.Feed("\x1b[5;2r\x1b[1;7r\x1b[r");
         b.Feed("\x1b[6;1H\n");
         Assert.AreEqual(5, b.Snapshot().CursorY);
@@ -191,7 +186,6 @@ public class TerminalParserTests
         b.Feed("\x1b[2J");
         Assert.AreEqual("", b.Snapshot().Text);
         b.Feed("\x1b[2J\x1b[9J\x1b[9K");
-        // characters
         b.Feed("\x1b[1;1Habcdef\x1b[1;2H\x1b[2P");
         Assert.AreEqual("adef", b.Snapshot().LineText(0));
         b.Feed("\x1b[1;2H\x1b[2@");
@@ -201,7 +195,6 @@ public class TerminalParserTests
         b.Feed("\x1b[1;5H\x1b[10X");
         Assert.AreEqual("   d", b.Snapshot().LineText(0));
         b.Feed("\x1b[1;5H\x1b[10P\x1b[1;5H\x1b[10@");
-        // lines
         b.Feed("\x1b[2J\x1b[1;1H1\r\n2\r\n3\r\n4\x1b[2;1H\x1b[L");
         Assert.AreEqual("", b.Snapshot().LineText(1));
         Assert.AreEqual("2", b.Snapshot().LineText(2));
@@ -231,7 +224,6 @@ public class TerminalParserTests
         Assert.AreEqual(TerminalCell.Palette(10), line[5].Foreground);
         Assert.AreEqual(TerminalCell.Palette(12), line[5].Background);
         Assert.AreEqual(0u, line[6].Background);
-        // truncated extended colors consume the rest and change nothing
         b.Feed("\x1b[38;5mH\x1b[48;2;1;2mI\x1b[38;9mJ\x1b[38mK");
         line = b.Snapshot().Lines[0];
         Assert.AreEqual(0u, line[7].Foreground);
@@ -287,7 +279,6 @@ public class TerminalParserTests
         Assert.IsTrue(b.IsAlternateScreen);
         b.Feed("\x1b[?1047l");
         Assert.IsFalse(b.IsAlternateScreen);
-        // scrolling in the alternate screen never reaches the scrollback
         b.Feed("\x1b[?1049h1\r\n2\r\n3\r\n4");
         Assert.AreEqual(0, b.Snapshot().ScrollbackLength);
         b.ScrollViewport(5);
@@ -306,11 +297,9 @@ public class TerminalParserTests
         Assert.AreEqual("\x1b[0n\x1b[1;1R\x1b[?62;22c\x1b[?62;22c\x1b[>0;10;0c", replies[0]);
         b.Feed("x");
         Assert.HasCount(1, replies);
-        // intermediate-character CSI sequences: only DECSTR (CSI ! p) resets
         b.Feed("abc\x1b[ q\x1b[\"q\x1b[$p\x1b['z\x1b[!p");
         Assert.AreEqual("", b.Snapshot().Text);
         b.Feed("\x1b[!q");
-        // a buffer without a subscriber still works
         var quiet = new TerminalBuffer(10, 3);
         quiet.Feed("\x1b[6n");
     }
@@ -336,13 +325,11 @@ public class TerminalParserTests
         b.Resize(2, 2);
         b.Resize(1, 1);
         Assert.AreEqual(2, b.Columns);
-        // blank rows below the cursor are dropped before history is pushed
         var c = new TerminalBuffer(6, 6);
         c.Feed("top");
         c.Resize(6, 2);
         Assert.AreEqual(0, c.Snapshot().ScrollbackLength);
         Assert.AreEqual("top", c.Snapshot().LineText(0));
-        // resizing while scrolled back keeps the offset within history
         var d = new TerminalBuffer(4, 2, 3);
         d.Feed("1\r\n2\r\n3\r\n4\r\n5\r\n6");
         d.ScrollViewport(3);
@@ -369,7 +356,6 @@ public class TerminalParserTests
         Assert.AreEqual(0, b.Snapshot().ScrollbackLength);
         Assert.AreEqual(0, b.Snapshot().ScrollOffset);
         Assert.IsNotEmpty(b.ScrollbackText());
-        // growing scrollback while scrolled back keeps the view in place
         var c = new TerminalBuffer(4, 2, 10);
         c.Feed("1\r\n2\r\n3\r\n4");
         c.ScrollViewport(1);
