@@ -128,7 +128,7 @@ Differenze rispetto alla tabella delle funzioni:
   serve un repo nuovo senza la storia GPL. Per ora i file portano `SPDX-License-Identifier: GPL-3.0-only`.
 - Test: MSTest (Microsoft) al posto di xUnit (terzi). Coverage con `Microsoft.CodeCoverage`.
 - Linux e macOS non sono eseguibili su questa macchina Windows: il loro stato "funziona" è quello dei runner CI e dei container, non dimostrabile in locale.
-- .NET 11 è ancora RC (go-live): a GA si aggiorna `global.json`.
+- .NET 11 è in GA dal 2026-11-10: `global.json` punta all'SDK `11.0.100` senza prerelease.
 
 ## 7. Evoluzione: .NET 11 definitivo e versione macOS in Swift (2026-11-10)
 
@@ -138,9 +138,14 @@ Stato verificato il 2026-11-10:
 - `global.json` usa l'SDK `11.0.100-rc.3.26522.148` con `allowPrerelease: true`; `Directory.Build.props` ha `TargetFramework` `net11.0`.
 - .NET 11 è ancora release candidate «go-live» (`11.0.0-rc.3`); l'ultima versione stabile è .NET 10 LTS (`10.0.14`). Fonte: `https://dotnetcli.blob.core.windows.net/dotnet/release-metadata/releases-index.json`.
 
+Stato verificato il 2026-11-14:
+- `global.json` usa l'SDK GA `11.0.100` con `allowPrerelease: false` e `rollForward: latestFeature`; `Directory.Build.props` ha `TargetFramework` `net11.0`.
+- .NET 11 è in GA (`11.0.0`, rilasciata il 2026-11-10, canale STS, fine supporto 2028-11-14); l'ultima LTS è .NET 10 (`10.0.15`). Fonte: `https://dotnetcli.blob.core.windows.net/dotnet/release-metadata/releases-index.json`.
+- Build Release con .NET SDK `11.0.100`: 0 avvisi, 0 errori.
+
 ### 7.1 .NET 11 definitivo
 
-- Appena esce la GA: `global.json` sulla versione GA, `allowPrerelease: false`, `rollForward: latestFeature`.
+- Fatto (2026-11-14): `global.json` sulla versione GA `11.0.100`, `allowPrerelease: false`, `rollForward: latestFeature`.
 - CI: `actions/setup-dotnet` su `11.0.x`, stesse verifiche di oggi.
 - Pacchetti di sviluppo (MSTest, `Microsoft.CodeCoverage`) all'ultima versione compatibile con .NET 11.
 - Build senza avvisi (`dotnet build -warnaserror`), nessuna API obsoleta (CS0618, CS0612, SYSLIB*).

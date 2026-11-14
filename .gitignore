@@ -59,3 +59,10 @@ sonar-coverage.xml
 coverage-python.xml
 .coverage
 __pycache__/
+
+# Segreti locali
+.env
+.env.*
+!.env.example
+*.pem
+*.key
