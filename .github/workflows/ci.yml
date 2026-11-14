@@ -30,6 +30,33 @@ jobs:
           name: coverage-${{ matrix.os }}
           path: TestResults/**/cov.cobertura.xml
 
+  app-windows:
+    name: App Windows (build e smoke test)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - name: Compila l'app Windows
+        shell: pwsh
+        run: dotnet build src/Windows/Edex.Windows.csproj --configuration Release --nologo
+      - name: Smoke test
+        shell: pwsh
+        run: |
+          $exe = "src/Windows/bin/Release/net11.0-windows/win-x64/edex-ui.exe"
+          $png = "${{ runner.temp }}/edex-ui-smoke.png"
+          $log = "${{ runner.temp }}/edex-smoke.log"
+          $out = & $exe --smoke-test --screenshot $png 2>&1 | Out-String
+          Set-Content $log -Value $out -Encoding utf8
+          if ($LASTEXITCODE -ne 0) { Write-Output $out; throw "smoke test fallito con codice $LASTEXITCODE" }
+          if (-not (Test-Path $png)) { throw "screenshot non trovato: $png" }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: edex-ui-smoke-windows
+          path: ${{ runner.temp }}/edex-ui-smoke.png
+          retention-days: 7
+
   sonar:
     name: SonarCloud
     needs: test
@@ -58,6 +85,6 @@ jobs:
         if: env.SONAR_TOKEN != ''
         run: |
           dotnet tool install --global dotnet-sonarscanner --version 12.1.0
-          dotnet sonarscanner begin /k:"LightYagami28_edex-ui" /o:"lightyagami28" /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.coverageReportPaths="sonar-coverage.xml" /d:sonar.python.coverage.reportPaths="coverage-python.xml" /d:sonar.coverage.exclusions="tests/**"
+          dotnet sonarscanner begin /k:"LightYagami28_edex-ui" /o:"lightyagami28" /d:sonar.token="$SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.coverageReportPaths="sonar-coverage.xml" /d:sonar.python.coverage.reportPaths="coverage-python.xml" /d:sonar.coverage.exclusions="tests/**,src/Cli/**"
           dotnet build --configuration Release
           dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"

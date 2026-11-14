@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net11.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <AssemblyName>edex-ui</AssemblyName>
+    <RootNamespace>Edex.Windows</RootNamespace>
+    <ApplicationIcon>../../media/icon.ico</ApplicationIcon>
+    <Product>eDEX-UI</Product>
+    <AssemblyTitle>eDEX-UI</AssemblyTitle>
+    <Description>Terminale a schermo intero in stile fantascienza con pannelli di sistema</Description>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Core/Edex.Core.csproj" />
+  </ItemGroup>
+
+</Project>
