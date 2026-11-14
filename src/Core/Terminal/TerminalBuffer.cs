@@ -264,47 +264,48 @@ public sealed class TerminalBuffer
         }
     }
 
+    private static readonly Dictionary<State, Action<TerminalBuffer, char>> StateActions = new()
+    {
+        [State.Ground] = (b, c) => b.ProcessGround(c),
+        [State.Escape] = (b, c) => b.EscapeChar(c),
+        [State.EscapeIntermediate] = (b, c) => b.ProcessEscapeIntermediate(c),
+        [State.Charset] = (b, _) => b._state = State.Ground,
+        [State.Csi] = (b, c) => b.ProcessCsi(c),
+        [State.Osc] = (b, c) => b.ProcessOsc(c),
+        [State.OscEscape] = (b, c) => b.ProcessOscEscape(c),
+        [State.Dcs] = (b, c) => b.ProcessDcs(c),
+        [State.DcsEscape] = (b, c) => b.ProcessDcsEscape(c),
+    };
+
     private void Process(char c)
     {
-        switch (_state)
+        if (StateActions.TryGetValue(_state, out var action))
         {
-            case State.Ground:
-                ProcessGround(c);
-                break;
-            case State.Escape:
-                EscapeChar(c);
-                break;
-            case State.EscapeIntermediate:
-                if (c >= IntermediateFirst && c <= IntermediateLast)
-                {
-                    _state = State.Ground;
-                }
-
-                break;
-            case State.Charset:
-                _state = State.Ground;
-                break;
-            case State.Csi:
-                ProcessCsi(c);
-                break;
-            case State.Osc:
-                ProcessOsc(c);
-                break;
-            case State.OscEscape:
-                if (c == '\\')
-                {
-                    Osc();
-                }
-
-                _state = State.Ground;
-                break;
-            case State.Dcs:
-                ProcessDcs(c);
-                break;
-            case State.DcsEscape:
-                _state = c == '\\' ? State.Ground : State.Dcs;
-                break;
+            action(this, c);
         }
+    }
+
+    private void ProcessEscapeIntermediate(char c)
+    {
+        if (c >= IntermediateFirst && c <= IntermediateLast)
+        {
+            _state = State.Ground;
+        }
+    }
+
+    private void ProcessOscEscape(char c)
+    {
+        if (c == '\\')
+        {
+            Osc();
+        }
+
+        _state = State.Ground;
+    }
+
+    private void ProcessDcsEscape(char c)
+    {
+        _state = c == '\\' ? State.Ground : State.Dcs;
     }
 
     private void ProcessGround(char c)
@@ -375,35 +376,35 @@ public sealed class TerminalBuffer
         }
     }
 
+    private static readonly Dictionary<char, Action<TerminalBuffer>> EscapeActions = new()
+    {
+        ['['] = b => { b._params.Clear(); b._csiPrefix = '\0'; b._state = State.Csi; },
+        [']'] = b => { b._osc.Clear(); b._state = State.Osc; },
+        ['P'] = b => b._state = State.Dcs,
+        ['X'] = b => b._state = State.Dcs,
+        ['^'] = b => b._state = State.Dcs,
+        ['_'] = b => b._state = State.Dcs,
+        ['('] = b => b._state = State.Charset,
+        [')'] = b => b._state = State.Charset,
+        ['*'] = b => b._state = State.Charset,
+        ['+'] = b => b._state = State.Charset,
+        ['#'] = b => b._state = State.EscapeIntermediate,
+        ['%'] = b => b._state = State.EscapeIntermediate,
+        [' '] = b => b._state = State.EscapeIntermediate,
+        ['7'] = b => b.SaveCursor(),
+        ['8'] = b => b.RestoreCursor(),
+        ['D'] = b => b.LineFeed(),
+        ['E'] = b => { b._cursorX = 0; b.LineFeed(); },
+        ['M'] = b => b.ReverseIndex(),
+        ['c'] = b => b.FullReset(),
+    };
+
     private void EscapeChar(char c)
     {
         _state = State.Ground;
-        switch (c)
+        if (EscapeActions.TryGetValue(c, out var action))
         {
-            case '[':
-                _params.Clear();
-                _csiPrefix = '\0';
-                _state = State.Csi;
-                break;
-            case ']':
-                _osc.Clear();
-                _state = State.Osc;
-                break;
-            case 'P': case 'X': case '^': case '_':
-                _state = State.Dcs;
-                break;
-            case '(': case ')': case '*': case '+':
-                _state = State.Charset;
-                break;
-            case '#': case '%': case ' ':
-                _state = State.EscapeIntermediate;
-                break;
-            case '7': SaveCursor(); break;
-            case '8': RestoreCursor(); break;
-            case 'D': LineFeed(); break;
-            case 'E': _cursorX = 0; LineFeed(); break;
-            case 'M': ReverseIndex(); break;
-            case 'c': FullReset(); break;
+            action(this);
         }
     }
 
@@ -582,74 +583,131 @@ public sealed class TerminalBuffer
     private void Csi(char final)
     {
         var p = ParseParams();
-        bool intermediate = _params.Length > 0 && _params[^1] is ' ' or '!' or '"' or '$' or '\'';
-        if (intermediate)
+        if (HasIntermediate(final) || HasPrefix(final, p))
         {
-            if (final == 'p' && _params.ToString() == "!")
-            {
-                FullReset();
-            }
-
-            return;
-        }
-        if (_csiPrefix == '?') { PrivateMode(final, p); return; }
-        if (_csiPrefix is '>' or '<' or '=')
-        {
-            if (final == 'c' && _csiPrefix == '>')
-            {
-                _responses.Append("\x1b[>0;10;0c");
-            }
-
             return;
         }
 
         CsiCommand(final, p);
-        if (final != 'm' && final != 'n' && final != 'c')
+        if (final is not 'm' and not 'n' and not 'c')
         {
             _wrapPending = false;
         }
     }
 
+    private bool HasIntermediate(char final)
+    {
+        if (_params.Length == 0 || _params[^1] is not (' ' or '!' or '"' or '$' or '\''))
+        {
+            return false;
+        }
+
+        if (final == 'p' && _params.ToString() == "!")
+        {
+            FullReset();
+        }
+
+        return true;
+    }
+
+    private bool HasPrefix(char final, int[] p)
+    {
+        if (_csiPrefix == '?')
+        {
+            PrivateMode(final, p);
+            return true;
+        }
+
+        if (_csiPrefix is not ('>' or '<' or '='))
+        {
+            return false;
+        }
+
+        if (final == 'c' && _csiPrefix == '>')
+        {
+            _responses.Append("\x1b[>0;10;0c");
+        }
+
+        return true;
+    }
+
+    private static readonly Dictionary<char, Action<TerminalBuffer, int[]>> CsiActions = new()
+    {
+        ['A'] = (b, p) => b.CursorUp(p),
+        ['B'] = (b, p) => b.CursorDown(p),
+        ['e'] = (b, p) => b.CursorDown(p),
+        ['C'] = (b, p) => b.CursorForward(p),
+        ['a'] = (b, p) => b.CursorForward(p),
+        ['D'] = (b, p) => b.CursorBack(p),
+        ['E'] = (b, p) => b.NextLine(p),
+        ['F'] = (b, p) => b.PreviousLine(p),
+        ['G'] = (b, p) => b.CursorColumn(p),
+        ['`'] = (b, p) => b.CursorColumn(p),
+        ['d'] = (b, p) => b.CursorRow(p),
+        ['H'] = (b, p) => b.CursorPosition(p),
+        ['f'] = (b, p) => b.CursorPosition(p),
+        ['J'] = (b, p) => b.EraseDisplay(Arg(p, 0, 0)),
+        ['K'] = (b, p) => b.EraseLine(Arg(p, 0, 0)),
+        ['L'] = (b, p) => b.InsertLines(Arg(p, 0)),
+        ['M'] = (b, p) => b.DeleteLines(Arg(p, 0)),
+        ['P'] = (b, p) => b.DeleteChars(Arg(p, 0)),
+        ['@'] = (b, p) => b.InsertChars(Arg(p, 0)),
+        ['X'] = (b, p) => b.EraseChars(Arg(p, 0)),
+        ['S'] = (b, p) => b.ScrollUp(Arg(p, 0)),
+        ['T'] = (b, p) => b.ScrollDown(Arg(p, 0)),
+        ['m'] = (b, p) => b.Sgr(p),
+        ['r'] = (b, p) => b.SetScrollRegion(p),
+        ['s'] = (b, p) => b.SaveCursor(),
+        ['u'] = (b, p) => b.RestoreCursor(),
+        ['n'] = (b, p) => b.DeviceStatus(Arg(p, 0, 0)),
+        ['c'] = (b, p) => b.DeviceAttributes(p),
+    };
+
     private void CsiCommand(char final, int[] p)
     {
-        int rowLimitTop = 0, rowLimitBottom = Rows - 1;
-        if (_cursorY >= _scrollTop && _cursorY <= _scrollBottom) { rowLimitTop = _scrollTop; rowLimitBottom = _scrollBottom; }
-
-        switch (final)
+        if (CsiActions.TryGetValue(final, out var action))
         {
-            case 'A': _cursorY = Math.Max(rowLimitTop, _cursorY - Arg(p, 0)); break;
-            case 'B': case 'e': _cursorY = Math.Min(rowLimitBottom, _cursorY + Arg(p, 0)); break;
-            case 'C': case 'a': _cursorX = Math.Min(Columns - 1, _cursorX + Arg(p, 0)); break;
-            case 'D': _cursorX = Math.Max(0, _cursorX - Arg(p, 0)); break;
-            case 'E': _cursorX = 0; _cursorY = Math.Min(rowLimitBottom, _cursorY + Arg(p, 0)); break;
-            case 'F': _cursorX = 0; _cursorY = Math.Max(rowLimitTop, _cursorY - Arg(p, 0)); break;
-            case 'G': case '`': _cursorX = Math.Clamp(Arg(p, 0) - 1, 0, Columns - 1); break;
-            case 'd': _cursorY = Math.Clamp(Arg(p, 0) - 1, 0, Rows - 1); break;
-            case 'H': case 'f':
-                _cursorY = Math.Clamp(Arg(p, 0) - 1, 0, Rows - 1);
-                _cursorX = Math.Clamp(Arg(p, 1) - 1, 0, Columns - 1);
-                break;
-            case 'J': EraseDisplay(Arg(p, 0, 0)); break;
-            case 'K': EraseLine(Arg(p, 0, 0)); break;
-            case 'L': InsertLines(Arg(p, 0)); break;
-            case 'M': DeleteLines(Arg(p, 0)); break;
-            case 'P': DeleteChars(Arg(p, 0)); break;
-            case '@': InsertChars(Arg(p, 0)); break;
-            case 'X': EraseChars(Arg(p, 0)); break;
-            case 'S': ScrollUp(Arg(p, 0)); break;
-            case 'T': ScrollDown(Arg(p, 0)); break;
-            case 'm': Sgr(p); break;
-            case 'r': SetScrollRegion(p); break;
-            case 's': SaveCursor(); break;
-            case 'u': RestoreCursor(); break;
-            case 'n': DeviceStatus(Arg(p, 0, 0)); break;
-            case 'c':
-                if (Arg(p, 0, 0) == 0)
-                {
-                    _responses.Append("\x1b[?62;22c");
-                }
+            action(this, p);
+        }
+    }
 
-                break;
+    private (int top, int bottom) RowLimits()
+    {
+        if (_cursorY >= _scrollTop && _cursorY <= _scrollBottom)
+        {
+            return (_scrollTop, _scrollBottom);
+        }
+
+        return (0, Rows - 1);
+    }
+
+    private void CursorUp(int[] p) { _cursorY = Math.Max(RowLimits().top, _cursorY - Arg(p, 0)); }
+
+    private void CursorDown(int[] p) { _cursorY = Math.Min(RowLimits().bottom, _cursorY + Arg(p, 0)); }
+
+    private void CursorForward(int[] p) { _cursorX = Math.Min(Columns - 1, _cursorX + Arg(p, 0)); }
+
+    private void CursorBack(int[] p) { _cursorX = Math.Max(0, _cursorX - Arg(p, 0)); }
+
+    private void NextLine(int[] p) { _cursorX = 0; _cursorY = Math.Min(RowLimits().bottom, _cursorY + Arg(p, 0)); }
+
+    private void PreviousLine(int[] p) { _cursorX = 0; _cursorY = Math.Max(RowLimits().top, _cursorY - Arg(p, 0)); }
+
+    private void CursorColumn(int[] p) { _cursorX = Math.Clamp(Arg(p, 0) - 1, 0, Columns - 1); }
+
+    private void CursorRow(int[] p) { _cursorY = Math.Clamp(Arg(p, 0) - 1, 0, Rows - 1); }
+
+    private void CursorPosition(int[] p)
+    {
+        _cursorY = Math.Clamp(Arg(p, 0) - 1, 0, Rows - 1);
+        _cursorX = Math.Clamp(Arg(p, 1) - 1, 0, Columns - 1);
+    }
+
+    private void DeviceAttributes(int[] p)
+    {
+        if (Arg(p, 0, 0) == 0)
+        {
+            _responses.Append("\x1b[?62;22c");
         }
     }
 
@@ -696,19 +754,26 @@ public sealed class TerminalBuffer
         }
     }
 
+    private static readonly Dictionary<int, Action<TerminalBuffer, bool>> PrivateModes = new()
+    {
+        [1] = (b, on) => b.ApplicationCursorKeys = on,
+        [25] = (b, on) => b.CursorVisible = on,
+        [2004] = (b, on) => b.BracketedPaste = on,
+        [9] = (b, on) => b.MouseTracking = Tracking(on, MouseTrackingMode.X10),
+        [1000] = (b, on) => b.MouseTracking = Tracking(on, MouseTrackingMode.Normal),
+        [1002] = (b, on) => b.MouseTracking = Tracking(on, MouseTrackingMode.ButtonEvent),
+        [1003] = (b, on) => b.MouseTracking = Tracking(on, MouseTrackingMode.AnyEvent),
+        [1006] = (b, on) => b.SgrMouse = on,
+        [47] = (b, on) => b.SwitchScreen(47, on),
+        [1047] = (b, on) => b.SwitchScreen(1047, on),
+        [1049] = (b, on) => b.SwitchScreen(1049, on),
+    };
+
     private void SetPrivateMode(int mode, bool on)
     {
-        switch (mode)
+        if (PrivateModes.TryGetValue(mode, out var action))
         {
-            case 1: ApplicationCursorKeys = on; break;
-            case 25: CursorVisible = on; break;
-            case 2004: BracketedPaste = on; break;
-            case 9: MouseTracking = Tracking(on, MouseTrackingMode.X10); break;
-            case 1000: MouseTracking = Tracking(on, MouseTrackingMode.Normal); break;
-            case 1002: MouseTracking = Tracking(on, MouseTrackingMode.ButtonEvent); break;
-            case 1003: MouseTracking = Tracking(on, MouseTrackingMode.AnyEvent); break;
-            case 1006: SgrMouse = on; break;
-            case 47: case 1047: case 1049: SwitchScreen(mode, on); break;
+            action(this, on);
         }
     }
 
@@ -744,34 +809,43 @@ public sealed class TerminalBuffer
     {
         switch (mode)
         {
-            case 0:
-                EraseLine(0);
-                for (int r = _cursorY + 1; r < Rows; r++)
-                {
-                    _screen[r] = NewLine(Columns, BlankWithBackground);
-                }
-
-                break;
-            case 1:
-                EraseLine(1);
-                for (int r = 0; r < _cursorY; r++)
-                {
-                    _screen[r] = NewLine(Columns, BlankWithBackground);
-                }
-
-                break;
-            case 2:
-                for (int r = 0; r < Rows; r++)
-                {
-                    _screen[r] = NewLine(Columns, BlankWithBackground);
-                }
-
-                break;
-            case 3:
-                _scrollback.Clear();
-                _scrollOffset = 0;
-                break;
+            case 0: EraseBelow(); break;
+            case 1: EraseAbove(); break;
+            case 2: EraseAll(); break;
+            case 3: EraseScrollback(); break;
         }
+    }
+
+    private void EraseBelow()
+    {
+        EraseLine(0);
+        for (int r = _cursorY + 1; r < Rows; r++)
+        {
+            _screen[r] = NewLine(Columns, BlankWithBackground);
+        }
+    }
+
+    private void EraseAbove()
+    {
+        EraseLine(1);
+        for (int r = 0; r < _cursorY; r++)
+        {
+            _screen[r] = NewLine(Columns, BlankWithBackground);
+        }
+    }
+
+    private void EraseAll()
+    {
+        for (int r = 0; r < Rows; r++)
+        {
+            _screen[r] = NewLine(Columns, BlankWithBackground);
+        }
+    }
+
+    private void EraseScrollback()
+    {
+        _scrollback.Clear();
+        _scrollOffset = 0;
     }
 
     private void EraseLine(int mode)
@@ -847,40 +921,129 @@ public sealed class TerminalBuffer
         }
     }
 
+    private static readonly Dictionary<int, Action<TerminalBuffer>> SgrSimple = new()
+    {
+        [0] = b => { b._fg = b._bg = 0; b._attrs = CellAttributes.None; },
+        [1] = b => b._attrs |= CellAttributes.Bold,
+        [2] = b => b._attrs |= CellAttributes.Dim,
+        [3] = b => b._attrs |= CellAttributes.Italic,
+        [4] = b => b._attrs |= CellAttributes.Underline,
+        [7] = b => b._attrs |= CellAttributes.Inverse,
+        [8] = b => b._attrs |= CellAttributes.Hidden,
+        [9] = b => b._attrs |= CellAttributes.Strikethrough,
+        [21] = b => b._attrs &= ~(CellAttributes.Bold | CellAttributes.Dim),
+        [22] = b => b._attrs &= ~(CellAttributes.Bold | CellAttributes.Dim),
+        [23] = b => b._attrs &= ~CellAttributes.Italic,
+        [24] = b => b._attrs &= ~CellAttributes.Underline,
+        [27] = b => b._attrs &= ~CellAttributes.Inverse,
+        [28] = b => b._attrs &= ~CellAttributes.Hidden,
+        [29] = b => b._attrs &= ~CellAttributes.Strikethrough,
+        [39] = b => b._fg = 0,
+        [49] = b => b._bg = 0,
+    };
+
     private void Sgr(int[] p)
     {
-        if (p.Length == 0) { _fg = _bg = 0; _attrs = CellAttributes.None; return; }
+        if (p.Length == 0)
+        {
+            _fg = _bg = 0;
+            _attrs = CellAttributes.None;
+            return;
+        }
+
         int i = 0;
         while (i < p.Length)
         {
             int code = p[i++];
-            switch (code)
+            if (code is 38 or 48)
             {
-                case 0: _fg = _bg = 0; _attrs = CellAttributes.None; break;
-                case 1: _attrs |= CellAttributes.Bold; break;
-                case 2: _attrs |= CellAttributes.Dim; break;
-                case 3: _attrs |= CellAttributes.Italic; break;
-                case 4: _attrs |= CellAttributes.Underline; break;
-                case 7: _attrs |= CellAttributes.Inverse; break;
-                case 8: _attrs |= CellAttributes.Hidden; break;
-                case 9: _attrs |= CellAttributes.Strikethrough; break;
-                case 21: case 22: _attrs &= ~(CellAttributes.Bold | CellAttributes.Dim); break;
-                case 23: _attrs &= ~CellAttributes.Italic; break;
-                case 24: _attrs &= ~CellAttributes.Underline; break;
-                case 27: _attrs &= ~CellAttributes.Inverse; break;
-                case 28: _attrs &= ~CellAttributes.Hidden; break;
-                case 29: _attrs &= ~CellAttributes.Strikethrough; break;
-                case >= 30 and <= 37: _fg = TerminalCell.Palette(code - 30); break;
-                case 39: _fg = 0; break;
-                case >= 40 and <= 47: _bg = TerminalCell.Palette(code - 40); break;
-                case 49: _bg = 0; break;
-                case >= 90 and <= 97: _fg = TerminalCell.Palette(code - 90 + 8); break;
-                case >= 100 and <= 107: _bg = TerminalCell.Palette(code - 100 + 8); break;
-                case 38: case 48:
-                    i = ExtendedColor(p, i, code == 38);
-                    break;
+                i = ExtendedColor(p, i, code == 38);
+            }
+            else
+            {
+                ApplySimpleOrPaletteSgr(code);
             }
         }
+    }
+
+    private void ApplySimpleOrPaletteSgr(int code)
+    {
+        if (SetStandardForeground(code))
+        {
+            return;
+        }
+
+        if (SetStandardBackground(code))
+        {
+            return;
+        }
+
+        if (SetBrightForeground(code))
+        {
+            return;
+        }
+
+        if (SetBrightBackground(code))
+        {
+            return;
+        }
+
+        TryApplySimpleSgr(code);
+    }
+
+    private bool SetStandardForeground(int code)
+    {
+        if (code < 30 || code > 37)
+        {
+            return false;
+        }
+
+        _fg = TerminalCell.Palette(code - 30);
+        return true;
+    }
+
+    private bool SetStandardBackground(int code)
+    {
+        if (code < 40 || code > 47)
+        {
+            return false;
+        }
+
+        _bg = TerminalCell.Palette(code - 40);
+        return true;
+    }
+
+    private bool SetBrightForeground(int code)
+    {
+        if (code < 90 || code > 97)
+        {
+            return false;
+        }
+
+        _fg = TerminalCell.Palette(code - 90 + 8);
+        return true;
+    }
+
+    private bool SetBrightBackground(int code)
+    {
+        if (code < 100 || code > 107)
+        {
+            return false;
+        }
+
+        _bg = TerminalCell.Palette(code - 100 + 8);
+        return true;
+    }
+
+    private bool TryApplySimpleSgr(int code)
+    {
+        if (!SgrSimple.TryGetValue(code, out var action))
+        {
+            return false;
+        }
+
+        action(this);
+        return true;
     }
 
     private int ExtendedColor(int[] p, int next, bool foreground)
