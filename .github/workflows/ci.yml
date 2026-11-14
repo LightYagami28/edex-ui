@@ -45,12 +45,16 @@ jobs:
         shell: pwsh
         run: |
           $exe = "src/Windows/bin/Release/net11.0-windows/win-x64/edex-ui.exe"
-          & $exe --smoke-test --screenshot "$env:RUNNER_TEMP/edex-ui-smoke.png"
-          if ($LASTEXITCODE -ne 0) { throw "smoke test fallito con codice $LASTEXITCODE" }
+          $png = "${{ runner.temp }}/edex-ui-smoke.png"
+          $log = "${{ runner.temp }}/edex-smoke.log"
+          $out = & $exe --smoke-test --screenshot $png 2>&1 | Out-String
+          Set-Content $log -Value $out -Encoding utf8
+          if ($LASTEXITCODE -ne 0) { Write-Output $out; throw "smoke test fallito con codice $LASTEXITCODE" }
+          if (-not (Test-Path $png)) { throw "screenshot non trovato: $png" }
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: edex-ui-smoke-windows
-          path: ${{ env.RUNNER_TEMP }}/edex-ui-smoke.png
+          path: ${{ runner.temp }}/edex-ui-smoke.png
           retention-days: 7
 
   sonar:

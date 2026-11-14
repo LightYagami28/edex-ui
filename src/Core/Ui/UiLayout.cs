@@ -77,30 +77,48 @@ public sealed record UiLayout
             return new UiLayout(panels, width, height);
         }
 
-        bool hasLeft = body.Width * LeftColumnFraction >= MinColumnWidth;
-        bool hasRight = body.Width * RightColumnFraction >= MinColumnWidth && body.Height >= MinRightRowHeight * RightRowCount;
-        double leftWidth = hasLeft ? body.Width * LeftColumnFraction : 0;
-        double rightWidth = hasRight ? body.Width * RightColumnFraction : 0;
-        double gaps = (hasLeft ? Gap : 0) + (hasRight ? Gap : 0);
+        double leftWidth = ColumnWidth(body.Width * LeftColumnFraction, true);
+        double rightWidth = ColumnWidth(body.Width * RightColumnFraction, body.Height >= MinRightRowHeight * RightRowCount);
+        double leftSpan = SpanWithGap(leftWidth);
+        double rightSpan = SpanWithGap(rightWidth);
 
-        panels[UiPanel.Terminal] = new UiRect(body.X + leftWidth + (hasLeft ? Gap : 0), body.Y, Math.Max(0, body.Width - leftWidth - rightWidth - gaps), body.Height);
-
-        if (hasLeft)
-        {
-            var left = new UiRect(body.X, body.Y, leftWidth, body.Height);
-            panels[UiPanel.Files] = showKeyboard ? left.SliceTop(left.Height * FilesFraction) : left;
-            panels[UiPanel.Keyboard] = showKeyboard ? left.Below(panels[UiPanel.Files], Gap) : UiRect.Empty;
-        }
-
-        if (hasRight)
-        {
-            var right = new UiRect(body.Right - rightWidth, body.Y, rightWidth, body.Height);
-            for (int i = 0; i < RightRowCount; i++)
-            {
-                panels[RightPanels[i]] = right.Row(i, RightRowCount, Gap);
-            }
-        }
-
+        panels[UiPanel.Terminal] = new UiRect(body.X + leftSpan, body.Y, Math.Max(0, body.Width - leftSpan - rightSpan), body.Height);
+        PlaceLeftColumn(panels, new UiRect(body.X, body.Y, leftWidth, body.Height), showKeyboard);
+        PlaceRightColumn(panels, new UiRect(body.Right - rightWidth, body.Y, rightWidth, body.Height));
         return new UiLayout(panels, width, height);
+    }
+
+    private static double ColumnWidth(double width, bool fits) => fits && width >= MinColumnWidth ? width : 0;
+
+    private static double SpanWithGap(double columnWidth) => columnWidth > 0 ? columnWidth + Gap : 0;
+
+    private static void PlaceLeftColumn(Dictionary<UiPanel, UiRect> panels, UiRect column, bool showKeyboard)
+    {
+        if (column.IsEmpty)
+        {
+            return;
+        }
+
+        if (!showKeyboard)
+        {
+            panels[UiPanel.Files] = column;
+            return;
+        }
+
+        panels[UiPanel.Files] = column.SliceTop(column.Height * FilesFraction);
+        panels[UiPanel.Keyboard] = column.Below(panels[UiPanel.Files], Gap);
+    }
+
+    private static void PlaceRightColumn(Dictionary<UiPanel, UiRect> panels, UiRect column)
+    {
+        if (column.IsEmpty)
+        {
+            return;
+        }
+
+        for (int i = 0; i < RightRowCount; i++)
+        {
+            panels[RightPanels[i]] = column.Row(i, RightRowCount, Gap);
+        }
     }
 }

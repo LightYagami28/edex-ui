@@ -106,7 +106,7 @@ public sealed class UiLayoutTests
             }
         }
 
-        Assert.AreEqual(9, layout.VisiblePanels.Count);
+        Assert.HasCount(9, layout.VisiblePanels);
     }
 
     [TestMethod]
@@ -118,8 +118,8 @@ public sealed class UiLayoutTests
         {
             var rect = layout.Rect(panel);
             Assert.IsTrue(rect.X >= 0 && rect.Y >= 0);
-            Assert.IsTrue(rect.Right <= layout.Width, $"{panel} esce a destra");
-            Assert.IsTrue(rect.Bottom <= layout.Height, $"{panel} esce in basso");
+            Assert.IsLessThanOrEqualTo(layout.Width, rect.Right, $"{panel} esce a destra");
+            Assert.IsLessThanOrEqualTo(layout.Height, rect.Bottom, $"{panel} esce in basso");
             if (panel == UiPanel.Terminal)
             {
                 continue;
@@ -137,7 +137,7 @@ public sealed class UiLayoutTests
         foreach (var panel in new[] { UiPanel.Cpu, UiPanel.Memory, UiPanel.Network, UiPanel.Processes, UiPanel.Globe })
         {
             var rect = layout.Rect(panel);
-            Assert.IsTrue(rect.Y > previousBottom, $"{panel} non è sotto il precedente");
+            Assert.IsGreaterThan(previousBottom, rect.Y, $"{panel} non è sotto il precedente");
             previousBottom = rect.Bottom;
         }
     }
@@ -164,11 +164,11 @@ public sealed class UiLayoutTests
     [TestMethod]
     public void DegenerateSizesProduceNoPanels()
     {
-        Assert.AreEqual(0, UiLayout.Compute(0, 0, true).VisiblePanels.Count);
-        Assert.AreEqual(0, UiLayout.Compute(-100, -100, true).VisiblePanels.Count);
-        Assert.AreEqual(0, UiLayout.Compute(10, 10, true).VisiblePanels.Count);
-        Assert.AreEqual(0, UiLayout.Compute(double.NaN, 900, true).VisiblePanels.Count);
-        Assert.AreEqual(0, UiLayout.Compute(1600, double.PositiveInfinity, true).VisiblePanels.Count);
+        Assert.IsEmpty(UiLayout.Compute(0, 0, true).VisiblePanels);
+        Assert.IsEmpty(UiLayout.Compute(-100, -100, true).VisiblePanels);
+        Assert.IsEmpty(UiLayout.Compute(10, 10, true).VisiblePanels);
+        Assert.IsEmpty(UiLayout.Compute(double.NaN, 900, true).VisiblePanels);
+        Assert.IsEmpty(UiLayout.Compute(1600, double.PositiveInfinity, true).VisiblePanels);
     }
 
     [TestMethod]
@@ -178,7 +178,7 @@ public sealed class UiLayoutTests
         var without = UiLayout.Compute(1600, 900, showKeyboard: false);
         Assert.IsTrue(withKeyboard.IsVisible(UiPanel.Keyboard));
         Assert.IsFalse(without.IsVisible(UiPanel.Keyboard));
-        Assert.IsTrue(without.Rect(UiPanel.Files).Height > withKeyboard.Rect(UiPanel.Files).Height);
+        Assert.IsGreaterThan(withKeyboard.Rect(UiPanel.Files).Height, without.Rect(UiPanel.Files).Height);
         Assert.AreEqual(withKeyboard.Rect(UiPanel.Files).X, without.Rect(UiPanel.Files).X);
     }
 
@@ -275,19 +275,19 @@ public sealed class UiKeyboardTests
     public void ArrangeProducesOneEntryPerKeyWithProportionalWidths()
     {
         var keys = UiKeyboard.Arrange(TwoRows(), new UiRect(0, 0, 300, 100), new KeyboardState());
-        Assert.AreEqual(4, keys.Count);
+        Assert.HasCount(4, keys);
         Assert.AreEqual(keys[0].Bounds.Width, keys[1].Bounds.Width);
-        Assert.IsTrue(keys[2].Bounds.Width > keys[3].Bounds.Width);
-        Assert.IsTrue(keys[2].Bounds.Y > keys[0].Bounds.Y);
+        Assert.IsGreaterThan(keys[3].Bounds.Width, keys[2].Bounds.Width);
+        Assert.IsGreaterThan(keys[0].Bounds.Y, keys[2].Bounds.Y);
     }
 
     [TestMethod]
     public void ArrangeOnEmptyBoundsOrWithoutRowsGivesNothing()
     {
-        Assert.AreEqual(0, UiKeyboard.Arrange(TwoRows(), UiRect.Empty, new KeyboardState()).Count);
-        Assert.AreEqual(0, UiKeyboard.Arrange(new KeyboardLayout("vuota", []), new UiRect(0, 0, 100, 100), new KeyboardState()).Count);
+        Assert.IsEmpty(UiKeyboard.Arrange(TwoRows(), UiRect.Empty, new KeyboardState()));
+        Assert.IsEmpty(UiKeyboard.Arrange(new KeyboardLayout("vuota", []), new UiRect(0, 0, 100, 100), new KeyboardState()));
         var withEmptyRow = new KeyboardLayout("mista", [[], [new KeyDefinition("x")]]);
-        Assert.AreEqual(1, UiKeyboard.Arrange(withEmptyRow, new UiRect(0, 0, 100, 100), new KeyboardState()).Count);
+        Assert.HasCount(1, UiKeyboard.Arrange(withEmptyRow, new UiRect(0, 0, 100, 100), new KeyboardState()));
     }
 
     [TestMethod]
@@ -376,10 +376,10 @@ public sealed class DashboardTests
         var framed = scene.Elements.Where(e => e.Kind == UiElementKind.Frame).Select(e => e.Panel).ToHashSet();
         foreach (var panel in dashboard.Layout.VisiblePanels)
         {
-            Assert.IsTrue(framed.Contains(panel), $"nessuna cornice per {panel}");
+            Assert.Contains(panel, framed, $"nessuna cornice per {panel}");
         }
 
-        Assert.IsTrue(scene.Count > framed.Count);
+        Assert.IsGreaterThan(framed.Count, scene.Count);
     }
 
     [TestMethod]
@@ -398,8 +398,8 @@ public sealed class DashboardTests
     {
         var dashboard = NewDashboard(showKeyboard: false);
         var scene = dashboard.BuildScene(DateTimeOffset.UnixEpoch);
-        Assert.IsFalse(scene.Elements.Any(e => e.Panel == UiPanel.Keyboard));
-        Assert.AreEqual(0, dashboard.Keys.Count);
+        Assert.DoesNotContain(e => e.Panel == UiPanel.Keyboard, scene.Elements);
+        Assert.IsEmpty(dashboard.Keys);
     }
 
     [TestMethod]
@@ -409,9 +409,9 @@ public sealed class DashboardTests
         dashboard.AttachSystem(Snapshot(25, 1024, 4096));
         var scene = dashboard.BuildScene(new DateTimeOffset(2026, 11, 14, 9, 8, 7, TimeSpan.Zero));
         var texts = scene.Elements.Where(e => e.Panel == UiPanel.TopBar && e.Kind == UiElementKind.Text).Select(e => e.Text).ToList();
-        Assert.IsTrue(texts.Any(t => t.Contains("host", StringComparison.Ordinal)));
-        Assert.IsTrue(texts.Any(t => t.Contains("09:08:07", StringComparison.Ordinal)));
-        Assert.IsTrue(texts.Any(t => t.Contains("1g", StringComparison.Ordinal)));
+        Assert.Contains(t => t.Contains("host", StringComparison.Ordinal), texts);
+        Assert.Contains(t => t.Contains("09:08:07", StringComparison.Ordinal), texts);
+        Assert.Contains(t => t.Contains("1g", StringComparison.Ordinal), texts);
     }
 
     [TestMethod]
@@ -420,8 +420,8 @@ public sealed class DashboardTests
         var dashboard = NewDashboard();
         var scene = dashboard.BuildScene(DateTimeOffset.UnixEpoch);
         var texts = scene.Elements.Where(e => e.Panel == UiPanel.TopBar && e.Kind == UiElementKind.Text).Select(e => e.Text).ToList();
-        Assert.IsTrue(texts.Any(t => t.Contains(Environment.MachineName, StringComparison.Ordinal)));
-        Assert.IsTrue(texts.Any(t => t.Contains("00:00:00", StringComparison.Ordinal)));
+        Assert.Contains(t => t.Contains(Environment.MachineName, StringComparison.Ordinal), texts);
+        Assert.Contains(t => t.Contains("00:00:00", StringComparison.Ordinal), texts);
     }
 
     [TestMethod]
@@ -447,7 +447,7 @@ public sealed class DashboardTests
         dashboard.AttachListing(new DirectoryListing("/tmp", entries, null));
         var scene = dashboard.BuildScene(DateTimeOffset.UnixEpoch);
         var rows = scene.Elements.Where(e => e.Panel == UiPanel.Files && e.Payload is FileEntry).ToList();
-        Assert.AreEqual(2, rows.Count);
+        Assert.HasCount(2, rows);
         Assert.AreEqual(UiBrush.Accent, rows[0].Brush);
         Assert.AreEqual(UiBrush.Foreground, rows[1].Brush);
         Assert.AreEqual("cartella/", rows[0].Text);
@@ -474,8 +474,8 @@ public sealed class DashboardTests
         dashboard.AttachListing(new DirectoryListing("/tmp", [new FileEntry("a", "/tmp/a", FileEntryKind.File, 1, DateTime.UnixEpoch, false)], null));
         dashboard.AttachSystem(Snapshot(10, 1, 2));
         var scene = dashboard.BuildScene(DateTimeOffset.UnixEpoch);
-        Assert.IsFalse(scene.Elements.Any(e => e.Panel == UiPanel.Files && e.Payload is FileEntry));
-        Assert.IsFalse(scene.Elements.Any(e => e.Panel == UiPanel.Processes && e.Kind == UiElementKind.Text));
+        Assert.DoesNotContain(e => e.Panel == UiPanel.Files && e.Payload is FileEntry, scene.Elements);
+        Assert.DoesNotContain(e => e.Panel == UiPanel.Processes && e.Kind == UiElementKind.Text, scene.Elements);
     }
 
     [TestMethod]
@@ -486,7 +486,7 @@ public sealed class DashboardTests
         dashboard.Resize(Width, Height);
         dashboard.AttachListing(new DirectoryListing("/tmp", [new FileEntry("a", "/tmp/a", FileEntryKind.File, 1, DateTime.UnixEpoch, false)], null));
         var scene = dashboard.BuildScene(DateTimeOffset.UnixEpoch);
-        Assert.IsFalse(scene.Elements.Any(e => e.Payload is FileEntry));
+        Assert.DoesNotContain(e => e.Payload is FileEntry, scene.Elements);
     }
 
     [TestMethod]
@@ -500,7 +500,7 @@ public sealed class DashboardTests
         Assert.IsTrue(label.Text.StartsWith("42%", StringComparison.Ordinal));
         var bar = scene.Elements.Single(e => e.Panel == UiPanel.Cpu && e.Kind == UiElementKind.Bar);
         Assert.AreEqual(0.42, bar.Value, 0.001);
-        Assert.AreEqual(1, scene.Elements.Count(e => e.Panel == UiPanel.Cpu && e.Kind == UiElementKind.Polyline));
+        Assert.ContainsSingle(e => e.Panel == UiPanel.Cpu && e.Kind == UiElementKind.Polyline, scene.Elements);
     }
 
     [TestMethod]
@@ -510,7 +510,7 @@ public sealed class DashboardTests
         var scene = dashboard.BuildScene(DateTimeOffset.UnixEpoch);
         var bar = scene.Elements.Single(e => e.Panel == UiPanel.Memory && e.Kind == UiElementKind.Bar);
         Assert.AreEqual(0, bar.Value);
-        Assert.IsTrue(scene.Elements.Any(e => e.Panel == UiPanel.Memory && e.Text == "—"));
+        Assert.Contains(e => e.Panel == UiPanel.Memory && e.Text == "—", scene.Elements);
     }
 
     [TestMethod]
@@ -519,7 +519,7 @@ public sealed class DashboardTests
         var dashboard = NewDashboard();
         dashboard.AttachSystem(Snapshot(0, 1024, 4096));
         var scene = dashboard.BuildScene(DateTimeOffset.UnixEpoch);
-        Assert.IsTrue(scene.Elements.Any(e => e.Panel == UiPanel.Memory && e.Text.Contains("1.0 K / 4.0 K", StringComparison.Ordinal)));
+        Assert.Contains(e => e.Panel == UiPanel.Memory && e.Text.Contains("1.0 K / 4.0 K", StringComparison.Ordinal), scene.Elements);
         Assert.AreEqual(0.25, scene.Elements.Single(e => e.Panel == UiPanel.Memory && e.Kind == UiElementKind.Bar).Value, 0.001);
     }
 
@@ -529,8 +529,8 @@ public sealed class DashboardTests
         var dashboard = NewDashboard();
         dashboard.AttachNetwork(Network(online: true, ping: 12.4));
         var scene = dashboard.BuildScene(DateTimeOffset.UnixEpoch);
-        Assert.IsTrue(scene.Elements.Any(e => e.Panel == UiPanel.Network && e.Text.Contains("2.0 K/s", StringComparison.Ordinal)));
-        Assert.IsTrue(scene.Elements.Any(e => e.Panel == UiPanel.Network && e.Text.Contains("12 ms", StringComparison.Ordinal)));
+        Assert.Contains(e => e.Panel == UiPanel.Network && e.Text.Contains("2.0 K/s", StringComparison.Ordinal), scene.Elements);
+        Assert.Contains(e => e.Panel == UiPanel.Network && e.Text.Contains("12 ms", StringComparison.Ordinal), scene.Elements);
         Assert.AreEqual(UiBrush.Muted, scene.Elements.Single(e => e.Panel == UiPanel.Network && e.Text.Contains("connessioni", StringComparison.Ordinal)).Brush);
 
         dashboard.AttachNetwork(Network(online: false, ping: null));
@@ -544,8 +544,8 @@ public sealed class DashboardTests
     {
         var dashboard = NewDashboard();
         var scene = dashboard.BuildScene(DateTimeOffset.UnixEpoch);
-        Assert.IsTrue(scene.Elements.Any(e => e.Panel == UiPanel.Network && e.Text == "—"));
-        Assert.IsTrue(scene.Elements.Any(e => e.Panel == UiPanel.Network && e.Text == "nessuna interfaccia"));
+        Assert.Contains(e => e.Panel == UiPanel.Network && e.Text == "—", scene.Elements);
+        Assert.Contains(e => e.Panel == UiPanel.Network && e.Text == "nessuna interfaccia", scene.Elements);
     }
 
     [TestMethod]
@@ -566,15 +566,15 @@ public sealed class DashboardTests
         var scene = dashboard.BuildScene(DateTimeOffset.UnixEpoch);
         var globe = scene.Elements.Single(e => e.Kind == UiElementKind.Globe);
         var frame = Assert.IsInstanceOfType<UiGlobeFrame>(globe.Payload);
-        Assert.IsTrue(frame.Land.Count > 0);
+        Assert.IsNotEmpty(frame.Land);
         Assert.IsNull(frame.Marker);
-        Assert.IsTrue(scene.Elements.Any(e => e.Text == "posizione non disponibile"));
+        Assert.Contains(e => e.Text == "posizione non disponibile", scene.Elements);
 
         dashboard.AttachLocation(new GeoLocation(45.07, 7.69, "Torino", "Italia", "203.0.113.9", "ipwho.is"));
         var located = dashboard.BuildScene(DateTimeOffset.UnixEpoch);
         var locatedFrame = Assert.IsInstanceOfType<UiGlobeFrame>(located.Elements.Single(e => e.Kind == UiElementKind.Globe).Payload);
         Assert.IsNotNull(locatedFrame.Marker);
-        Assert.IsTrue(located.Elements.Any(e => e.Text == "Torino"));
+        Assert.Contains(e => e.Text == "Torino", located.Elements);
     }
 
     [TestMethod]
@@ -582,9 +582,9 @@ public sealed class DashboardTests
     {
         var dashboard = NewDashboard();
         dashboard.AttachLocation(new GeoLocation(0, 0, null, "Italia", null, "ipapi.co"));
-        Assert.IsTrue(dashboard.BuildScene(DateTimeOffset.UnixEpoch).Elements.Any(e => e.Text == "Italia"));
+        Assert.Contains(e => e.Text == "Italia", dashboard.BuildScene(DateTimeOffset.UnixEpoch).Elements);
         dashboard.AttachLocation(new GeoLocation(0, 0, null, null, "203.0.113.9", "ipapi.co"));
-        Assert.IsTrue(dashboard.BuildScene(DateTimeOffset.UnixEpoch).Elements.Any(e => e.Text == "203.0.113.9"));
+        Assert.Contains(e => e.Text == "203.0.113.9", dashboard.BuildScene(DateTimeOffset.UnixEpoch).Elements);
     }
 
     [TestMethod]
@@ -613,7 +613,7 @@ public sealed class DashboardTests
         }
 
         Assert.AreEqual(Dashboard.HistoryCapacity, dashboard.HistoryCount);
-        Assert.AreEqual(Dashboard.HistoryCapacity, dashboard.CpuHistory.Count);
+        Assert.HasCount(Dashboard.HistoryCapacity, dashboard.CpuHistory);
         Assert.IsTrue(dashboard.CpuHistory.All(v => Math.Abs(v - 0.5) < 0.001));
         Assert.IsTrue(dashboard.DownloadHistory.All(v => v == 2048));
         Assert.IsTrue(dashboard.UploadHistory.All(v => v == 512));
@@ -648,7 +648,7 @@ public sealed class DashboardTests
         }
 
         Assert.AreEqual(3, dashboard.HistoryCount);
-        CollectionAssert.AreEqual(ExpectedCpuRamp, dashboard.CpuHistory.Select(v => Math.Round(v, 3)).ToArray());
+    Assert.AreSequenceEqual(ExpectedCpuRamp, dashboard.CpuHistory.Select(v => Math.Round(v, 3)).ToArray());
     }
 
     [TestMethod]
@@ -656,7 +656,7 @@ public sealed class DashboardTests
     {
         var dashboard = NewDashboard();
         dashboard.BuildScene(DateTimeOffset.UnixEpoch);
-        Assert.IsTrue(dashboard.Keys.Count > 0);
+        Assert.IsNotEmpty(dashboard.Keys);
         var target = dashboard.Keys[5].Bounds;
         Assert.IsTrue(dashboard.HitTest(target.X + 1, target.Y + 1, out var hit));
         Assert.AreEqual(UiPanel.Keyboard, hit.Panel);
@@ -728,6 +728,17 @@ public sealed class DashboardTests
         dashboard.AttachTerminal(Terminal());
         var bounds = dashboard.Layout.Rect(UiPanel.Terminal).Inset(Dashboard.Padding);
         Assert.AreEqual(-1, dashboard.TerminalCellIndex(bounds.X + 1, bounds.Y + 1));
+    }
+
+    [TestMethod]
+    public void NetworkStatusHandlesNullAndMissingPing()
+    {
+        Assert.AreEqual("nessuna interfaccia", Dashboard.NetworkStatus(null));
+        var noPing = new NetworkSnapshot(true, "wlan0", "10.0.0.1", "10.0.0.254", "aa:bb", 0, 0, 0, 0, null, 0);
+        var withPing = new NetworkSnapshot(true, "wlan0", "10.0.0.1", "10.0.0.254", "aa:bb", 0, 0, 0, 0, 12.3, 3);
+        Assert.IsTrue(Dashboard.NetworkStatus(noPing).Contains("senza risposta", StringComparison.Ordinal));
+        Assert.IsTrue(Dashboard.NetworkStatus(withPing).Contains("12 ms", StringComparison.Ordinal));
+        Assert.IsTrue(Dashboard.NetworkStatus(withPing).Contains("3 connessioni", StringComparison.Ordinal));
     }
 
     [TestMethod]

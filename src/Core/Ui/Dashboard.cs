@@ -393,11 +393,23 @@ public sealed class Dashboard
             ? $"↓ {FormatBytes((long)snapshot.DownloadBytesPerSecond)}/s  ↑ {FormatBytes((long)snapshot.UploadBytesPerSecond)}/s"
             : "—";
         _scene.Text(inner.SliceTop(rowHeight), throughput, UiBrush.Foreground, Settings.FontSize * SmallScale, UiTextAlign.Left, UiPanel.Network);
-        string status = network is { } current
-            ? (current.PingMilliseconds is { } ping ? $"{ping:F0} ms · {current.ActiveTcpConnections} connessioni" : $"{current.InterfaceName} · senza risposta")
-            : "nessuna interfaccia";
-        _scene.Text(new UiRect(inner.X, inner.Y + rowHeight, inner.Width, Math.Max(0, inner.Height - rowHeight)), status, network?.Online == true ? UiBrush.Muted : UiBrush.Danger, Settings.FontSize * SmallScale, UiTextAlign.Left, UiPanel.Network);
+        _scene.Text(new UiRect(inner.X, inner.Y + rowHeight, inner.Width, Math.Max(0, inner.Height - rowHeight)), NetworkStatus(network), network?.Online == true ? UiBrush.Muted : UiBrush.Danger, Settings.FontSize * SmallScale, UiTextAlign.Left, UiPanel.Network);
         _scene.Polyline(inner, DownloadHistory, UiBrush.Accent, UiPanel.Network);
+    }
+
+    internal static string NetworkStatus(NetworkSnapshot? network)
+    {
+        if (network is null)
+        {
+            return "nessuna interfaccia";
+        }
+
+        if (network.PingMilliseconds is { } ping)
+        {
+            return string.Create(CultureInfo.InvariantCulture, $"{ping:F0} ms · {network.ActiveTcpConnections} connessioni");
+        }
+
+        return $"{network.InterfaceName} · senza risposta";
     }
 
     private void DrawProcesses()
