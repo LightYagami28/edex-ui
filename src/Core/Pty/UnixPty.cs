@@ -28,9 +28,12 @@ internal sealed partial class UnixPty : IPtyConnection
         var waiter = new Thread(() =>
         {
             int status;
-            while (WaitPid(_pid, out status, 0) == -1 && Marshal.GetLastPInvokeError() == EINTR)
+            bool interrupted;
+            do
             {
+                interrupted = WaitPid(_pid, out status, 0) == -1 && Marshal.GetLastPInvokeError() == EINTR;
             }
+            while (interrupted);
             int code = (status & 0x7f) == 0 ? (status >> 8) & 0xff : 128 + (status & 0x7f);
             ExitCode = code;
             Exited?.Invoke(this, code);

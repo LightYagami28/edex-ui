@@ -988,7 +988,7 @@ public sealed class TerminalBuffer
             return;
         }
 
-        TryApplySimpleSgr(code);
+        ApplySimpleSgr(code);
     }
 
     private bool SetStandardForeground(int code)
@@ -1035,15 +1035,12 @@ public sealed class TerminalBuffer
         return true;
     }
 
-    private bool TryApplySimpleSgr(int code)
+    private void ApplySimpleSgr(int code)
     {
-        if (!SgrSimple.TryGetValue(code, out var action))
+        if (SgrSimple.TryGetValue(code, out var action))
         {
-            return false;
+            action(this);
         }
-
-        action(this);
-        return true;
     }
 
     private int ExtendedColor(int[] p, int next, bool foreground)
