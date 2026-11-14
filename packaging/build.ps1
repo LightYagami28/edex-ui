@@ -41,4 +41,4 @@ foreach ($fmt in Get-ChildItem (Join-Path $PSScriptRoot 'windows') -Directory) {
 
 $left = Get-ChildItem (Join-Path $dist 'windows') -Recurse -File | Select-String -Pattern '@[A-Z][A-Z0-9_]*@'
 if ($left) { $left | ForEach-Object { Write-Error "Segnaposto non sostituito: $($_.Path):$($_.LineNumber) $($_.Matches.Value)" }; throw 'Segnaposto rimasti' }
-Write-Host "Pronto in $dist (versione $version)"
+Write-Output "Pronto in $dist (versione $version)"

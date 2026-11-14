@@ -5,7 +5,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 root="$(dirname "$here")"
 repo='LightYagami28/edex-ui'
 version="$(sed -n 's|.*<Version>\(.*\)</Version>.*|\1|p' "$root/Directory.Build.props")"
-[ -n "$version" ] || { echo 'Versione non trovata in Directory.Build.props' >&2; exit 1; }
+[[ -n "$version" ]] || { echo 'Versione non trovata in Directory.Build.props' >&2; exit 1; }
 dist="$here/dist"
 rm -rf "$dist/stage" "$dist/linux" "$dist"/edex-ui-*-linux-*
 mkdir -p "$dist/stage"
@@ -32,7 +32,9 @@ for rid in linux-x64 linux-arm64 linux-musl-x64 linux-musl-arm64; do
   echo "$hex  $name.tar.gz" > "$dist/$name.tar.gz.sha256"
   key="$(echo "$rid" | tr 'a-z-' 'A-Z_')"
   tokens["SHA256_$key"]="$hex"
-  tokens["SRI_$key"]="sha256-$(printf "$(echo "$hex" | sed 's/../\x&/g')" | base64 -w0)"
+  bytes=""
+  for ((i = 0; i < ${#hex}; i += 2)); do bytes+="\\x${hex:i:2}"; done
+  tokens["SRI_$key"]="sha256-$(printf '%b' "$bytes" | base64 -w0)"
 done
 rm -rf "$dist/stage"
 
@@ -42,7 +44,7 @@ while IFS= read -r -d '' f; do
   rel="${f#"$here/"}"
   mkdir -p "$dist/$(dirname "$rel")"
   sed "${sedargs[@]}" "$f" > "$dist/$rel"
-  [ -x "$f" ] && chmod +x "$dist/$rel"
+  [[ -x "$f" ]] && chmod +x "$dist/$rel"
 done < <(find "$here/linux" -type f ! -name README.md -print0)
 
 if grep -rnE '@[A-Z][A-Z0-9_]*@' "$dist/linux"; then echo 'Segnaposto non sostituiti' >&2; exit 1; fi

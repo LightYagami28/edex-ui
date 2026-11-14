@@ -14,6 +14,9 @@ install -Dm755 "$src/edex-ui" "$app/usr/bin/edex-ui"
 install -Dm644 "$src/share/applications/edex-ui.desktop" "$app/edex-ui.desktop"
 install -Dm644 "$src/share/icons/hicolor/256x256/apps/edex-ui.png" "$app/edex-ui.png"
 ln -s edex-ui.png "$app/.DirIcon"
-printf '#!/bin/sh\nexec "$(dirname "$(readlink -f "$0")")/usr/bin/edex-ui" "$@"\n' > "$app/AppRun"
+cat > "$app/AppRun" <<'APPRUN'
+#!/bin/sh
+exec "$(dirname "$(readlink -f "$0")")/usr/bin/edex-ui" "$@"
+APPRUN
 chmod +x "$app/AppRun"
 ARCH="$arch" VERSION="$version" appimagetool "$app" "$dist/edex-ui-$version-$arch.AppImage"
