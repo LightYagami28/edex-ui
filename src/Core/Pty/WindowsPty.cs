@@ -136,7 +136,9 @@ internal sealed partial class WindowsPty : IPtyConnection
         }
     }
 
-    private static void Ensure(bool succeeded) { if (!succeeded)
+    private static void Ensure(bool succeeded)
+    {
+        if (!succeeded)
         {
             throw new Win32Exception();
         }
