@@ -63,3 +63,18 @@ public static class PtyFactory
         return env;
     }
 }
+
+internal static class PtyStreams
+{
+    internal static void DisposeQuietly(Stream stream)
+    {
+        try
+        {
+            stream.Dispose();
+        }
+        catch (IOException e)
+        {
+            _ = e;
+        }
+    }
+}

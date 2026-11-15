@@ -127,20 +127,8 @@ internal sealed partial class UnixPty : IPtyConnection
         }
 
         _ = Kill(_pid, SIGHUP);
-        DisposeQuietly(_input);
-        DisposeQuietly(_output);
-    }
-
-    private static void DisposeQuietly(Stream stream)
-    {
-        try
-        {
-            stream.Dispose();
-        }
-        catch (IOException e)
-        {
-            _ = e;
-        }
+        PtyStreams.DisposeQuietly(_input);
+        PtyStreams.DisposeQuietly(_output);
     }
 
     private const int MinSize = 2;
