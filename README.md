@@ -15,8 +15,8 @@ Il codice Electron originale è nella storia di `master` e nel tag
 ## Stato
 
 - `src/Core` (terminale, PTY, monitor, file, tema, tastiera, impostazioni,
-  avvio, aggiornamenti): fatto, con test MSTest.
-- App Windows (WPF): da fare.
+  avvio, aggiornamenti, scena): fatto, con test MSTest.
+- `src/Windows` (WPF): fatto, app a schermo intero con smoke test in CI.
 - App Linux (X11): da fare.
 - App macOS (Swift): da fare.
 
@@ -36,6 +36,17 @@ dotnet test --coverage --coverage-output-format cobertura \
   --coverage-output cov.cobertura.xml
 ```
 
+App Windows e smoke test:
+
+```sh
+dotnet build src/Windows/Edex.Windows.csproj -c Release
+cd src/Windows/bin/Release/net11.0-windows/win-x64
+./edex-ui.exe --smoke-test --screenshot smoke.png
+```
+
+Lo smoke test avvia la shell su un pseudo terminale, esegue un comando, ne
+verifica l'output nel terminale e salva uno screenshot della scena.
+
 `global.json` attiva il test runner Microsoft.Testing.Platform. I test usano
 MSTest. Gli script di `tools/` si provano con
 `python3 -m unittest discover -s tests/tools`.
@@ -44,6 +55,7 @@ MSTest. Gli script di `tools/` si provano con
 
 ```text
 src/Core/         libreria Edex.Core (nessuna dipendenza)
+src/Windows/      app WPF (finestra, rendering, input)
 tests/Core.Tests/ test di Core
 tests/tools/      test degli script di sviluppo
 assets/           temi, layout tastiera, audio, caratteri

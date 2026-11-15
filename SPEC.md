@@ -181,19 +181,31 @@ Pacchetti per cartella (formato, dove si costruisce):
 - **C3**: `native/macos`, app macOS + 3 pacchetti. Verifica: build in CI
   (macos); avvio solo se il runner lo permette.
 
-Stato fase B (Core): fatto. Contiene Pty, Terminal, Input, Files (con
-FuzzyFinder), Monitoring (con HardwareInfo), Networking, Geo, Themes,
-Settings (con Shortcuts), Audio, Boot, Updates. Copertura di riga completa
-su Windows + Linux; restano non misurabili qui solo le righe macOS (contatori
-`host_statistics`, `sysctl`), misurate dal job macOS della CI.
+Stato fase B (Core): fatto. Contiene Pty, Terminal, Input (con
+`TerminalKeys` per le sequenze di controllo), Files (con FuzzyFinder),
+Monitoring (con HardwareInfo), Networking, Geo, Themes, Settings (con
+Shortcuts), Audio, Boot, Updates e `Ui` (scena, layout, hit-test). Copertura
+di riga completa su Windows + Linux; restano non misurabili qui solo le righe
+macOS (contatori `host_statistics`, `sysctl`), misurate dal job macOS della
+CI.
+
+Stato fase C1 (Windows): fatto. `src/Windows` è l'app WPF che disegna la
+scena di Core con `DrawingContext`: terminale ConPTY, file, tastiera su
+schermo, CPU, memoria, rete, processi e globo. `--smoke-test` avvia la shell,
+esegue un comando, ne verifica l'output e salva uno screenshot; la CI lo
+esegue su Windows. Restano da fare nella fase C1 i pacchetti
+winget/choco/scoop/msix con il contenitore reale al posto dell'eseguibile
+minimo provvisorio.
 
 Differenze rispetto all'elenco delle funzioni:
 
 - Le impostazioni usano nomi propri (`AppSettings`: Shell, Theme, FontSize,
   ...), non i campi di eDEX-UI; non c'è import dei vecchi `settings.json`.
 - Layout tastiera: i 19 JSON di `assets/kb_layouts`, incorporati in Core.
-- `Ui` (scena) e `Render` (rasterizzatore per Linux e macOS) non sono in
-  Core: si scrivono nelle fasi C2 e C3 insieme alle finestre.
+- `Ui` (scena) è in Core (`src/Core/Ui`): layout dei pannelli, scena con
+  hit-test, tastiera su schermo posizionata, globo proiettato. Il `Render`
+  (rasterizzatore software per Linux e macOS) non è ancora in Core: si scrive
+  nelle fasi C2 e C3 insieme alle finestre.
 - Processi: l'elenco dei più attivi è in `SystemMonitor.Sample`;
   `HardwareInfo` legge produttore, modello e chassis.
 
