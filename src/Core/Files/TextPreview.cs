@@ -7,6 +7,7 @@ namespace Edex.Core.Files;
 public static class TextPreview
 {
     private const int Utf16BomLength = 2;
+    private static readonly byte[] Utf8Bom = Encoding.UTF8.GetPreamble();
     private const byte Utf16LeFirst = 0xFF;
     private const byte Utf16LeSecond = 0xFE;
     private const byte Utf16BeFirst = 0xFE;
@@ -38,8 +39,6 @@ public static class TextPreview
 
     private static bool HasBom(byte[] bytes, byte first, byte second) =>
         bytes.Length >= Utf16BomLength && bytes[0] == first && bytes[1] == second;
-
-    private static ReadOnlySpan<byte> Utf8Bom => [0xEF, 0xBB, 0xBF];
 
     private static bool HasUtf8Bom(byte[] bytes) => bytes.AsSpan().StartsWith(Utf8Bom);
 
