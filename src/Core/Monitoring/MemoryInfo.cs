@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -11,8 +12,9 @@ internal static partial class MemoryInfo
     private const int FreeCountIndex = 0;
     private const int InactiveCountIndex = 2;
     private const int SpeculativeCountIndex = 10;
+    private const ulong BytesPerKilobyte = 1024;
 
-    public static MemorySample Read() => Safe.Run(ReadSystem, new MemorySample((ulong)GC.GetGCMemoryInfo().TotalAvailableMemoryBytes, 0));
+    internal static MemorySample Read() => Safe.Run(ReadSystem, new MemorySample((ulong)GC.GetGCMemoryInfo().TotalAvailableMemoryBytes, 0));
 
     private static MemorySample ReadSystem()
     {
@@ -42,27 +44,22 @@ internal static partial class MemoryInfo
 
     internal static MemorySample ParseMeminfo(string text)
     {
-        ulong total = 0, available = 0, free = 0, buffers = 0, cached = 0;
-        bool hasAvailable = false;
-        foreach (var line in text.Split('\n'))
-        {
-            var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length < 2)
-            {
-                continue;
-            }
+        var fields = ReadFields(text);
+        ulong total = fields.GetValueOrDefault("MemTotal:");
+        ulong available = fields.TryGetValue("MemAvailable:", out var value)
+            ? value
+            : fields.GetValueOrDefault("MemFree:") + fields.GetValueOrDefault("Buffers:") + fields.GetValueOrDefault("Cached:");
+        return new MemorySample(total, available);
+    }
 
-            ulong kb = ulong.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture) * 1024;
-            switch (parts[0])
-            {
-                case "MemTotal:": total = kb; break;
-                case "MemAvailable:": available = kb; hasAvailable = true; break;
-                case "MemFree:": free = kb; break;
-                case "Buffers:": buffers = kb; break;
-                case "Cached:": cached = kb; break;
-            }
+    private static Dictionary<string, ulong> ReadFields(string text)
+    {
+        var fields = new Dictionary<string, ulong>(StringComparer.Ordinal);
+        foreach (var parts in text.Split('\n').Select(line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries)).Where(parts => parts.Length >= 2))
+        {
+            fields[parts[0]] = ulong.Parse(parts[1], CultureInfo.InvariantCulture) * BytesPerKilobyte;
         }
-        return new MemorySample(total, hasAvailable ? available : free + buffers + cached);
+        return fields;
     }
 
     private static MemorySample ReadMac()
@@ -83,10 +80,17 @@ internal static partial class MemoryInfo
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct MemoryStatusEx
+    private record struct MemoryStatusEx
     {
-        public uint dwLength, dwMemoryLoad;
-        public ulong ullTotalPhys, ullAvailPhys, ullTotalPageFile, ullAvailPageFile, ullTotalVirtual, ullAvailVirtual, ullAvailExtendedVirtual;
+        public uint dwLength;
+        public uint dwMemoryLoad;
+        public ulong ullTotalPhys;
+        public ulong ullAvailPhys;
+        public ulong ullTotalPageFile;
+        public ulong ullAvailPageFile;
+        public ulong ullTotalVirtual;
+        public ulong ullAvailVirtual;
+        public ulong ullAvailExtendedVirtual;
     }
 
     [LibraryImport("kernel32.dll", SetLastError = true)]
@@ -102,14 +106,14 @@ internal static partial class MemoryInfo
 
 internal static class MacSysctl
 {
-    public static ulong ReadUInt64(string name)
+    internal static ulong ReadUInt64(string name)
     {
         ulong value = 0;
         var size = (IntPtr)sizeof(ulong);
         return sysctlbyname(name, ref value, ref size, IntPtr.Zero, IntPtr.Zero) == 0 ? value : 0;
     }
 
-    public static string ReadString(string name)
+    internal static string ReadString(string name)
     {
         var size = IntPtr.Zero;
         if (sysctlbyname(name, null, ref size, IntPtr.Zero, IntPtr.Zero) != 0 || size == IntPtr.Zero)

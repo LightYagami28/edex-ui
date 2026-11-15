@@ -6,16 +6,23 @@ namespace Edex.Core;
 
 internal static class Safe
 {
-    public static T Run<T>(Func<T> read, T fallback)
+    private static readonly Type[] Expected =
+    [
+        typeof(IOException), typeof(UnauthorizedAccessException), typeof(InvalidOperationException), typeof(NotSupportedException),
+        typeof(FormatException), typeof(Win32Exception), typeof(NetworkInformationException), typeof(System.Security.SecurityException),
+    ];
+
+    internal static T Run<T>(Func<T> read, T fallback)
     {
         try
         {
             return read();
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or NotSupportedException
-                                      or FormatException or Win32Exception or NetworkInformationException or System.Security.SecurityException)
+        catch (Exception e) when (IsExpected(e))
         {
             return fallback;
         }
     }
+
+    private static bool IsExpected(Exception e) => Array.Exists(Expected, type => type.IsInstanceOfType(e));
 }
