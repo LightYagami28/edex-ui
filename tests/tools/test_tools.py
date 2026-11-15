@@ -16,7 +16,7 @@ TOOLS = Path(__file__).resolve().parents[2] / "tools"
 
 
 def load_coverage_tool():
-    spec = importlib.util.spec_from_file_location("coverage_to_sonar", TOOLS / "coverage-to-sonar.py")
+    spec = importlib.util.spec_from_file_location("coverage_to_sonar", TOOLS / "coverage_to_sonar.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -87,10 +87,10 @@ class CoverageToSonarTests(unittest.TestCase):
     def test_script_exit_code_comes_from_main(self):
         report, output = self.root / "r.xml", self.root / "out.xml"
         cobertura(report, "/r/src/A.cs", ['<line number="1" hits="1"/>'])
-        argv = ["coverage-to-sonar.py", str(output), str(report)]
+        argv = ["coverage_to_sonar.py", str(output), str(report)]
         with mock.patch.object(sys, "argv", argv), contextlib.redirect_stdout(io.StringIO()):
             with self.assertRaises(SystemExit) as raised:
-                runpy.run_path(str(TOOLS / "coverage-to-sonar.py"), run_name="__main__")
+                runpy.run_path(str(TOOLS / "coverage_to_sonar.py"), run_name="__main__")
         self.assertEqual(raised.exception.code, 0)
 
     def test_main_merges_and_prints_summary(self):
@@ -117,8 +117,8 @@ class LandMaskTests(unittest.TestCase):
             previous = Path.cwd()
             os.chdir(work)
             try:
-                with mock.patch.object(sys, "argv", ["gen-landmask.py", "land.geojson", "mask.bin"]):
-                    runpy.run_path(str(TOOLS / "gen-landmask.py"), run_name="__main__")
+                with mock.patch.object(sys, "argv", ["gen_landmask.py", "land.geojson", "mask.bin"]):
+                    runpy.run_path(str(TOOLS / "gen_landmask.py"), run_name="__main__")
             finally:
                 os.chdir(previous)
             mask = (work / "mask.bin").read_bytes()
@@ -137,9 +137,9 @@ class LandMaskTests(unittest.TestCase):
             previous = Path.cwd()
             os.chdir(directory)
             try:
-                argv = ["gen-landmask.py", str(Path(outside) / "land.geojson"), "mask.bin"]
+                argv = ["gen_landmask.py", str(Path(outside) / "land.geojson"), "mask.bin"]
                 with mock.patch.object(sys, "argv", argv), self.assertRaises(ValueError):
-                    runpy.run_path(str(TOOLS / "gen-landmask.py"), run_name="__main__")
+                    runpy.run_path(str(TOOLS / "gen_landmask.py"), run_name="__main__")
             finally:
                 os.chdir(previous)
 

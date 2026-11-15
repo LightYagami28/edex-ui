@@ -9,7 +9,7 @@ public sealed class TerminalSession : IDisposable
     private const int ReadChunkSize = 16 * 1024;
 
     private readonly IPtyConnection _pty;
-    private readonly object _writeGate = new();
+    private readonly Lock _writeGate = new();
     private int _disposed;
     private int _exitReported;
 

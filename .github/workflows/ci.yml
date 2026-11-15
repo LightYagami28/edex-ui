@@ -47,7 +47,7 @@ jobs:
         with:
           path: coverage
       - name: Merge coverage from all systems
-        run: python3 tools/coverage-to-sonar.py sonar-coverage.xml $(find coverage -name cov.cobertura.xml)
+        run: python3 tools/coverage_to_sonar.py sonar-coverage.xml $(find coverage -name cov.cobertura.xml)
       - name: Test and measure coverage of tools/ scripts
         run: |
           python3 -m venv "$RUNNER_TEMP/coverage-venv"

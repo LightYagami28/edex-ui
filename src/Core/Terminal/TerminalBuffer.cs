@@ -25,7 +25,7 @@ public sealed class TerminalBuffer
     private const char IntermediateFirst = '0';
     private const char IntermediateLast = '~';
 
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private readonly Decoder _decoder = new UTF8Encoding(false).GetDecoder();
     private readonly List<TerminalCell[]> _scrollback = [];
     private readonly StringBuilder _params = new();
