@@ -47,17 +47,15 @@ public static class MouseEncoder
         }
 
         int x = Math.Max(0, column) + 1, y = Math.Max(0, row) + 1;
-        return sgr ? SgrEncode(kind, button, code, x, y, modifiers) : LegacyEncode(kind, code, x, y);
+        return sgr ? SgrEncode(kind, SgrCode(kind, button, code, modifiers), x, y) : LegacyEncode(kind, code, x, y);
     }
 
-    private static string SgrEncode(MouseEventKind kind, MouseButton button, int code, int x, int y, MouseModifiers modifiers)
+    private static int SgrCode(MouseEventKind kind, MouseButton button, int code, MouseModifiers modifiers) =>
+        kind == MouseEventKind.Release && button == MouseButton.None ? ReleaseButton | (int)modifiers : code;
+
+    private static string SgrEncode(MouseEventKind kind, int code, int x, int y)
     {
         char final = kind == MouseEventKind.Release ? 'm' : 'M';
-        if (kind == MouseEventKind.Release && button == MouseButton.None)
-        {
-            code = ReleaseButton | (int)modifiers;
-        }
-
         return $"\x1b[<{code};{x};{y}{final}";
     }
 

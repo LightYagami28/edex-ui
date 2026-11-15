@@ -7,14 +7,10 @@ namespace Edex.Core.Files;
 public static class TextPreview
 {
     private const int Utf16BomLength = 2;
-    private const int Utf8BomLength = 3;
     private const byte Utf16LeFirst = 0xFF;
     private const byte Utf16LeSecond = 0xFE;
     private const byte Utf16BeFirst = 0xFE;
     private const byte Utf16BeSecond = 0xFF;
-    private const byte Utf8First = 0xEF;
-    private const byte Utf8Second = 0xBB;
-    private const byte Utf8Third = 0xBF;
     private const int BinaryScanLimit = 8192;
     private const int HexDumpLimit = 4096;
     private const int HexBytesPerLine = 16;
@@ -36,15 +32,16 @@ public static class TextPreview
             return HexDump(bytes);
         }
 
-        int start = HasUtf8Bom(bytes) ? Utf8BomLength : 0;
+        int start = HasUtf8Bom(bytes) ? Utf8Bom.Length : 0;
         return Encoding.UTF8.GetString(bytes, start, bytes.Length - start);
     }
 
     private static bool HasBom(byte[] bytes, byte first, byte second) =>
         bytes.Length >= Utf16BomLength && bytes[0] == first && bytes[1] == second;
 
-    private static bool HasUtf8Bom(byte[] bytes) =>
-        bytes.Length >= Utf8BomLength && bytes[0] == Utf8First && bytes[1] == Utf8Second && bytes[2] == Utf8Third;
+    private static ReadOnlySpan<byte> Utf8Bom => [0xEF, 0xBB, 0xBF];
+
+    private static bool HasUtf8Bom(byte[] bytes) => bytes.AsSpan().StartsWith(Utf8Bom);
 
     private static bool LooksBinary(byte[] bytes) =>
         Array.IndexOf(bytes, (byte)0, 0, Math.Min(bytes.Length, BinaryScanLimit)) >= 0;

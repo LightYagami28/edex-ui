@@ -28,7 +28,7 @@ public sealed record Theme
 
 public static class ThemeLibrary
 {
-    public const int AnsiColorCount = 16;
+    private const int AnsiColorCount = 16;
 
     public static readonly IReadOnlyList<string> DefaultAnsi =
     [
@@ -107,9 +107,9 @@ public static class ThemeLibrary
 
 public static class ColorUtil
 {
-    public const byte MaxChannel = 255;
+    private const byte MaxChannel = 255;
 
-    public const int ThemePaletteSize = 16;
+    private const int ThemePaletteSize = 16;
 
     public static bool IsValidHex(string? value) =>
         value is { Length: 7 } && value[0] == '#' && uint.TryParse(value.AsSpan(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _);

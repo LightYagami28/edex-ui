@@ -1,5 +1,3 @@
-# Segnalazione di un bug
-
 ## Descrizione
 
 Cosa succede?

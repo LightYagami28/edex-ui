@@ -14,7 +14,9 @@ public static class FuzzyFinder
 
     public static int Score(string name, string query)
     {
-        int score = 0, position = 0, previous = NoPrevious;
+        int score = 0;
+        int position = 0;
+        int previous = NoPrevious;
         foreach (var ch in query)
         {
             int found = name.IndexOf(ch, position, StringComparison.OrdinalIgnoreCase);

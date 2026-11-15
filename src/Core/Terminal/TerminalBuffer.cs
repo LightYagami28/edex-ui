@@ -24,6 +24,25 @@ public sealed class TerminalBuffer
     private const char CsiFinalLast = '~';
     private const char IntermediateFirst = '0';
     private const char IntermediateLast = '~';
+    private const string IntermediateChars = " !\"$'";
+    private const int SgrExtendedForeground = 38;
+    private const int SgrExtendedBackground = 48;
+    private const int SgrForegroundFirst = 30;
+    private const int SgrForegroundLast = 37;
+    private const int SgrBackgroundFirst = 40;
+    private const int SgrBackgroundLast = 47;
+    private const int SgrBrightForegroundFirst = 90;
+    private const int SgrBrightForegroundLast = 97;
+    private const int SgrBrightBackgroundFirst = 100;
+    private const int SgrBrightBackgroundLast = 107;
+    private const int BrightPaletteOffset = 8;
+    private const int SgrColorIndexed = 5;
+    private const int SgrColorRgb = 2;
+    private const int IndexedColorArgs = 1;
+    private const int RgbColorArgs = 3;
+    private const int RedIndex = 0;
+    private const int GreenIndex = 1;
+    private const int BlueIndex = 2;
 
     private readonly Lock _gate = new();
     private readonly Decoder _decoder = new UTF8Encoding(false).GetDecoder();
@@ -322,18 +341,35 @@ public sealed class TerminalBuffer
 
     private void ProcessCsi(char c)
     {
-        if (c >= CsiFinalFirst && c <= CsiFinalLast) { Csi(c); _state = State.Ground; }
-        else if (c == Escape)
+        if (c >= CsiFinalFirst && c <= CsiFinalLast)
         {
-            _state = State.Escape;
-        }
-        else if (c == Cancel || c == Substitute)
-        {
-            _state = State.Ground;
+            FinishCsi(c);
         }
         else if (c >= ' ')
         {
             _params.Append(c);
+        }
+        else
+        {
+            CsiControl(c);
+        }
+    }
+
+    private void FinishCsi(char c)
+    {
+        Csi(c);
+        _state = State.Ground;
+    }
+
+    private void CsiControl(char c)
+    {
+        if (c == Escape)
+        {
+            _state = State.Escape;
+        }
+        else if (c is Cancel or Substitute)
+        {
+            _state = State.Ground;
         }
         else
         {
@@ -376,28 +412,53 @@ public sealed class TerminalBuffer
         }
     }
 
-    private static readonly Dictionary<char, Action<TerminalBuffer>> EscapeActions = new()
+    private static readonly Dictionary<char, Action<TerminalBuffer>> EscapeActions = BuildEscapeActions();
+
+    private static Dictionary<char, Action<TerminalBuffer>> BuildEscapeActions()
     {
-        ['['] = b => { b._params.Clear(); b._csiPrefix = '\0'; b._state = State.Csi; },
-        [']'] = b => { b._osc.Clear(); b._state = State.Osc; },
-        ['P'] = b => b._state = State.Dcs,
-        ['X'] = b => b._state = State.Dcs,
-        ['^'] = b => b._state = State.Dcs,
-        ['_'] = b => b._state = State.Dcs,
-        ['('] = b => b._state = State.Charset,
-        [')'] = b => b._state = State.Charset,
-        ['*'] = b => b._state = State.Charset,
-        ['+'] = b => b._state = State.Charset,
-        ['#'] = b => b._state = State.EscapeIntermediate,
-        ['%'] = b => b._state = State.EscapeIntermediate,
-        [' '] = b => b._state = State.EscapeIntermediate,
-        ['7'] = b => b.SaveCursor(),
-        ['8'] = b => b.RestoreCursor(),
-        ['D'] = b => b.LineFeed(),
-        ['E'] = b => { b._cursorX = 0; b.LineFeed(); },
-        ['M'] = b => b.ReverseIndex(),
-        ['c'] = b => b.FullReset(),
-    };
+        var actions = new Dictionary<char, Action<TerminalBuffer>>
+        {
+            ['['] = b => b.BeginCsi(),
+            [']'] = b => b.BeginOsc(),
+            ['7'] = b => b.SaveCursor(),
+            ['8'] = b => b.RestoreCursor(),
+            ['D'] = b => b.LineFeed(),
+            ['E'] = b => b.NextLineFeed(),
+            ['M'] = b => b.ReverseIndex(),
+            ['c'] = b => b.FullReset(),
+        };
+        AddStateChanges(actions, "PX^_", State.Dcs);
+        AddStateChanges(actions, "()*+", State.Charset);
+        AddStateChanges(actions, "#% ", State.EscapeIntermediate);
+        return actions;
+    }
+
+    private static void AddStateChanges(Dictionary<char, Action<TerminalBuffer>> actions, string keys, State state)
+    {
+        foreach (char key in keys)
+        {
+            actions[key] = b => b._state = state;
+        }
+    }
+
+    private void BeginCsi()
+    {
+        _params.Clear();
+        _csiPrefix = '\0';
+        _state = State.Csi;
+    }
+
+    private void BeginOsc()
+    {
+        _osc.Clear();
+        _state = State.Osc;
+    }
+
+    private void NextLineFeed()
+    {
+        _cursorX = 0;
+        LineFeed();
+    }
 
     private void EscapeChar(char c)
     {
@@ -597,7 +658,7 @@ public sealed class TerminalBuffer
 
     private bool HasIntermediate(char final)
     {
-        if (_params.Length == 0 || _params[^1] is not (' ' or '!' or '"' or '$' or '\''))
+        if (_params.Length == 0 || !IntermediateChars.Contains(_params[^1], StringComparison.Ordinal))
         {
             return false;
         }
@@ -631,37 +692,48 @@ public sealed class TerminalBuffer
         return true;
     }
 
-    private static readonly Dictionary<char, Action<TerminalBuffer, int[]>> CsiActions = new()
+    private static readonly Dictionary<char, Action<TerminalBuffer, int[]>> CsiActions = BuildCsiActions();
+
+    private static Dictionary<char, Action<TerminalBuffer, int[]>> BuildCsiActions()
     {
-        ['A'] = (b, p) => b.CursorUp(p),
-        ['B'] = (b, p) => b.CursorDown(p),
-        ['e'] = (b, p) => b.CursorDown(p),
-        ['C'] = (b, p) => b.CursorForward(p),
-        ['a'] = (b, p) => b.CursorForward(p),
-        ['D'] = (b, p) => b.CursorBack(p),
-        ['E'] = (b, p) => b.NextLine(p),
-        ['F'] = (b, p) => b.PreviousLine(p),
-        ['G'] = (b, p) => b.CursorColumn(p),
-        ['`'] = (b, p) => b.CursorColumn(p),
-        ['d'] = (b, p) => b.CursorRow(p),
-        ['H'] = (b, p) => b.CursorPosition(p),
-        ['f'] = (b, p) => b.CursorPosition(p),
-        ['J'] = (b, p) => b.EraseDisplay(Arg(p, 0, 0)),
-        ['K'] = (b, p) => b.EraseLine(Arg(p, 0, 0)),
-        ['L'] = (b, p) => b.InsertLines(Arg(p, 0)),
-        ['M'] = (b, p) => b.DeleteLines(Arg(p, 0)),
-        ['P'] = (b, p) => b.DeleteChars(Arg(p, 0)),
-        ['@'] = (b, p) => b.InsertChars(Arg(p, 0)),
-        ['X'] = (b, p) => b.EraseChars(Arg(p, 0)),
-        ['S'] = (b, p) => b.ScrollUp(Arg(p, 0)),
-        ['T'] = (b, p) => b.ScrollDown(Arg(p, 0)),
-        ['m'] = (b, p) => b.Sgr(p),
-        ['r'] = (b, p) => b.SetScrollRegion(p),
-        ['s'] = (b, p) => b.SaveCursor(),
-        ['u'] = (b, p) => b.RestoreCursor(),
-        ['n'] = (b, p) => b.DeviceStatus(Arg(p, 0, 0)),
-        ['c'] = (b, p) => b.DeviceAttributes(p),
-    };
+        var actions = new Dictionary<char, Action<TerminalBuffer, int[]>>
+        {
+            ['A'] = (b, p) => b.CursorUp(p),
+            ['B'] = (b, p) => b.CursorDown(p),
+            ['e'] = (b, p) => b.CursorDown(p),
+            ['C'] = (b, p) => b.CursorForward(p),
+            ['a'] = (b, p) => b.CursorForward(p),
+            ['D'] = (b, p) => b.CursorBack(p),
+            ['E'] = (b, p) => b.NextLine(p),
+            ['F'] = (b, p) => b.PreviousLine(p),
+            ['G'] = (b, p) => b.CursorColumn(p),
+            ['`'] = (b, p) => b.CursorColumn(p),
+            ['d'] = (b, p) => b.CursorRow(p),
+        };
+        AddEditActions(actions);
+        return actions;
+    }
+
+    private static void AddEditActions(Dictionary<char, Action<TerminalBuffer, int[]>> actions)
+    {
+        actions['H'] = (b, p) => b.CursorPosition(p);
+        actions['f'] = (b, p) => b.CursorPosition(p);
+        actions['J'] = (b, p) => b.EraseDisplay(Arg(p, 0, 0));
+        actions['K'] = (b, p) => b.EraseLine(Arg(p, 0, 0));
+        actions['L'] = (b, p) => b.InsertLines(Arg(p, 0));
+        actions['M'] = (b, p) => b.DeleteLines(Arg(p, 0));
+        actions['P'] = (b, p) => b.DeleteChars(Arg(p, 0));
+        actions['@'] = (b, p) => b.InsertChars(Arg(p, 0));
+        actions['X'] = (b, p) => b.EraseChars(Arg(p, 0));
+        actions['S'] = (b, p) => b.ScrollUp(Arg(p, 0));
+        actions['T'] = (b, p) => b.ScrollDown(Arg(p, 0));
+        actions['m'] = (b, p) => b.Sgr(p);
+        actions['r'] = (b, p) => b.SetScrollRegion(p);
+        actions['s'] = (b, _) => b.SaveCursor();
+        actions['u'] = (b, _) => b.RestoreCursor();
+        actions['n'] = (b, p) => b.DeviceStatus(Arg(p, 0, 0));
+        actions['c'] = (b, p) => b.DeviceAttributes(p);
+    }
 
     private void CsiCommand(char final, int[] p)
     {
@@ -689,9 +761,17 @@ public sealed class TerminalBuffer
 
     private void CursorBack(int[] p) { _cursorX = Math.Max(0, _cursorX - Arg(p, 0)); }
 
-    private void NextLine(int[] p) { _cursorX = 0; _cursorY = Math.Min(RowLimits().bottom, _cursorY + Arg(p, 0)); }
+    private void NextLine(int[] p)
+    {
+        _cursorX = 0;
+        CursorDown(p);
+    }
 
-    private void PreviousLine(int[] p) { _cursorX = 0; _cursorY = Math.Max(RowLimits().top, _cursorY - Arg(p, 0)); }
+    private void PreviousLine(int[] p)
+    {
+        _cursorX = 0;
+        CursorUp(p);
+    }
 
     private void CursorColumn(int[] p) { _cursorX = Math.Clamp(Arg(p, 0) - 1, 0, Columns - 1); }
 
@@ -721,9 +801,11 @@ public sealed class TerminalBuffer
 
     private void SetScrollRegion(int[] p)
     {
-        int top = Arg(p, 0) - 1, bottom = Arg(p, 1, Rows) - 1;
-        if (top < bottom && bottom < Rows) { _scrollTop = top; _scrollBottom = bottom; }
-        else { _scrollTop = 0; _scrollBottom = Rows - 1; }
+        int top = Arg(p, 0) - 1;
+        int bottom = Arg(p, 1, Rows) - 1;
+        bool valid = top < bottom && bottom < Rows;
+        _scrollTop = valid ? top : 0;
+        _scrollBottom = valid ? bottom : Rows - 1;
         _cursorX = 0;
         _cursorY = 0;
     }
@@ -733,8 +815,10 @@ public sealed class TerminalBuffer
         if (request == DeviceStatusReportCursorPosition)
         {
             _responses.Append(CultureInfo.InvariantCulture, $"\x1b[{_cursorY + 1};{_cursorX + 1}R");
+            return;
         }
-        else if (request == DeviceStatusReportTerminal)
+
+        if (request == DeviceStatusReportTerminal)
         {
             _responses.Append("\x1b[0n");
         }
@@ -805,14 +889,19 @@ public sealed class TerminalBuffer
         _scrollBottom = Rows - 1;
     }
 
+    private static readonly Action<TerminalBuffer>[] EraseDisplayModes =
+    [
+        b => b.EraseBelow(),
+        b => b.EraseAbove(),
+        b => b.EraseAll(),
+        b => b.EraseScrollback(),
+    ];
+
     private void EraseDisplay(int mode)
     {
-        switch (mode)
+        if (mode >= 0 && mode < EraseDisplayModes.Length)
         {
-            case 0: EraseBelow(); break;
-            case 1: EraseAbove(); break;
-            case 2: EraseAll(); break;
-            case 3: EraseScrollback(); break;
+            EraseDisplayModes[mode](this);
         }
     }
 
@@ -923,7 +1012,7 @@ public sealed class TerminalBuffer
 
     private static readonly Dictionary<int, Action<TerminalBuffer>> SgrSimple = new()
     {
-        [0] = b => { b._fg = b._bg = 0; b._attrs = CellAttributes.None; },
+        [0] = b => b.ResetAttributes(),
         [1] = b => b._attrs |= CellAttributes.Bold,
         [2] = b => b._attrs |= CellAttributes.Dim,
         [3] = b => b._attrs |= CellAttributes.Italic,
@@ -942,22 +1031,31 @@ public sealed class TerminalBuffer
         [49] = b => b._bg = 0,
     };
 
+    private static readonly (int First, int Last, int Offset, bool Foreground)[] SgrPaletteRanges =
+    [
+        (SgrForegroundFirst, SgrForegroundLast, 0, true),
+        (SgrBackgroundFirst, SgrBackgroundLast, 0, false),
+        (SgrBrightForegroundFirst, SgrBrightForegroundLast, BrightPaletteOffset, true),
+        (SgrBrightBackgroundFirst, SgrBrightBackgroundLast, BrightPaletteOffset, false),
+    ];
+
+    private void ResetAttributes()
+    {
+        _fg = 0;
+        _bg = 0;
+        _attrs = CellAttributes.None;
+    }
+
     private void Sgr(int[] p)
     {
-        if (p.Length == 0)
-        {
-            _fg = _bg = 0;
-            _attrs = CellAttributes.None;
-            return;
-        }
-
+        int[] codes = p.Length == 0 ? [0] : p;
         int i = 0;
-        while (i < p.Length)
+        while (i < codes.Length)
         {
-            int code = p[i++];
-            if (code is 38 or 48)
+            int code = codes[i++];
+            if (code is SgrExtendedForeground or SgrExtendedBackground)
             {
-                i = ExtendedColor(p, i, code == 38);
+                i = ExtendedColor(codes, i, code == SgrExtendedForeground);
             }
             else
             {
@@ -968,92 +1066,23 @@ public sealed class TerminalBuffer
 
     private void ApplySimpleOrPaletteSgr(int code)
     {
-        if (SetStandardForeground(code))
+        foreach (var range in SgrPaletteRanges)
         {
-            return;
+            if (code >= range.First && code <= range.Last)
+            {
+                SetColor(TerminalCell.Palette(code - range.First + range.Offset), range.Foreground);
+                return;
+            }
         }
 
-        if (SetStandardBackground(code))
-        {
-            return;
-        }
-
-        if (SetBrightForeground(code))
-        {
-            return;
-        }
-
-        if (SetBrightBackground(code))
-        {
-            return;
-        }
-
-        ApplySimpleSgr(code);
-    }
-
-    private bool SetStandardForeground(int code)
-    {
-        if (code < 30 || code > 37)
-        {
-            return false;
-        }
-
-        _fg = TerminalCell.Palette(code - 30);
-        return true;
-    }
-
-    private bool SetStandardBackground(int code)
-    {
-        if (code < 40 || code > 47)
-        {
-            return false;
-        }
-
-        _bg = TerminalCell.Palette(code - 40);
-        return true;
-    }
-
-    private bool SetBrightForeground(int code)
-    {
-        if (code < 90 || code > 97)
-        {
-            return false;
-        }
-
-        _fg = TerminalCell.Palette(code - 90 + 8);
-        return true;
-    }
-
-    private bool SetBrightBackground(int code)
-    {
-        if (code < 100 || code > 107)
-        {
-            return false;
-        }
-
-        _bg = TerminalCell.Palette(code - 100 + 8);
-        return true;
-    }
-
-    private void ApplySimpleSgr(int code)
-    {
         if (SgrSimple.TryGetValue(code, out var action))
         {
             action(this);
         }
     }
 
-    private int ExtendedColor(int[] p, int next, bool foreground)
+    private void SetColor(uint color, bool foreground)
     {
-        uint color;
-        int end;
-        if (next + 1 < p.Length && p[next] == 5) { color = TerminalCell.Palette(p[next + 1]); end = next + 2; }
-        else if (next + 3 < p.Length && p[next] == 2) { color = TerminalCell.Rgb(p[next + 1], p[next + 2], p[next + 3]); end = next + 4; }
-        else
-        {
-            return p.Length;
-        }
-
         if (foreground)
         {
             _fg = color;
@@ -1062,7 +1091,38 @@ public sealed class TerminalBuffer
         {
             _bg = color;
         }
+    }
 
+    private int ExtendedColor(int[] p, int next, bool foreground)
+    {
+        if (!TryReadExtendedColor(p, next, out uint color, out int end))
+        {
+            return p.Length;
+        }
+
+        SetColor(color, foreground);
         return end;
+    }
+
+    private static bool TryReadExtendedColor(int[] p, int next, out uint color, out int end)
+    {
+        if (next + IndexedColorArgs < p.Length && p[next] == SgrColorIndexed)
+        {
+            color = TerminalCell.Palette(p[next + 1]);
+            end = next + IndexedColorArgs + 1;
+            return true;
+        }
+
+        if (next + RgbColorArgs < p.Length && p[next] == SgrColorRgb)
+        {
+            var rgb = p.AsSpan(next + 1, RgbColorArgs);
+            color = TerminalCell.Rgb(rgb[RedIndex], rgb[GreenIndex], rgb[BlueIndex]);
+            end = next + RgbColorArgs + 1;
+            return true;
+        }
+
+        color = 0;
+        end = p.Length;
+        return false;
     }
 }
