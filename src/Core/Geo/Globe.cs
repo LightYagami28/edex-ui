@@ -6,8 +6,21 @@ namespace Edex.Core.Geo;
 
 public sealed class LandMask
 {
-    public const int Width = 360, Height = 180;
+    private const int Columns = 360;
+    private const int Rows = 180;
+    private const double MaxLatitude = 90;
+    private const double MaxLongitude = 180;
+    private const double FullTurn = 360;
+    private const int BitsPerByte = 8;
+    private const int ByteIndexShift = 3;
+    private const int BitIndexMask = 7;
+    private const double MinLongitudeScale = 0.2;
+    private const double DegreesToRadians = Math.PI / 180;
+
     private readonly byte[] _bits;
+
+    public static int Width => Columns;
+    public static int Height => Rows;
 
     private LandMask(byte[] bits) => _bits = bits;
 
@@ -15,7 +28,7 @@ public sealed class LandMask
     {
         using var stream = typeof(LandMask).Assembly.GetManifestResourceStream("Edex.Core.Geo.land-1deg.bin")
             ?? throw new InvalidOperationException("land mask resource missing");
-        var bits = new byte[Width * Height / 8];
+        var bits = new byte[Columns * Rows / BitsPerByte];
         stream.ReadExactly(bits);
         return new LandMask(bits);
     });
@@ -24,28 +37,35 @@ public sealed class LandMask
 
     public bool IsLand(double latitude, double longitude)
     {
-        int row = Math.Clamp((int)Math.Floor(90 - latitude), 0, Height - 1);
-        double lon = ((longitude + 180) % 360 + 360) % 360;
-        int col = Math.Clamp((int)Math.Floor(lon), 0, Width - 1);
-        int i = row * Width + col;
-        return (_bits[i >> 3] >> (i & 7) & 1) == 1;
+        int row = Math.Clamp((int)Math.Floor(MaxLatitude - latitude), 0, Rows - 1);
+        double lon = ((longitude + MaxLongitude) % FullTurn + FullTurn) % FullTurn;
+        int col = Math.Clamp((int)Math.Floor(lon), 0, Columns - 1);
+        int i = row * Columns + col;
+        int bit = _bits[i >> ByteIndexShift] >> (i & BitIndexMask);
+        return (bit & 1) == 1;
     }
 
     public IReadOnlyList<(double Latitude, double Longitude)> LandPoints(double step)
     {
         var points = new List<(double, double)>();
-        for (double lat = 90 - step / 2; lat > -90; lat -= step)
+        double half = step / 2;
+        for (double lat = MaxLatitude - half; lat > -MaxLatitude; lat -= step)
         {
-            double lonStep = step / Math.Max(0.2, Math.Cos(lat * Math.PI / 180));
-            for (double lon = -180 + lonStep / 2; lon < 180; lon += lonStep)
-            {
-                if (IsLand(lat, lon))
-                {
-                    points.Add((lat, lon));
-                }
-            }
+            AddRow(points, lat, step / Math.Max(MinLongitudeScale, Math.Cos(lat * DegreesToRadians)));
         }
         return points;
+    }
+
+    private void AddRow(List<(double, double)> points, double lat, double lonStep)
+    {
+        double start = lonStep / 2 - MaxLongitude;
+        for (double lon = start; lon < MaxLongitude; lon += lonStep)
+        {
+            if (IsLand(lat, lon))
+            {
+                points.Add((lat, lon));
+            }
+        }
     }
 }
 
@@ -53,7 +73,8 @@ public readonly record struct Orthographic(double CenterLatitude, double CenterL
 {
     public (double X, double Y, bool Visible) Project(double latitude, double longitude)
     {
-        double phi = latitude * Math.PI / 180, lambda = (longitude - CenterLongitude) * Math.PI / 180;
+        double phi = latitude * Math.PI / 180;
+        double lambda = (longitude - CenterLongitude) * Math.PI / 180;
         double phi0 = CenterLatitude * Math.PI / 180;
         double cosc = Math.Sin(phi0) * Math.Sin(phi) + Math.Cos(phi0) * Math.Cos(phi) * Math.Cos(lambda);
         double x = Math.Cos(phi) * Math.Sin(lambda);
@@ -68,35 +89,44 @@ public static class GeoLocator
 {
     private const double MaxLatitude = 90;
     private const double MaxLongitude = 180;
+    private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(6);
+
+    private static readonly (Uri Url, Func<JsonElement, GeoLocation?> Parse)[] Providers =
+    [
+        (new Uri("https://ipwho.is/"), ParseIpWhoIs),
+        (new Uri("https://ipapi.co/json/"), ParseIpApiCo),
+    ];
 
     public static async Task<GeoLocation?> LocateAsync(HttpClient http, CancellationToken token)
     {
-        foreach (var (url, parse) in new (string, Func<JsonElement, GeoLocation?>)[]
-                 {
-                     ("https://ipwho.is/", ParseIpWhoIs),
-                     ("https://ipapi.co/json/", ParseIpApiCo),
-                 })
+        foreach (var (url, parse) in Providers.Where(_ => !token.IsCancellationRequested))
         {
             try
             {
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-                cts.CancelAfter(TimeSpan.FromSeconds(6));
-                var json = await http.GetFromJsonAsync<JsonElement>(url, cts.Token).ConfigureAwait(false);
-                if (parse(json) is { } location)
+                using var cts = WithTimeout(token);
+                var location = parse(await http.GetFromJsonAsync<JsonElement>(url, cts.Token).ConfigureAwait(false));
+                if (location is not null)
                 {
                     return location;
                 }
             }
-            catch (Exception e) when (e is HttpRequestException or TaskCanceledException or JsonException or NotSupportedException)
+            catch (Exception e) when (IsTransient(e))
             {
-                if (token.IsCancellationRequested)
-                {
-                    return null;
-                }
+                _ = e;
             }
         }
         return null;
     }
+
+    private static CancellationTokenSource WithTimeout(CancellationToken token)
+    {
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        cts.CancelAfter(RequestTimeout);
+        return cts;
+    }
+
+    private static bool IsTransient(Exception e) =>
+        e is HttpRequestException or TaskCanceledException or JsonException or NotSupportedException;
 
     public static GeoLocation? ParseIpWhoIs(JsonElement json)
     {
@@ -105,7 +135,7 @@ public static class GeoLocator
             return null;
         }
 
-        return Build(json, "latitude", "longitude", "city", "country", "ip", "ipwho.is");
+        return Build(json, "country", "ipwho.is");
     }
 
     public static GeoLocation? ParseIpApiCo(JsonElement json)
@@ -115,29 +145,24 @@ public static class GeoLocator
             return null;
         }
 
-        return Build(json, "latitude", "longitude", "city", "country_name", "ip", "ipapi.co");
+        return Build(json, "country_name", "ipapi.co");
     }
 
-    private static GeoLocation? Build(JsonElement json, string lat, string lon, string city, string country, string ip, string source)
+    private static GeoLocation? Build(JsonElement json, string country, string source)
     {
-        if (!json.TryGetProperty(lat, out var la) || !json.TryGetProperty(lon, out var lo))
+        if (Number(json, "latitude") is not { } latitude || Number(json, "longitude") is not { } longitude || !IsOnEarth(latitude, longitude))
         {
             return null;
         }
 
-        if (la.ValueKind != JsonValueKind.Number || lo.ValueKind != JsonValueKind.Number)
-        {
-            return null;
-        }
-
-        double latitude = la.GetDouble(), longitude = lo.GetDouble();
-        if (latitude is < -MaxLatitude or > MaxLatitude || longitude is < -MaxLongitude or > MaxLongitude)
-        {
-            return null;
-        }
-
-        return new GeoLocation(latitude, longitude, Text(json, city), Text(json, country), Text(json, ip), source);
+        return new GeoLocation(latitude, longitude, Text(json, "city"), Text(json, country), Text(json, "ip"), source);
     }
+
+    private static bool IsOnEarth(double latitude, double longitude) =>
+        Math.Abs(latitude) <= MaxLatitude && Math.Abs(longitude) <= MaxLongitude;
+
+    private static double? Number(JsonElement json, string name) =>
+        json.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number ? value.GetDouble() : null;
 
     private static string? Text(JsonElement json, string name) =>
         json.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;

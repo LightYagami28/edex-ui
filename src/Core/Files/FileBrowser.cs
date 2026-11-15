@@ -9,22 +9,29 @@ public sealed record DirectoryListing(string Path, IReadOnlyList<FileEntry> Entr
 
 public static class FileBrowser
 {
-    public static DirectoryListing List(string path, bool showHidden = false)
+    private const int HomePrefixLength = 2;
+    private const double BytesPerUnit = 1024;
+
+    public static DirectoryListing List(string path) => List(path, false);
+
+    public static DirectoryListing List(string path, bool showHidden)
     {
         string full;
-        try { full = Path.GetFullPath(Environment.ExpandEnvironmentVariables(ExpandHome(path))); }
+        try
+        {
+            full = Path.GetFullPath(Environment.ExpandEnvironmentVariables(ExpandHome(path)));
+        }
         catch (Exception e) when (e is ArgumentException or NotSupportedException or PathTooLongException)
         {
             return new DirectoryListing(path, [], e.Message);
         }
 
-        var entries = new List<FileEntry>();
-        var parent = Directory.GetParent(full);
-        if (parent is not null)
-        {
-            entries.Add(new FileEntry("..", parent.FullName, FileEntryKind.Directory, 0, DateTime.MinValue, false));
-        }
+        return ListResolved(full, showHidden);
+    }
 
+    private static DirectoryListing ListResolved(string full, bool showHidden)
+    {
+        var entries = ParentEntries(full);
         var items = Safe.Run(() => Enumerate(full, showHidden), null);
         if (items is null)
         {
@@ -37,6 +44,12 @@ public static class FileBrowser
         return new DirectoryListing(full, entries, null);
     }
 
+    private static List<FileEntry> ParentEntries(string full)
+    {
+        var parent = Directory.GetParent(full);
+        return parent is null ? [] : [new FileEntry("..", parent.FullName, FileEntryKind.Directory, 0, DateTime.MinValue, false)];
+    }
+
     private static List<FileEntry>? Enumerate(string full, bool showHidden)
     {
         var dir = new DirectoryInfo(full);
@@ -46,20 +59,19 @@ public static class FileBrowser
         }
 
         var options = new EnumerationOptions { IgnoreInaccessible = true, AttributesToSkip = 0, RecurseSubdirectories = false };
-        var items = new List<FileEntry>();
-        foreach (var info in dir.EnumerateFileSystemInfos("*", options))
-        {
-            bool hidden = info.Name.StartsWith('.') || info.Attributes.HasFlag(FileAttributes.Hidden);
-            if (hidden && !showHidden)
-            {
-                continue;
-            }
+        return dir.EnumerateFileSystemInfos("*", options)
+            .Where(info => showHidden || !IsHidden(info))
+            .Select(ToEntry)
+            .ToList();
+    }
 
-            var kind = GetKind(info);
-            long size = info is FileInfo f ? Safe.Run(() => f.Length, 0L) : 0;
-            items.Add(new FileEntry(info.Name, info.FullName, kind, size, info.LastWriteTime, hidden));
-        }
-        return items;
+    private static bool IsHidden(FileSystemInfo info) =>
+        info.Name.StartsWith('.') || info.Attributes.HasFlag(FileAttributes.Hidden);
+
+    private static FileEntry ToEntry(FileSystemInfo info)
+    {
+        long size = info is FileInfo f ? Safe.Run(() => f.Length, 0L) : 0;
+        return new FileEntry(info.Name, info.FullName, GetKind(info), size, info.LastWriteTime, IsHidden(info));
     }
 
     public static string ExpandHome(string path)
@@ -71,7 +83,7 @@ public static class FileBrowser
 
         if (path.StartsWith("~/", StringComparison.Ordinal) || path.StartsWith("~\\", StringComparison.Ordinal))
         {
-            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), path[2..]);
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), path[HomePrefixLength..]);
         }
 
         return path;
@@ -97,9 +109,9 @@ public static class FileBrowser
         string[] units = ["B", "KB", "MB", "GB", "TB", "PB"];
         double value = bytes;
         int unit = 0;
-        while (value >= 1024 && unit < units.Length - 1)
+        while (value >= BytesPerUnit && unit < units.Length - 1)
         {
-            value /= 1024;
+            value /= BytesPerUnit;
             unit++;
         }
         return unit == 0 ? $"{bytes} B" : $"{value:0.#} {units[unit]}";

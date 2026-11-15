@@ -28,18 +28,21 @@ public sealed record AppSettings
     {
         if (OperatingSystem.IsWindows())
         {
-            var onPath = (pathVariable ?? "")
-                .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
-                .Any(dir => File.Exists(Path.Combine(dir, "pwsh.exe")));
-            return onPath ? "pwsh.exe" : "powershell.exe";
-        }
-        if (!string.IsNullOrWhiteSpace(shellVariable))
-        {
-            return shellVariable;
+            return WindowsShell(pathVariable);
         }
 
-        return OperatingSystem.IsMacOS() ? "/bin/zsh" : "/bin/bash";
+        return string.IsNullOrWhiteSpace(shellVariable) ? UnixShell() : shellVariable;
     }
+
+    private static string WindowsShell(string? pathVariable)
+    {
+        var onPath = (pathVariable ?? "")
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Any(dir => File.Exists(Path.Combine(dir, "pwsh.exe")));
+        return onPath ? "pwsh.exe" : "powershell.exe";
+    }
+
+    private static string UnixShell() => OperatingSystem.IsMacOS() ? "/bin/zsh" : "/bin/bash";
 }
 
 public sealed class SettingsStore
@@ -56,7 +59,11 @@ public sealed class SettingsStore
     public string FilePath => Path.Combine(Directory, "settings.json");
     public string ThemesDirectory => Path.Combine(Directory, "themes");
 
-    public SettingsStore(string? directory = null)
+    public SettingsStore() : this(null)
+    {
+    }
+
+    public SettingsStore(string? directory)
     {
         Directory = directory
             ?? Environment.GetEnvironmentVariable("EDEX_CONFIG_DIR")
