@@ -1,19 +1,32 @@
-# Security Policy
+# Sicurezza
 
-## Automated Vulnerability Monitoring
+## Versioni supportate
 
-This repository uses **automated 24/7 vulnerability monitoring** to continuously check all dependencies for security issues. See [SECURITY_MONITORING.md](SECURITY_MONITORING.md) for complete details about:
-- Daily dependency scans with Dependabot
-- Multiple security scanning tools (Snyk, Trivy, OSV, OWASP)
-- Automated vulnerability reporting
-- Coverage schedule and notifications
+Riceve correzioni di sicurezza solo il ramo `master`, cioè la riscrittura
+nativa in .NET. Il vecchio codice Electron (tag `archivio/electron`) non è
+più mantenuto.
 
-## Supported Versions
+## Segnalare una vulnerabilità
 
-We support the [latest released version](https://github.com/lightyagami28/edex-ui/releases/latest), and the current development version (`master` branch).
+Non aprire una issue pubblica per una vulnerabilità.
 
-## Reporting a Vulnerability
+Usa la segnalazione privata di GitHub: scheda **Security** del repository,
+poi **Report a vulnerability**
+(<https://github.com/LightYagami28/edex-ui/security/advisories/new>).
 
-If you're concerned about a potential or proven security vulnerability in this software, please get in touch by sending an email at [`gabriel@saillard.dev`](mailto:%22Gabriel%20SAILLARD%22%20%3Cgabriel%40saillard.dev%3E?subject=%5BSECURITY%5D%20eDEX-UI%20vulnerability%20concern&body=(Please%20describe%20what%20code%20you%20think%20is%20vulnerable%2C%20and%20provide%20a%20way%20to%20reproduce%20the%20issue%20if%20possible)).
+Sul mirror GitLab apri una issue e spunta **This issue is confidential**.
 
-If your email subject contains the `[SECURITY]` tag, you will be surfaced to the front of my inbox and should expect a response in 24 hours or less. The link above will set you up with a subject template.
+Nella segnalazione indica:
+
+- versione o commit interessato;
+- sistema operativo;
+- passi per riprodurre il problema e impatto previsto.
+
+Riceverai una risposta nella stessa segnalazione. La correzione viene
+pubblicata su `master` e la segnalazione resta privata fino al rilascio.
+
+## Controlli automatici
+
+- SonarCloud e CodeQL analizzano il codice C# a ogni pull request.
+- Dependabot controlla ogni giorno pacchetti NuGet e GitHub Actions.
+- Socket controlla le dipendenze nelle pull request.
