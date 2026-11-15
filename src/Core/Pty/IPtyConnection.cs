@@ -34,7 +34,22 @@ public static class PtyFactory
         return OperatingSystem.IsWindows() ? WindowsPty.Spawn(options) : UnixPty.Spawn(options);
     }
 
+    private static readonly IReadOnlyDictionary<string, string> NoExtraVariables = new Dictionary<string, string>();
+
     internal static Dictionary<string, string> BuildEnvironment(IReadOnlyDictionary<string, string>? extra)
+    {
+        var env = CurrentEnvironment();
+        env["TERM"] = "xterm-256color";
+        env["COLORTERM"] = "truecolor";
+        env["TERM_PROGRAM"] = "eDEX-UI";
+        foreach (var (key, value) in extra ?? NoExtraVariables)
+        {
+            env[key] = value;
+        }
+        return env;
+    }
+
+    private static Dictionary<string, string> CurrentEnvironment()
     {
         var comparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
         var env = new Dictionary<string, string>(comparer);
@@ -43,16 +58,6 @@ public static class PtyFactory
             if (entry.Key is string key && key.Length > 0)
             {
                 env[key] = entry.Value as string ?? "";
-            }
-        }
-        env["TERM"] = "xterm-256color";
-        env["COLORTERM"] = "truecolor";
-        env["TERM_PROGRAM"] = "eDEX-UI";
-        if (extra is not null)
-        {
-            foreach (var (key, value) in extra)
-            {
-                env[key] = value;
             }
         }
         return env;

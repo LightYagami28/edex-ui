@@ -34,92 +34,127 @@ internal sealed partial class WindowsPty : IPtyConnection
         CloseHandle(info.hThread);
         _output = new FileStream(outputRead, FileAccess.Read, 1, false);
         _input = new FileStream(inputWrite, FileAccess.Write, 1, false);
-
-        var waiter = new Thread(() =>
-        {
-            _ = WaitForSingleObject(_process, INFINITE);
-            GetExitCodeProcess(_process, out var code);
-            CloseHandle(_process);
-            ExitCode = unchecked((int)code);
-            Exited?.Invoke(this, ExitCode.Value);
-        })
-        { IsBackground = true, Name = "conpty-exit-watcher" };
-        waiter.Start();
+        new Thread(WatchExit) { IsBackground = true, Name = "conpty-exit-watcher" }.Start();
     }
 
-    public static WindowsPty Spawn(PtyOptions options)
+    private void WatchExit()
+    {
+        _ = WaitForSingleObject(_process, INFINITE);
+        GetExitCodeProcess(_process, out var code);
+        CloseHandle(_process);
+        ExitCode = unchecked((int)code);
+        Exited?.Invoke(this, ExitCode.Value);
+    }
+
+    internal static WindowsPty Spawn(PtyOptions options)
     {
         var (inputRead, inputWrite) = Pipe();
         var (outputRead, outputWrite) = Pipe();
-        bool consoleOwnsEnds = false;
-        IntPtr pseudoConsole = IntPtr.Zero, attributeList = IntPtr.Zero, environmentBlock = IntPtr.Zero;
         try
         {
-            var size = new Coord { X = (short)Math.Clamp(options.Columns, MinSize, short.MaxValue), Y = (short)Math.Clamp(options.Rows, MinSize, short.MaxValue) };
-            Marshal.ThrowExceptionForHR(CreatePseudoConsole(size, inputRead, outputWrite, 0, out pseudoConsole));
-            inputRead.Dispose();
-            outputWrite.Dispose();
-            consoleOwnsEnds = true;
+            var pseudoConsole = CreateConsole(options, inputRead, outputWrite);
+            return StartInConsole(options, pseudoConsole, outputRead, inputWrite);
+        }
+        catch
+        {
+            ReleaseUnownedEnds(inputRead, outputWrite, outputRead, inputWrite);
+            throw;
+        }
+    }
 
-            IntPtr listSize = IntPtr.Zero;
-            InitializeProcThreadAttributeList(IntPtr.Zero, 1, 0, ref listSize);
-            attributeList = Marshal.AllocHGlobal(listSize);
-            Ensure(InitializeProcThreadAttributeList(attributeList, 1, 0, ref listSize));
-            Ensure(UpdateProcThreadAttribute(attributeList, 0, (IntPtr)PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE, pseudoConsole, (IntPtr)IntPtr.Size, IntPtr.Zero, IntPtr.Zero));
+    private static IntPtr CreateConsole(PtyOptions options, SafeFileHandle inputRead, SafeFileHandle outputWrite)
+    {
+        var size = new Coord { X = Dimension(options.Columns), Y = Dimension(options.Rows) };
+        Marshal.ThrowExceptionForHR(CreatePseudoConsole(size, inputRead, outputWrite, 0, out var pseudoConsole));
+        inputRead.Dispose();
+        outputWrite.Dispose();
+        return pseudoConsole;
+    }
 
-            var startup = new StartupInfoEx();
-            startup.StartupInfo.cb = Marshal.SizeOf<StartupInfoEx>();
-            startup.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
-            startup.lpAttributeList = attributeList;
-
-            var env = new StringBuilder();
-            foreach (var (key, value) in PtyFactory.BuildEnvironment(options.Environment).OrderBy(e => e.Key, StringComparer.OrdinalIgnoreCase))
-            {
-                env.Append(key).Append('=').Append(value).Append('\0');
-            }
-
-            env.Append('\0');
-            environmentBlock = Marshal.StringToHGlobalUni(env.ToString());
-
-            var commandLine = (BuildCommandLine(options.Shell, options.Args) + "\0").ToCharArray();
-            string? cwd = Directory.Exists(options.WorkingDirectory) ? options.WorkingDirectory : null;
-
-            if (!CreateProcessW(null, commandLine, IntPtr.Zero, IntPtr.Zero, false,
-                    EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT, environmentBlock, cwd, ref startup, out var info))
-            {
-                throw new Win32Exception(Marshal.GetLastWin32Error(), $"Cannot start '{options.Shell}'");
-            }
-
+    private static WindowsPty StartInConsole(PtyOptions options, IntPtr pseudoConsole, SafeFileHandle outputRead, SafeFileHandle inputWrite)
+    {
+        try
+        {
+            var info = StartProcess(options, pseudoConsole);
             return new WindowsPty(pseudoConsole, info, outputRead, inputWrite);
         }
         catch
         {
-            if (!consoleOwnsEnds)
-            {
-                ReleaseUnownedEnds(inputRead, outputWrite);
-            }
-            outputRead.Dispose();
-            inputWrite.Dispose();
-            if (pseudoConsole != IntPtr.Zero)
-            {
-                ClosePseudoConsole(pseudoConsole);
-            }
-
+            ReleaseUnownedEnds(outputRead, inputWrite);
+            ClosePseudoConsole(pseudoConsole);
             throw;
+        }
+    }
+
+    private static ProcessInformation StartProcess(PtyOptions options, IntPtr pseudoConsole)
+    {
+        var attributeList = CreateAttributeList(pseudoConsole);
+        try
+        {
+            return StartProcessWithAttributes(options, attributeList);
         }
         finally
         {
-            if (attributeList != IntPtr.Zero)
-            {
-                DeleteProcThreadAttributeList(attributeList);
-                Marshal.FreeHGlobal(attributeList);
-            }
-            if (environmentBlock != IntPtr.Zero)
-            {
-                Marshal.FreeHGlobal(environmentBlock);
-            }
+            FreeAttributeList(attributeList);
         }
     }
+
+    private static IntPtr CreateAttributeList(IntPtr pseudoConsole)
+    {
+        IntPtr listSize = IntPtr.Zero;
+        InitializeProcThreadAttributeList(IntPtr.Zero, 1, 0, ref listSize);
+        var attributeList = Marshal.AllocHGlobal(listSize);
+        try
+        {
+            Ensure(InitializeProcThreadAttributeList(attributeList, 1, 0, ref listSize));
+            Ensure(UpdateProcThreadAttribute(attributeList, 0, (IntPtr)PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE, pseudoConsole, (IntPtr)IntPtr.Size, IntPtr.Zero, IntPtr.Zero));
+            return attributeList;
+        }
+        catch
+        {
+            FreeAttributeList(attributeList);
+            throw;
+        }
+    }
+
+    private static void FreeAttributeList(IntPtr attributeList)
+    {
+        DeleteProcThreadAttributeList(attributeList);
+        Marshal.FreeHGlobal(attributeList);
+    }
+
+    private static ProcessInformation StartProcessWithAttributes(PtyOptions options, IntPtr attributeList)
+    {
+        var startup = new StartupInfoEx { lpAttributeList = attributeList };
+        startup.StartupInfo.cb = Marshal.SizeOf<StartupInfoEx>();
+        startup.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
+        var commandLine = (BuildCommandLine(options.Shell, options.Args) + "\0").ToCharArray();
+        string? cwd = Directory.Exists(options.WorkingDirectory) ? options.WorkingDirectory : null;
+        var environmentBlock = Marshal.StringToHGlobalUni(EnvironmentBlock(options.Environment));
+        try
+        {
+            Ensure(CreateProcessW(null, commandLine, IntPtr.Zero, IntPtr.Zero, false,
+                EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT, environmentBlock, cwd, ref startup, out var info), options.Shell);
+            return info;
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(environmentBlock);
+        }
+    }
+
+    private static string EnvironmentBlock(IReadOnlyDictionary<string, string>? extra)
+    {
+        var env = new StringBuilder();
+        foreach (var (key, value) in PtyFactory.BuildEnvironment(extra).OrderBy(e => e.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            env.Append(key).Append('=').Append(value).Append('\0');
+        }
+
+        return env.Append('\0').ToString();
+    }
+
+    private static short Dimension(int value) => (short)Math.Clamp(value, MinSize, short.MaxValue);
 
     private static (SafeFileHandle Read, SafeFileHandle Write) Pipe()
     {
@@ -144,6 +179,14 @@ internal sealed partial class WindowsPty : IPtyConnection
         }
     }
 
+    private static void Ensure(bool succeeded, string shell)
+    {
+        if (!succeeded)
+        {
+            throw new Win32Exception(Marshal.GetLastWin32Error(), $"Cannot start '{shell}'");
+        }
+    }
+
     internal static string BuildCommandLine(string executable, IReadOnlyList<string> args)
     {
         var sb = new StringBuilder(Quote(executable));
@@ -163,6 +206,13 @@ internal sealed partial class WindowsPty : IPtyConnection
         }
 
         var sb = new StringBuilder("\"");
+        int backslashes = AppendEscaped(sb, value);
+        sb.Append('\\', backslashes * QuoteEscapeMultiplier).Append('"');
+        return sb.ToString();
+    }
+
+    private static int AppendEscaped(StringBuilder sb, string value)
+    {
         int backslashes = 0;
         foreach (char c in value)
         {
@@ -176,8 +226,7 @@ internal sealed partial class WindowsPty : IPtyConnection
             backslashes = 0;
             sb.Append(c);
         }
-        sb.Append('\\', backslashes * QuoteEscapeMultiplier).Append('"');
-        return sb.ToString();
+        return backslashes;
     }
 
     public void Resize(int columns, int rows)
@@ -187,7 +236,7 @@ internal sealed partial class WindowsPty : IPtyConnection
             return;
         }
 
-        _ = ResizePseudoConsole(_pseudoConsole, new Coord { X = (short)Math.Max(MinSize, columns), Y = (short)Math.Max(MinSize, rows) });
+        _ = ResizePseudoConsole(_pseudoConsole, new Coord { X = Dimension(columns), Y = Dimension(rows) });
     }
 
     public void Dispose()
@@ -218,77 +267,4 @@ internal sealed partial class WindowsPty : IPtyConnection
             _ = e;
         }
     }
-
-    private const int MinSize = 2;
-    private const uint INFINITE = 0xFFFFFFFF;
-    private const int STARTF_USESTDHANDLES = 0x00000100;
-    private const uint EXTENDED_STARTUPINFO_PRESENT = 0x00080000;
-    private const uint CREATE_UNICODE_ENVIRONMENT = 0x00000400;
-    private const int PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = 0x00020016;
-
-    [StructLayout(LayoutKind.Sequential)]
-    private record struct Coord { public short X; public short Y; }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private record struct StartupInfo
-    {
-        public int cb;
-        public IntPtr lpReserved, lpDesktop, lpTitle;
-        public int dwX, dwY, dwXSize, dwYSize, dwXCountChars, dwYCountChars, dwFillAttribute, dwFlags;
-        public short wShowWindow, cbReserved2;
-        public IntPtr lpReserved2, hStdInput, hStdOutput, hStdError;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private record struct StartupInfoEx { public StartupInfo StartupInfo; public IntPtr lpAttributeList; }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private record struct ProcessInformation
-    {
-        public IntPtr hProcess;
-        public IntPtr hThread;
-        public int dwProcessId;
-        public int dwThreadId;
-    }
-
-    [LibraryImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool CreatePipe(out SafeFileHandle read, out SafeFileHandle write, IntPtr attributes, int size);
-
-    [LibraryImport("kernel32.dll")]
-    private static partial int CreatePseudoConsole(Coord size, SafeFileHandle input, SafeFileHandle output, uint flags, out IntPtr pseudoConsole);
-
-    [LibraryImport("kernel32.dll")]
-    private static partial int ResizePseudoConsole(IntPtr pseudoConsole, Coord size);
-
-    [LibraryImport("kernel32.dll")]
-    private static partial void ClosePseudoConsole(IntPtr pseudoConsole);
-
-    [LibraryImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool InitializeProcThreadAttributeList(IntPtr list, int count, int flags, ref IntPtr size);
-
-    [LibraryImport("kernel32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool UpdateProcThreadAttribute(IntPtr list, uint flags, IntPtr attribute, IntPtr value, IntPtr size, IntPtr previous, IntPtr returnSize);
-
-    [LibraryImport("kernel32.dll")]
-    private static partial void DeleteProcThreadAttributeList(IntPtr list);
-
-    [LibraryImport("kernel32.dll", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool CreateProcessW(string? applicationName, [In, Out] char[] commandLine,
-        IntPtr processAttributes, IntPtr threadAttributes, [MarshalAs(UnmanagedType.Bool)] bool inheritHandles, uint creationFlags,
-        IntPtr environment, string? currentDirectory, ref StartupInfoEx startupInfo, out ProcessInformation processInformation);
-
-    [LibraryImport("kernel32.dll")]
-    private static partial uint WaitForSingleObject(IntPtr handle, uint milliseconds);
-
-    [LibraryImport("kernel32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool GetExitCodeProcess(IntPtr process, out uint exitCode);
-
-    [LibraryImport("kernel32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool CloseHandle(IntPtr handle);
 }
