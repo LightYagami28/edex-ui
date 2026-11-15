@@ -31,23 +31,27 @@ public readonly record struct TextSelection(CellPosition Anchor, CellPosition Ac
         var sb = new StringBuilder();
         for (int row = Math.Max(0, start.Row); row <= Math.Min(snapshot.Rows - 1, end.Row); row++)
         {
-            var line = snapshot.Lines[row];
-            int from = row == start.Row ? Math.Clamp(start.Column, 0, line.Length) : 0;
-            int to = row == end.Row ? Math.Clamp(end.Column, -1, line.Length - 1) : line.Length - 1;
-            var part = new StringBuilder();
-            for (int c = from; c <= to; c++)
-            {
-                part.Append(line[c].Glyph == '\0' ? ' ' : line[c].Glyph);
-            }
-
             if (row > start.Row)
             {
                 sb.Append('\n');
             }
 
-            sb.Append(part.ToString().TrimEnd());
+            sb.Append(RowText(snapshot.Lines[row], row, start, end));
         }
         return sb.ToString();
+    }
+
+    private static string RowText(TerminalCell[] line, int row, CellPosition start, CellPosition end)
+    {
+        int from = row == start.Row ? Math.Clamp(start.Column, 0, line.Length) : 0;
+        int to = row == end.Row ? Math.Clamp(end.Column, -1, line.Length - 1) : line.Length - 1;
+        var part = new StringBuilder();
+        for (int c = from; c <= to; c++)
+        {
+            part.Append(line[c].Glyph == '\0' ? ' ' : line[c].Glyph);
+        }
+
+        return part.ToString().TrimEnd();
     }
 
     public static TextSelection Word(TerminalSnapshot snapshot, CellPosition at)
@@ -59,35 +63,45 @@ public readonly record struct TextSelection(CellPosition Anchor, CellPosition Ac
 
         var line = snapshot.Lines[at.Row];
         int col = Math.Clamp(at.Column, 0, line.Length - 1);
-        char glyph = line[col].Glyph;
-        Func<char, bool> same = Classify();
-        int from = col, to = col;
-        while (from > 0 && same(line[from - 1].Glyph))
-        {
-            from--;
-        }
-
-        while (to < line.Length - 1 && same(line[to + 1].Glyph))
-        {
-            to++;
-        }
-
+        var same = Classify(line[col].Glyph);
+        int from = ScanLeft(line, col, same);
+        int to = ScanRight(line, col, same);
         return new TextSelection(new CellPosition(from, at.Row), new CellPosition(to, at.Row));
+    }
 
-        Func<char, bool> Classify()
+    private static int ScanLeft(TerminalCell[] line, int col, Func<char, bool> same)
+    {
+        while (col > 0 && same(line[col - 1].Glyph))
         {
-            if (IsWordChar(glyph))
-            {
-                return IsWordChar;
-            }
-
-            if (IsSpace(glyph))
-            {
-                return IsSpace;
-            }
-
-            return static _ => false;
+            col--;
         }
+
+        return col;
+    }
+
+    private static int ScanRight(TerminalCell[] line, int col, Func<char, bool> same)
+    {
+        while (col < line.Length - 1 && same(line[col + 1].Glyph))
+        {
+            col++;
+        }
+
+        return col;
+    }
+
+    private static Func<char, bool> Classify(char glyph)
+    {
+        if (IsWordChar(glyph))
+        {
+            return IsWordChar;
+        }
+
+        if (IsSpace(glyph))
+        {
+            return IsSpace;
+        }
+
+        return static _ => false;
     }
 
     public static TextSelection Line(TerminalSnapshot snapshot, int row) =>
