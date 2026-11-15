@@ -8,10 +8,12 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Edex.Core.Pty;
 
-/// <summary>Pseudo terminal backed by the Windows ConPTY API (Windows 10 1809+).</summary>
 [SupportedOSPlatform("windows")]
 internal sealed partial class WindowsPty : IPtyConnection
 {
+    private const int QuoteEscapeMultiplier = 2;
+    private const int QuoteEscapeOffset = 1;
+
     private readonly IntPtr _pseudoConsole;
     private readonly IntPtr _process;
     private readonly FileStream _output;
@@ -55,7 +57,6 @@ internal sealed partial class WindowsPty : IPtyConnection
         {
             var size = new Coord { X = (short)Math.Clamp(options.Columns, MinSize, short.MaxValue), Y = (short)Math.Clamp(options.Rows, MinSize, short.MaxValue) };
             Marshal.ThrowExceptionForHR(CreatePseudoConsole(size, inputRead, outputWrite, 0, out pseudoConsole));
-            // The pseudo console duplicated these ends; we must release ours.
             inputRead.Dispose();
             outputWrite.Dispose();
             consoleOwnsEnds = true;
@@ -68,23 +69,26 @@ internal sealed partial class WindowsPty : IPtyConnection
 
             var startup = new StartupInfoEx();
             startup.StartupInfo.cb = Marshal.SizeOf<StartupInfoEx>();
-            // Do not let the child inherit the standard handles of a GUI host.
             startup.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
             startup.lpAttributeList = attributeList;
 
             var env = new StringBuilder();
             foreach (var (key, value) in PtyFactory.BuildEnvironment(options.Environment).OrderBy(e => e.Key, StringComparer.OrdinalIgnoreCase))
+            {
                 env.Append(key).Append('=').Append(value).Append('\0');
+            }
+
             env.Append('\0');
             environmentBlock = Marshal.StringToHGlobalUni(env.ToString());
 
-            // CreateProcessW may modify the command line, so it gets its own writable, null-terminated buffer.
             var commandLine = (BuildCommandLine(options.Shell, options.Args) + "\0").ToCharArray();
             string? cwd = Directory.Exists(options.WorkingDirectory) ? options.WorkingDirectory : null;
 
             if (!CreateProcessW(null, commandLine, IntPtr.Zero, IntPtr.Zero, false,
                     EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT, environmentBlock, cwd, ref startup, out var info))
+            {
                 throw new Win32Exception(Marshal.GetLastWin32Error(), $"Cannot start '{options.Shell}'");
+            }
 
             return new WindowsPty(pseudoConsole, info, outputRead, inputWrite);
         }
@@ -96,7 +100,11 @@ internal sealed partial class WindowsPty : IPtyConnection
             }
             outputRead.Dispose();
             inputWrite.Dispose();
-            if (pseudoConsole != IntPtr.Zero) ClosePseudoConsole(pseudoConsole);
+            if (pseudoConsole != IntPtr.Zero)
+            {
+                ClosePseudoConsole(pseudoConsole);
+            }
+
             throw;
         }
         finally
@@ -106,7 +114,10 @@ internal sealed partial class WindowsPty : IPtyConnection
                 DeleteProcThreadAttributeList(attributeList);
                 Marshal.FreeHGlobal(attributeList);
             }
-            if (environmentBlock != IntPtr.Zero) Marshal.FreeHGlobal(environmentBlock);
+            if (environmentBlock != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(environmentBlock);
+            }
         }
     }
 
@@ -116,8 +127,6 @@ internal sealed partial class WindowsPty : IPtyConnection
         return (read, write);
     }
 
-    // Runs only after a Windows API call failed before the pseudo console took over the ends, which tests cannot provoke. It is
-    // kept out of Spawn so the analyzer does not see a second disposal.
     [ExcludeFromCodeCoverage(Justification = "Failure cleanup that needs a failing ConPTY or pipe API call.")]
     private static void ReleaseUnownedEnds(params IDisposable[] ends)
     {
@@ -127,50 +136,87 @@ internal sealed partial class WindowsPty : IPtyConnection
         }
     }
 
-    private static void Ensure(bool succeeded) { if (!succeeded) throw new Win32Exception(); }
+    private static void Ensure(bool succeeded)
+    {
+        if (!succeeded)
+        {
+            throw new Win32Exception();
+        }
+    }
 
     internal static string BuildCommandLine(string executable, IReadOnlyList<string> args)
     {
         var sb = new StringBuilder(Quote(executable));
-        foreach (var arg in args) sb.Append(' ').Append(Quote(arg));
+        foreach (var arg in args)
+        {
+            sb.Append(' ').Append(Quote(arg));
+        }
+
         return sb.ToString();
     }
 
     private static string Quote(string value)
     {
-        if (value.Length > 0 && value.IndexOfAny([' ', '\t', '"']) < 0) return value;
+        if (value.Length > 0 && value.IndexOfAny([' ', '\t', '"']) < 0)
+        {
+            return value;
+        }
+
         var sb = new StringBuilder("\"");
         int backslashes = 0;
         foreach (char c in value)
         {
-            if (c == '\\') { backslashes++; continue; }
-            if (c == '"') sb.Append('\\', backslashes * 2 + 1);
-            else sb.Append('\\', backslashes);
+            if (c == '\\')
+            {
+                backslashes++;
+                continue;
+            }
+
+            sb.Append('\\', c == '"' ? backslashes * QuoteEscapeMultiplier + QuoteEscapeOffset : backslashes);
             backslashes = 0;
             sb.Append(c);
         }
-        sb.Append('\\', backslashes * 2).Append('"');
+        sb.Append('\\', backslashes * QuoteEscapeMultiplier).Append('"');
         return sb.ToString();
     }
 
     public void Resize(int columns, int rows)
     {
-        if (Volatile.Read(ref _disposed) != 0) return;
+        if (Volatile.Read(ref _disposed) != 0)
+        {
+            return;
+        }
+
         _ = ResizePseudoConsole(_pseudoConsole, new Coord { X = (short)Math.Max(MinSize, columns), Y = (short)Math.Max(MinSize, rows) });
     }
 
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
-        try { _input.Dispose(); } catch (IOException) { /* already closed */ }
-        // ClosePseudoConsole can block until pending output is drained, so never run it on the UI thread.
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
+        DisposeQuietly(_input);
         var hpc = _pseudoConsole;
         var output = _output;
         ThreadPool.QueueUserWorkItem(_ =>
         {
             ClosePseudoConsole(hpc);
-            try { output.Dispose(); } catch (IOException) { /* already closed */ }
+            DisposeQuietly(output);
         });
+    }
+
+    private static void DisposeQuietly(Stream stream)
+    {
+        try
+        {
+            stream.Dispose();
+        }
+        catch (IOException e)
+        {
+            _ = e;
+        }
     }
 
     private const int MinSize = 2;

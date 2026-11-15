@@ -5,10 +5,17 @@ namespace Edex.Core.Audio;
 
 public enum SoundEffect { KeyClick, Startup, Info, Alert, PanelOpen, Exit }
 
-/// <summary>Synthesizes the interface sound effects as 16-bit mono PCM WAV files (no audio assets needed).</summary>
 public static class SoundSynth
 {
     public const int SampleRate = 22050;
+
+    private const int HeaderSize = 44;
+    private const int RiffChunkSizeOffset = 36;
+    private const int FormatChunkSize = 16;
+    private const int PcmFormat = 1;
+    private const int MonoChannels = 1;
+    private const int BytesPerSample = 2;
+    private const int BitsPerSample = 16;
 
     public static byte[] Create(SoundEffect effect, double volume = 0.5)
     {
@@ -25,7 +32,6 @@ public static class SoundSynth
         return ToWav(samples, volume);
     }
 
-    /// <summary>Short mechanical click: a noise transient plus a damped high tone.</summary>
     private static float[] Click()
     {
         int n = (int)(SampleRate * 0.03);
@@ -43,7 +49,6 @@ public static class SoundSynth
         return data;
     }
 
-    /// <summary>Notes (frequency in Hz, seconds; 0 Hz = rest) with a soft square-ish timbre and short envelopes.</summary>
     private static float[] Sequence(params (double Frequency, double Seconds)[] notes)
     {
         var data = new List<float>();
@@ -81,24 +86,27 @@ public static class SoundSynth
 
     public static byte[] ToWav(float[] samples, double volume)
     {
-        int dataBytes = samples.Length * 2;
-        using var ms = new MemoryStream(44 + dataBytes);
+        int dataBytes = samples.Length * BytesPerSample;
+        using var ms = new MemoryStream(HeaderSize + dataBytes);
         using var w = new BinaryWriter(ms, Encoding.ASCII);
         w.Write("RIFF"u8);
-        w.Write(36 + dataBytes);
+        w.Write(RiffChunkSizeOffset + dataBytes);
         w.Write("WAVE"u8);
         w.Write("fmt "u8);
-        w.Write(16);
-        w.Write((short)1);          // PCM
-        w.Write((short)1);          // mono
+        w.Write(FormatChunkSize);
+        w.Write((short)PcmFormat);
+        w.Write((short)MonoChannels);
         w.Write(SampleRate);
-        w.Write(SampleRate * 2);    // byte rate
-        w.Write((short)2);          // block align
-        w.Write((short)16);         // bits per sample
+        w.Write(SampleRate * BytesPerSample);
+        w.Write((short)BytesPerSample);
+        w.Write((short)BitsPerSample);
         w.Write("data"u8);
         w.Write(dataBytes);
         foreach (var s in samples)
+        {
             w.Write((short)Math.Clamp(Math.Round(s * volume * short.MaxValue), short.MinValue, short.MaxValue));
+        }
+
         w.Flush();
         return ms.ToArray();
     }

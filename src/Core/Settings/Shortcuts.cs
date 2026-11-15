@@ -3,7 +3,6 @@ using System.Text.Json;
 
 namespace Edex.Core.Settings;
 
-/// <summary>A keyboard shortcut. <see cref="Keys"/> looks like "Ctrl+Shift+C"; <see cref="Command"/> is written to the terminal when set.</summary>
 public sealed record Shortcut(string Keys, string Action, string? Command = null, bool Enabled = true);
 
 public static class Shortcuts
@@ -29,7 +28,6 @@ public static class Shortcuts
         new("Ctrl+Shift+P", "password"),
     ];
 
-    /// <summary>Canonical form: modifiers in the order Ctrl, Alt, Shift, then the key, all upper case.</summary>
     public static string Normalize(string keys)
     {
         bool ctrl = false, alt = false, shift = false;
@@ -47,14 +45,21 @@ public static class Shortcuts
         return (ctrl ? "CTRL+" : "") + (alt ? "ALT+" : "") + (shift ? "SHIFT+" : "") + key;
     }
 
-    /// <summary>Parses a shortcuts JSON array. Invalid JSON gives the defaults; entries without keys or action are dropped.</summary>
     public static IReadOnlyList<Shortcut> Parse(string? json)
     {
-        if (string.IsNullOrWhiteSpace(json)) return Defaults;
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return Defaults;
+        }
+
         try
         {
             var list = JsonSerializer.Deserialize<List<Shortcut>>(json, JsonOptions);
-            if (list is null) return Defaults;
+            if (list is null)
+            {
+                return Defaults;
+            }
+
             return list.Where(s => !string.IsNullOrWhiteSpace(s.Keys) && !string.IsNullOrWhiteSpace(s.Action)).ToList();
         }
         catch (JsonException)
@@ -65,7 +70,6 @@ public static class Shortcuts
 
     public static string Serialize(IEnumerable<Shortcut> shortcuts) => JsonSerializer.Serialize(shortcuts, JsonOptions);
 
-    /// <summary>The enabled shortcut bound to <paramref name="keys"/>, or null.</summary>
     public static Shortcut? Find(IEnumerable<Shortcut> shortcuts, string keys)
     {
         var wanted = Normalize(keys);

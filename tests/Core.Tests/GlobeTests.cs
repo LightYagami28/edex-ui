@@ -9,13 +9,13 @@ namespace Edex.Core.Tests;
 public class GlobeTests
 {
     [TestMethod]
-    [DataRow(41.9, 12.5, true)]     // Rome
-    [DataRow(40.7, -74.5, true)]    // New Jersey
-    [DataRow(-25, 134, true)]       // Australia
-    [DataRow(-82, 0, true)]         // Antarctica
-    [DataRow(0, -140, false)]       // Pacific
-    [DataRow(30, -40, false)]       // Atlantic
-    [DataRow(-30, 80, false)]       // Indian Ocean
+    [DataRow(41.9, 12.5, true)]
+    [DataRow(40.7, -74.5, true)]
+    [DataRow(-25, 134, true)]
+    [DataRow(-82, 0, true)]
+    [DataRow(0, -140, false)]
+    [DataRow(30, -40, false)]
+    [DataRow(-30, 80, false)]
     public void LandMaskMatchesGeography(double lat, double lon, bool land) =>
         Assert.AreEqual(land, LandMask.Default.IsLand(lat, lon));
 
@@ -24,7 +24,7 @@ public class GlobeTests
     {
         var points = LandMask.Default.LandPoints(3);
         Assert.IsTrue(points.Count >= 800 && points.Count <= 3000);
-        Assert.AreEqual(LandMask.Default.IsLand(0, 190), LandMask.Default.IsLand(0, -170)); // longitude wraps
+        Assert.AreEqual(LandMask.Default.IsLand(0, 190), LandMask.Default.IsLand(0, -170));
     }
 
     [TestMethod]
@@ -39,7 +39,7 @@ public class GlobeTests
         Assert.IsTrue(visible);
         Assert.AreEqual(1, x, 6);
         (_, y, _) = view.Project(90, 0);
-        Assert.AreEqual(-1, y, 6); // north is up
+        Assert.AreEqual(-1, y, 6);
         Assert.IsFalse(view.Project(0, 180).Visible);
         Assert.IsTrue(new Orthographic(45, 10).Project(45, 10) is { Visible: true, X: < 1e-9 and > -1e-9 });
     }

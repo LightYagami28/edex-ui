@@ -26,7 +26,6 @@ public sealed record SystemSnapshot(
     IReadOnlyList<ProcessSample> TopProcesses,
     IReadOnlyList<DiskSample> Disks);
 
-/// <summary>Cross-platform system sampler. Call <see cref="Sample"/> periodically (e.g. once per second).</summary>
 public sealed class SystemMonitor
 {
     private readonly ICpuCounter _cpu = CpuCounters.Create();
@@ -61,22 +60,33 @@ public sealed class SystemMonitor
             {
                 try
                 {
-                    if (process.Id == 0) continue;
+                    if (process.Id == 0)
+                    {
+                        continue;
+                    }
+
                     var cpu = process.TotalProcessorTime;
                     seen.Add(process.Id);
                     double percent = 0;
                     if (elapsedMs > 0 && _lastProcessTimes.TryGetValue(process.Id, out var previous))
+                    {
                         percent = (cpu - previous).TotalMilliseconds / elapsedMs / Environment.ProcessorCount * 100.0;
+                    }
+
                     _lastProcessTimes[process.Id] = cpu;
                     results.Add(new ProcessSample(process.Id, process.ProcessName, Math.Max(0, percent), process.WorkingSet64));
                 }
                 catch (Exception e) when (e is InvalidOperationException or System.ComponentModel.Win32Exception or NotSupportedException or UnauthorizedAccessException)
                 {
-                    // Access denied (system processes) or the process already exited.
+                    _ = e;
                 }
             }
         }
-        foreach (var pid in _lastProcessTimes.Keys.Where(pid => !seen.Contains(pid)).ToList()) _lastProcessTimes.Remove(pid);
+        foreach (var pid in _lastProcessTimes.Keys.Where(pid => !seen.Contains(pid)).ToList())
+        {
+            _lastProcessTimes.Remove(pid);
+        }
+
         return results
             .OrderByDescending(p => p.CpuPercent)
             .ThenByDescending(p => p.WorkingSetBytes)
@@ -96,15 +106,22 @@ public sealed class SystemMonitor
 
     private static DiskSample? Describe(DriveInfo drive)
     {
-        if (!drive.IsReady || drive.TotalSize <= 0 || PseudoFormats.Contains(drive.DriveFormat)) return null;
-        if (!OperatingSystem.IsWindows() && IsHiddenMount(drive.Name, drive.TotalSize)) return null;
+        if (!drive.IsReady || drive.TotalSize <= 0 || PseudoFormats.Contains(drive.DriveFormat))
+        {
+            return null;
+        }
+
+        if (!OperatingSystem.IsWindows() && IsHiddenMount(drive.Name, drive.TotalSize))
+        {
+            return null;
+        }
+
         string label = OperatingSystem.IsWindows() && !string.IsNullOrWhiteSpace(drive.VolumeLabel)
             ? $"{drive.VolumeLabel} ({drive.Name.TrimEnd(Path.DirectorySeparatorChar)})"
             : drive.Name;
         return new DiskSample(label, drive.RootDirectory.FullName, drive.DriveFormat, drive.TotalSize, drive.AvailableFreeSpace);
     }
 
-    /// <summary>Mount points that are plumbing rather than user storage (snaps, runtime folders, EFI, macOS system volumes).</summary>
     internal static bool IsHiddenMount(string name, long totalSize) =>
         name.StartsWith("/snap", StringComparison.Ordinal)
         || name.StartsWith("/System/Volumes/", StringComparison.Ordinal) && name != "/System/Volumes/Data"

@@ -18,7 +18,6 @@ public sealed record NetworkSnapshot(
     double? PingMilliseconds,
     int ActiveTcpConnections);
 
-/// <summary>Plain data about one network interface.</summary>
 public sealed record NicInfo(
     string Id,
     string Name,
@@ -30,7 +29,6 @@ public sealed record NicInfo(
     long BytesReceived,
     long BytesSent);
 
-/// <summary>Where the monitor reads the system from. The real implementation is <see cref="SystemNetworkProbe"/>.</summary>
 public interface INetworkProbe
 {
     IReadOnlyList<NicInfo> Interfaces();
@@ -38,7 +36,6 @@ public interface INetworkProbe
     Task<double?> PingAsync(string host, CancellationToken cancellationToken);
 }
 
-/// <summary>Reads interfaces, TCP connections and ping from the operating system.</summary>
 public sealed class SystemNetworkProbe : INetworkProbe
 {
     public IReadOnlyList<NicInfo> Interfaces() =>
@@ -69,7 +66,11 @@ public sealed class SystemNetworkProbe : INetworkProbe
 
     public async Task<double?> PingAsync(string host, CancellationToken cancellationToken)
     {
-        if (!IPAddress.TryParse(host, out var address)) return null;
+        if (!IPAddress.TryParse(host, out var address))
+        {
+            return null;
+        }
+
         try
         {
             using var ping = new Ping();
@@ -83,7 +84,6 @@ public sealed class SystemNetworkProbe : INetworkProbe
     }
 }
 
-/// <summary>Samples the primary network interface. Call <see cref="SampleAsync"/> about once per second.</summary>
 public sealed class NetworkMonitor
 {
     private readonly string _pingHost;
@@ -106,7 +106,9 @@ public sealed class NetworkMonitor
     {
         var nic = FindPrimaryInterface(_probe.Interfaces());
         if (nic is null)
+        {
             return new NetworkSnapshot(false, "offline", null, null, null, 0, 0, 0, 0, null, 0);
+        }
 
         var ipv4 = nic.Addresses.FirstOrDefault(IsIPv4)?.ToString();
         var gateway = nic.Gateways.FirstOrDefault(IsUsableGateway)?.ToString();
@@ -137,7 +139,6 @@ public sealed class NetworkMonitor
 
     private static bool IsUsableGateway(IPAddress address) => IsIPv4(address) && !address.Equals(IPAddress.Any);
 
-    /// <summary>The interface used for the internet: up, with an IPv4 address, preferring a default gateway and then Ethernet or Wi-Fi.</summary>
     public static NicInfo? FindPrimaryInterface(IEnumerable<NicInfo> interfaces) => interfaces
         .Where(n => n.Status == OperationalStatus.Up
                     && n.Type is not NetworkInterfaceType.Loopback and not NetworkInterfaceType.Tunnel
