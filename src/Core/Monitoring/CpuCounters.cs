@@ -12,7 +12,7 @@ internal interface ICpuCounter
 
 internal static class CpuCounters
 {
-    public static ICpuCounter Create()
+    internal static ICpuCounter Create()
     {
         if (OperatingSystem.IsWindows())
         {
@@ -28,13 +28,14 @@ internal static class CpuCounters
     }
 
     internal static double Percent(ulong idleDelta, ulong totalDelta) =>
-        totalDelta == 0 ? 0 : Math.Clamp((1.0 - (double)idleDelta / totalDelta) * 100.0, 0, 100);
+        totalDelta == 0 ? 0 : Math.Clamp((1.0 - (double)idleDelta / totalDelta) * Percentages.Scale, 0, Percentages.Scale);
 }
 
 [SupportedOSPlatform("windows")]
 internal sealed partial class WindowsCpuCounter : ICpuCounter
 {
-    private ulong _idle, _total;
+    private ulong _idle;
+    private ulong _total;
 
     public double SampleTotalPercent()
     {
@@ -60,7 +61,8 @@ internal sealed class LinuxCpuCounter(string path = "/proc/stat") : ICpuCounter
     private const int IdleFieldIndex = 3;
     private const int IoWaitFieldIndex = 4;
 
-    private ulong _idle, _total;
+    private ulong _idle;
+    private ulong _total;
 
     public double SampleTotalPercent() => Safe.Run(Sample, 0);
 
@@ -99,7 +101,8 @@ internal sealed partial class MacCpuCounter : ICpuCounter
     private const int IdleIndex = 2;
     private const int NiceIndex = 3;
 
-    private ulong _idle, _total;
+    private ulong _idle;
+    private ulong _total;
 
     public double SampleTotalPercent()
     {
@@ -127,7 +130,7 @@ internal sealed partial class MacCpuCounter : ICpuCounter
 
 internal static class CpuInfo
 {
-    public static string ReadModel()
+    internal static string ReadModel()
     {
         var model = Safe.Run(Read, "");
         return string.IsNullOrWhiteSpace(model) ? RuntimeInformation.ProcessArchitecture.ToString() : model;
@@ -137,7 +140,9 @@ internal static class CpuInfo
     {
         if (OperatingSystem.IsWindows())
         {
-            return Convert.ToString(Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\HARDWARE\DESCRIPTION\System\CentralProcessor\0", "ProcessorNameString", ""), System.Globalization.CultureInfo.InvariantCulture)!.Trim();
+            const string key = @"HKEY_LOCAL_MACHINE\HARDWARE\DESCRIPTION\System\CentralProcessor\0";
+            var value = Microsoft.Win32.Registry.GetValue(key, "ProcessorNameString", "");
+            return Convert.ToString(value, CultureInfo.InvariantCulture)!.Trim();
         }
 
         if (OperatingSystem.IsMacOS())

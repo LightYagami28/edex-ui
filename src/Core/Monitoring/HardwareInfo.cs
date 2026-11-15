@@ -5,6 +5,16 @@ public sealed record HardwareSample(string Manufacturer, string Model, string Ch
 
 public static class HardwareInfo
 {
+    private static readonly Dictionary<string, string> ChassisNames = new (string Name, string[] Codes)[]
+    {
+        ("Desktop", ["3", "4", "5", "6", "7", "15", "16"]),
+        ("Laptop", ["8", "9", "10", "14"]),
+        ("Tablet", ["11", "30", "31", "32"]),
+        ("Server", ["17", "23", "28"]),
+        ("All in One", ["13"]),
+        ("", [""]),
+    }.SelectMany(group => group.Codes, (group, code) => (Code: code, group.Name)).ToDictionary(pair => pair.Code, pair => pair.Name, StringComparer.Ordinal);
+
     public static HardwareSample Read() => Safe.Run(ReadSystem, new HardwareSample("", "", ""));
 
     private static HardwareSample ReadSystem()
@@ -34,14 +44,5 @@ public static class HardwareInfo
 
     internal static string Clean(string? value) => value?.Trim() ?? "";
 
-    internal static string ChassisName(string code) => code switch
-    {
-        "3" or "4" or "5" or "6" or "7" or "15" or "16" => "Desktop",
-        "8" or "9" or "10" or "14" => "Laptop",
-        "11" or "30" or "31" or "32" => "Tablet",
-        "17" or "23" or "28" => "Server",
-        "13" => "All in One",
-        "" => "",
-        _ => "Other",
-    };
+    internal static string ChassisName(string code) => ChassisNames.GetValueOrDefault(code, "Other");
 }

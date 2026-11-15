@@ -74,29 +74,29 @@ public static class ThemeLibrary
     {
         try
         {
-            var theme = JsonSerializer.Deserialize<Theme>(json, JsonOptions);
-            if (theme is null)
-            {
-                return null;
-            }
-
-            if (string.IsNullOrWhiteSpace(theme.Name))
-            {
-                theme = theme with { Name = fallbackName };
-            }
-
-            string[] colors = [theme.Accent, theme.Background, theme.Surface, theme.Foreground, theme.Muted];
-            if (!colors.All(ColorUtil.IsValidHex) || theme.Ansi.Count != AnsiColorCount || !theme.Ansi.All(ColorUtil.IsValidHex))
-            {
-                return null;
-            }
-
-            return theme;
+            return Validate(JsonSerializer.Deserialize<Theme>(json, JsonOptions), fallbackName);
         }
         catch (JsonException)
         {
             return null;
         }
+    }
+
+    private static Theme? Validate(Theme? theme, string fallbackName)
+    {
+        if (theme is null)
+        {
+            return null;
+        }
+
+        var named = string.IsNullOrWhiteSpace(theme.Name) ? theme with { Name = fallbackName } : theme;
+        return HasValidColors(named) ? named : null;
+    }
+
+    private static bool HasValidColors(Theme theme)
+    {
+        string[] colors = [theme.Accent, theme.Background, theme.Surface, theme.Foreground, theme.Muted];
+        return colors.All(ColorUtil.IsValidHex) && theme.Ansi.Count == AnsiColorCount && theme.Ansi.All(ColorUtil.IsValidHex);
     }
 
     public static string Serialize(Theme theme) => JsonSerializer.Serialize(theme, JsonOptions);
@@ -108,11 +108,20 @@ public static class ThemeLibrary
 public static class ColorUtil
 {
     private const byte MaxChannel = 255;
+    private const int HexColorLength = 7;
+    private const int RedShift = 16;
+    private const int GreenShift = 8;
 
     private const int ThemePaletteSize = 16;
+    private const int GrayscaleStart = 232;
+    private const int CubeSide = 6;
+    private const int CubeLevelBase = 55;
+    private const int CubeLevelStep = 40;
+    private const int GrayBase = 8;
+    private const int GrayStep = 10;
 
     public static bool IsValidHex(string? value) =>
-        value is { Length: 7 } && value[0] == '#' && uint.TryParse(value.AsSpan(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _);
+        value is { Length: HexColorLength } && value[0] == '#' && uint.TryParse(value.AsSpan(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _);
 
     public static (byte R, byte G, byte B) Parse(string hex)
     {
@@ -122,7 +131,7 @@ public static class ColorUtil
         }
 
         uint value = uint.Parse(hex.AsSpan(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-        return ((byte)(value >> 16), (byte)(value >> 8), (byte)value);
+        return ((byte)(value >> RedShift), (byte)(value >> GreenShift), (byte)value);
     }
 
     public static (byte R, byte G, byte B) Xterm256(int index)
@@ -132,13 +141,14 @@ public static class ColorUtil
             return (0, 0, 0);
         }
 
-        if (index < 232)
+        if (index < GrayscaleStart)
         {
             int i = index - ThemePaletteSize;
-            static byte Level(int v) => (byte)(v == 0 ? 0 : 55 + v * 40);
-            return (Level(i / 36), Level(i / 6 % 6), Level(i % 6));
+            return (CubeLevel(i / (CubeSide * CubeSide)), CubeLevel(i / CubeSide % CubeSide), CubeLevel(i % CubeSide));
         }
-        byte gray = (byte)(8 + (index - 232) * 10);
+        byte gray = (byte)(GrayBase + (index - GrayscaleStart) * GrayStep);
         return (gray, gray, gray);
     }
+
+    private static byte CubeLevel(int level) => (byte)(level == 0 ? 0 : CubeLevelBase + level * CubeLevelStep);
 }
