@@ -19,6 +19,13 @@ public enum MouseEventKind { Press, Release, Motion }
 [Flags]
 public enum MouseModifiers { None = 0, Shift = 4, Alt = 8, Control = 16 }
 
+public readonly record struct MouseEvent(MouseEventKind Kind, MouseButton Button, CellPosition At, MouseModifiers Modifiers)
+{
+    public MouseEvent(MouseEventKind kind, MouseButton button, CellPosition at) : this(kind, button, at, MouseModifiers.None)
+    {
+    }
+}
+
 public static class MouseEncoder
 {
     private const int MotionFlag = 32;
@@ -28,30 +35,32 @@ public static class MouseEncoder
     private const int LegacyMaxCoordinate = 223;
     private const int LegacyOffset = 32;
 
-    public static string? Encode(MouseTrackingMode mode, bool sgr, MouseEventKind kind, MouseButton button, int column, int row, MouseModifiers modifiers = MouseModifiers.None)
+    public static string? Encode(MouseTrackingMode mode, bool sgr, MouseEvent mouse)
     {
-        if (mode == MouseTrackingMode.None || !IsReported(mode, kind, button))
+        if (mode == MouseTrackingMode.None || !IsReported(mode, mouse.Kind, mouse.Button))
         {
             return null;
         }
 
-        int code = (int)button;
-        if (mode != MouseTrackingMode.X10)
-        {
-            code |= (int)modifiers;
-        }
-
-        if (kind == MouseEventKind.Motion)
-        {
-            code |= MotionFlag;
-        }
-
-        int x = Math.Max(0, column) + 1, y = Math.Max(0, row) + 1;
-        return sgr ? SgrEncode(kind, SgrCode(kind, button, code, modifiers), x, y) : LegacyEncode(kind, code, x, y);
+        int code = Code(mode, mouse);
+        int x = Math.Max(0, mouse.At.Column) + 1;
+        int y = Math.Max(0, mouse.At.Row) + 1;
+        return sgr ? SgrEncode(mouse.Kind, SgrCode(mouse, code), x, y) : LegacyEncode(mouse.Kind, code, x, y);
     }
 
-    private static int SgrCode(MouseEventKind kind, MouseButton button, int code, MouseModifiers modifiers) =>
-        kind == MouseEventKind.Release && button == MouseButton.None ? ReleaseButton | (int)modifiers : code;
+    private static int Code(MouseTrackingMode mode, MouseEvent mouse)
+    {
+        int code = (int)mouse.Button;
+        if (mode != MouseTrackingMode.X10)
+        {
+            code |= (int)mouse.Modifiers;
+        }
+
+        return mouse.Kind == MouseEventKind.Motion ? code | MotionFlag : code;
+    }
+
+    private static int SgrCode(MouseEvent mouse, int code) =>
+        mouse.Kind == MouseEventKind.Release && mouse.Button == MouseButton.None ? ReleaseButton | (int)mouse.Modifiers : code;
 
     private static string SgrEncode(MouseEventKind kind, int code, int x, int y)
     {

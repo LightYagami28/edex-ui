@@ -23,23 +23,23 @@ public class MouseAndSelectionTests
     [TestMethod]
     public void EncodesSgrMouseEvents()
     {
-        Assert.AreEqual("\x1b[<0;3;2M", MouseEncoder.Encode(MouseTrackingMode.Normal, true, MouseEventKind.Press, MouseButton.Left, 2, 1));
-        Assert.AreEqual("\x1b[<0;3;2m", MouseEncoder.Encode(MouseTrackingMode.Normal, true, MouseEventKind.Release, MouseButton.Left, 2, 1));
-        Assert.AreEqual("\x1b[<18;1;1M", MouseEncoder.Encode(MouseTrackingMode.Normal, true, MouseEventKind.Press, MouseButton.Right, 0, 0, MouseModifiers.Control));
-        Assert.AreEqual("\x1b[<64;5;5M", MouseEncoder.Encode(MouseTrackingMode.Normal, true, MouseEventKind.Press, MouseButton.WheelUp, 4, 4));
-        Assert.AreEqual("\x1b[<32;2;2M", MouseEncoder.Encode(MouseTrackingMode.ButtonEvent, true, MouseEventKind.Motion, MouseButton.Left, 1, 1));
+        Assert.AreEqual("\x1b[<0;3;2M", MouseEncoder.Encode(MouseTrackingMode.Normal, true, new MouseEvent(MouseEventKind.Press, MouseButton.Left, new CellPosition(2, 1))));
+        Assert.AreEqual("\x1b[<0;3;2m", MouseEncoder.Encode(MouseTrackingMode.Normal, true, new MouseEvent(MouseEventKind.Release, MouseButton.Left, new CellPosition(2, 1))));
+        Assert.AreEqual("\x1b[<18;1;1M", MouseEncoder.Encode(MouseTrackingMode.Normal, true, new MouseEvent(MouseEventKind.Press, MouseButton.Right, new CellPosition(0, 0), MouseModifiers.Control)));
+        Assert.AreEqual("\x1b[<64;5;5M", MouseEncoder.Encode(MouseTrackingMode.Normal, true, new MouseEvent(MouseEventKind.Press, MouseButton.WheelUp, new CellPosition(4, 4))));
+        Assert.AreEqual("\x1b[<32;2;2M", MouseEncoder.Encode(MouseTrackingMode.ButtonEvent, true, new MouseEvent(MouseEventKind.Motion, MouseButton.Left, new CellPosition(1, 1))));
     }
 
     [TestMethod]
     public void EncodesLegacyMouseEventsAndRespectsMode()
     {
-        Assert.AreEqual("\x1b[M !!", MouseEncoder.Encode(MouseTrackingMode.Normal, false, MouseEventKind.Press, MouseButton.Left, 0, 0));
-        Assert.AreEqual("\x1b[M#!!", MouseEncoder.Encode(MouseTrackingMode.Normal, false, MouseEventKind.Release, MouseButton.Left, 0, 0));
-        Assert.IsNull(MouseEncoder.Encode(MouseTrackingMode.X10, false, MouseEventKind.Release, MouseButton.Left, 0, 0));
-        Assert.IsNull(MouseEncoder.Encode(MouseTrackingMode.Normal, true, MouseEventKind.Motion, MouseButton.Left, 0, 0));
-        Assert.IsNull(MouseEncoder.Encode(MouseTrackingMode.ButtonEvent, true, MouseEventKind.Motion, MouseButton.None, 0, 0));
-        Assert.IsNotNull(MouseEncoder.Encode(MouseTrackingMode.AnyEvent, true, MouseEventKind.Motion, MouseButton.None, 0, 0));
-        Assert.IsNull(MouseEncoder.Encode(MouseTrackingMode.None, true, MouseEventKind.Press, MouseButton.Left, 0, 0));
+        Assert.AreEqual("\x1b[M !!", MouseEncoder.Encode(MouseTrackingMode.Normal, false, new MouseEvent(MouseEventKind.Press, MouseButton.Left, new CellPosition(0, 0))));
+        Assert.AreEqual("\x1b[M#!!", MouseEncoder.Encode(MouseTrackingMode.Normal, false, new MouseEvent(MouseEventKind.Release, MouseButton.Left, new CellPosition(0, 0))));
+        Assert.IsNull(MouseEncoder.Encode(MouseTrackingMode.X10, false, new MouseEvent(MouseEventKind.Release, MouseButton.Left, new CellPosition(0, 0))));
+        Assert.IsNull(MouseEncoder.Encode(MouseTrackingMode.Normal, true, new MouseEvent(MouseEventKind.Motion, MouseButton.Left, new CellPosition(0, 0))));
+        Assert.IsNull(MouseEncoder.Encode(MouseTrackingMode.ButtonEvent, true, new MouseEvent(MouseEventKind.Motion, MouseButton.None, new CellPosition(0, 0))));
+        Assert.IsNotNull(MouseEncoder.Encode(MouseTrackingMode.AnyEvent, true, new MouseEvent(MouseEventKind.Motion, MouseButton.None, new CellPosition(0, 0))));
+        Assert.IsNull(MouseEncoder.Encode(MouseTrackingMode.None, true, new MouseEvent(MouseEventKind.Press, MouseButton.Left, new CellPosition(0, 0))));
     }
 
     [TestMethod]

@@ -7,6 +7,7 @@ namespace Edex.Core.Terminal;
 public sealed class TerminalSession : IDisposable
 {
     private const int ReadChunkSize = 16 * 1024;
+    private const int DefaultScrollback = 2000;
 
     private readonly IPtyConnection _pty;
     private readonly Lock _writeGate = new();
@@ -38,7 +39,9 @@ public sealed class TerminalSession : IDisposable
         reader.Start();
     }
 
-    public static TerminalSession Start(PtyOptions options, int scrollback = 2000)
+    public static TerminalSession Start(PtyOptions options) => Start(options, DefaultScrollback);
+
+    public static TerminalSession Start(PtyOptions options, int scrollback)
     {
         return Attach(PtyFactory.Spawn(options), options.Shell, new TerminalBuffer(options.Columns, options.Rows, scrollback));
     }
@@ -65,16 +68,7 @@ public sealed class TerminalSession : IDisposable
             bool running = true;
             while (running && Volatile.Read(ref _disposed) == 0)
             {
-                int read = _pty.Output.Read(chunk, 0, chunk.Length);
-                if (read <= 0)
-                {
-                    running = false;
-                }
-                else
-                {
-                    Buffer.Feed(chunk.AsSpan(0, read));
-                    Updated?.Invoke(this, EventArgs.Empty);
-                }
+                running = ReadChunk(chunk);
             }
         }
         catch (Exception e) when (e is IOException or ObjectDisposedException)
@@ -82,6 +76,19 @@ public sealed class TerminalSession : IDisposable
             _ = e;
         }
         Updated?.Invoke(this, EventArgs.Empty);
+    }
+
+    private bool ReadChunk(byte[] chunk)
+    {
+        int read = _pty.Output.Read(chunk, 0, chunk.Length);
+        if (read <= 0)
+        {
+            return false;
+        }
+
+        Buffer.Feed(chunk.AsSpan(0, read));
+        Updated?.Invoke(this, EventArgs.Empty);
+        return true;
     }
 
     public void Send(string text)
@@ -108,7 +115,7 @@ public sealed class TerminalSession : IDisposable
 
     public void Paste(string text)
     {
-        text = text.Replace("\r\n", "\r").Replace('\n', '\r');
+        text = text.Replace("\r\n", "\r", StringComparison.Ordinal).Replace('\n', '\r');
         Send(Buffer.BracketedPaste ? $"\x1b[200~{text}\x1b[201~" : text);
     }
 

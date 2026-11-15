@@ -2,7 +2,7 @@
 namespace Edex.Core.Terminal;
 
 [Flags]
-public enum CellAttributes : ushort
+public enum CellAttributes
 {
     None = 0,
     Bold = 1,
@@ -16,13 +16,20 @@ public enum CellAttributes : ushort
 
 public readonly record struct TerminalCell(char Glyph, uint Foreground, uint Background, CellAttributes Attributes)
 {
+    private const uint PaletteBit = 0x01000000;
+    private const uint RgbBit = 0x02000000;
+    private const int ChannelMask = 0xFF;
+    private const int RedShift = 16;
+    private const int GreenShift = 8;
+
     public static readonly TerminalCell Blank = new(' ', 0, 0, CellAttributes.None);
 
-    public const uint PaletteFlag = 0x01000000;
-    public const uint RgbFlag = 0x02000000;
+    public static uint PaletteFlag => PaletteBit;
+    public static uint RgbFlag => RgbBit;
 
-    public static uint Palette(int index) => PaletteFlag | (uint)(index & 0xFF);
-    public static uint Rgb(int r, int g, int b) => RgbFlag | (uint)((r & 0xFF) << 16 | (g & 0xFF) << 8 | (b & 0xFF));
+    public static uint Palette(int index) => PaletteBit | (uint)(index & ChannelMask);
+    public static uint Rgb(int r, int g, int b) =>
+        RgbBit | (uint)((r & ChannelMask) << RedShift | (g & ChannelMask) << GreenShift | (b & ChannelMask));
 }
 
 public sealed class TerminalSnapshot

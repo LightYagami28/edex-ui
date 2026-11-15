@@ -8,41 +8,12 @@ public sealed class TerminalBuffer
 {
     private enum State { Ground, Escape, EscapeIntermediate, Csi, Osc, OscEscape, Charset, Dcs, DcsEscape }
 
+    private const int MinSize = 2;
+    private const int DefaultColumns = 80;
+    private const int DefaultRows = 24;
+    private const int DefaultScrollback = 2000;
     private const int CharBufferInitialSize = 4096;
     private const int CharBufferSlack = 4;
-    private const int MaxOscLength = 4096;
-    private const int TabWidth = 8;
-    private const int DeviceStatusReportCursorPosition = 6;
-    private const int DeviceStatusReportTerminal = 5;
-    private const int AlternateScreenSaveCursorMode = 1049;
-    private const char Bell = '\a';
-    private const char Cancel = '\x18';
-    private const char Substitute = '\x1A';
-    private const char Escape = '\x1B';
-    private const char Delete = '\x7F';
-    private const char CsiFinalFirst = '@';
-    private const char CsiFinalLast = '~';
-    private const char IntermediateFirst = '0';
-    private const char IntermediateLast = '~';
-    private const string IntermediateChars = " !\"$'";
-    private const int SgrExtendedForeground = 38;
-    private const int SgrExtendedBackground = 48;
-    private const int SgrForegroundFirst = 30;
-    private const int SgrForegroundLast = 37;
-    private const int SgrBackgroundFirst = 40;
-    private const int SgrBackgroundLast = 47;
-    private const int SgrBrightForegroundFirst = 90;
-    private const int SgrBrightForegroundLast = 97;
-    private const int SgrBrightBackgroundFirst = 100;
-    private const int SgrBrightBackgroundLast = 107;
-    private const int BrightPaletteOffset = 8;
-    private const int SgrColorIndexed = 5;
-    private const int SgrColorRgb = 2;
-    private const int IndexedColorArgs = 1;
-    private const int RgbColorArgs = 3;
-    private const int RedIndex = 0;
-    private const int GreenIndex = 1;
-    private const int BlueIndex = 2;
 
     private readonly Lock _gate = new();
     private readonly Decoder _decoder = new UTF8Encoding(false).GetDecoder();
@@ -57,10 +28,15 @@ public sealed class TerminalBuffer
     private TerminalCell[][] _screen;
     private State _state = State.Ground;
     private char _csiPrefix;
-    private int _cursorX, _cursorY, _savedX, _savedY;
+    private int _cursorX;
+    private int _cursorY;
+    private int _savedX;
+    private int _savedY;
     private bool _wrapPending;
-    private int _scrollTop, _scrollBottom;
-    private uint _fg, _bg;
+    private int _scrollTop;
+    private int _scrollBottom;
+    private uint _fg;
+    private uint _bg;
     private CellAttributes _attrs;
     private int _scrollOffset;
 
@@ -77,10 +53,18 @@ public sealed class TerminalBuffer
 
     public event Action<string>? Response;
 
-    public TerminalBuffer(int columns = 80, int rows = 24, int scrollbackLimit = 2000)
+    public TerminalBuffer() : this(DefaultColumns, DefaultRows)
     {
-        Columns = Math.Max(2, columns);
-        Rows = Math.Max(2, rows);
+    }
+
+    public TerminalBuffer(int columns, int rows) : this(columns, rows, DefaultScrollback)
+    {
+    }
+
+    public TerminalBuffer(int columns, int rows, int scrollbackLimit)
+    {
+        Columns = Math.Max(MinSize, columns);
+        Rows = Math.Max(MinSize, rows);
         ScrollbackLimit = scrollbackLimit;
         _main = NewScreen(Columns, Rows);
         _screen = _main;
@@ -111,25 +95,11 @@ public sealed class TerminalBuffer
 
     public void Feed(ReadOnlySpan<byte> data)
     {
-        string? responses = null;
+        string? responses;
         lock (_gate)
         {
-            if (_charBuffer.Length < data.Length + CharBufferSlack)
-            {
-                _charBuffer = new char[data.Length + CharBufferSlack];
-            }
-
-            int count = _decoder.GetChars(data, _charBuffer, flush: false);
-            for (int i = 0; i < count; i++)
-            {
-                Process(_charBuffer[i]);
-            }
-
-            if (_responses.Length > 0)
-            {
-                responses = _responses.ToString();
-                _responses.Clear();
-            }
+            Decode(data);
+            responses = TakeResponses();
         }
         if (responses is not null)
         {
@@ -137,75 +107,100 @@ public sealed class TerminalBuffer
         }
     }
 
-    public void Resize(int columns, int rows)
+    private void Decode(ReadOnlySpan<byte> data)
     {
-        columns = Math.Max(2, columns);
-        rows = Math.Max(2, rows);
-        lock (_gate)
+        if (_charBuffer.Length < data.Length + CharBufferSlack)
         {
-            if (columns == Columns && rows == Rows)
-            {
-                return;
-            }
+            _charBuffer = new char[data.Length + CharBufferSlack];
+        }
 
-            bool alternate = IsAlternateScreen;
-            int oldCursorY = _cursorY;
-            _main = ResizeScreen(_main, columns, rows, pushToScrollback: !alternate, alternate ? rows - 1 : oldCursorY);
-            if (_alternate is not null)
-            {
-                _alternate = ResizeScreen(_alternate, columns, rows, pushToScrollback: false, oldCursorY);
-            }
-
-            _screen = alternate ? _alternate! : _main;
-            int shift = Math.Max(0, (oldCursorY + 1) - rows);
-            Columns = columns;
-            Rows = rows;
-            _cursorY = Math.Clamp(oldCursorY - shift, 0, rows - 1);
-            _cursorX = Math.Clamp(_cursorX, 0, columns - 1);
-            _scrollTop = 0;
-            _scrollBottom = rows - 1;
-            _wrapPending = false;
-            _scrollOffset = Math.Min(_scrollOffset, _scrollback.Count);
+        int count = _decoder.GetChars(data, _charBuffer, flush: false);
+        for (int i = 0; i < count; i++)
+        {
+            Process(_charBuffer[i]);
         }
     }
 
-    private TerminalCell[][] ResizeScreen(TerminalCell[][] screen, int columns, int rows, bool pushToScrollback, int cursorY)
+    private string? TakeResponses()
+    {
+        if (_responses.Length == 0)
+        {
+            return null;
+        }
+
+        var text = _responses.ToString();
+        _responses.Clear();
+        return text;
+    }
+
+    public void Resize(int columns, int rows)
+    {
+        columns = Math.Max(MinSize, columns);
+        rows = Math.Max(MinSize, rows);
+        lock (_gate)
+        {
+            if (columns != Columns || rows != Rows)
+            {
+                ResizeLocked(columns, rows);
+            }
+        }
+    }
+
+    private void ResizeLocked(int columns, int rows)
+    {
+        bool alternate = IsAlternateScreen;
+        int oldCursorY = _cursorY;
+        var size = (columns, rows);
+        _main = ResizeScreen(_main, size, alternate ? rows - 1 : oldCursorY, !alternate);
+        _alternate = _alternate is null ? null : ResizeScreen(_alternate, size, oldCursorY, false);
+        _screen = alternate ? _alternate! : _main;
+        int shift = Math.Max(0, (oldCursorY + 1) - rows);
+        Columns = columns;
+        Rows = rows;
+        _cursorY = Math.Clamp(oldCursorY - shift, 0, rows - 1);
+        _cursorX = Math.Clamp(_cursorX, 0, columns - 1);
+        ResetMargins();
+        _wrapPending = false;
+        _scrollOffset = Math.Min(_scrollOffset, _scrollback.Count);
+    }
+
+    private TerminalCell[][] ResizeScreen(TerminalCell[][] screen, (int Columns, int Rows) size, int cursorY, bool pushToScrollback)
     {
         var lines = screen.ToList();
-        while (lines.Count > rows)
+        while (lines.Count > size.Rows)
         {
-            if (lines.Count - 1 > cursorY && IsBlank(lines[^1]))
-            {
-                lines.RemoveAt(lines.Count - 1);
-            }
-            else
-            {
-                if (pushToScrollback)
-                {
-                    PushScrollback(lines[0]);
-                }
-
-                lines.RemoveAt(0);
-                cursorY--;
-            }
+            cursorY -= DropLine(lines, cursorY, pushToScrollback);
         }
-        while (lines.Count < rows)
+        while (lines.Count < size.Rows)
         {
-            lines.Add(NewLine(columns));
+            lines.Add(NewLine(size.Columns));
         }
 
-        for (int i = 0; i < lines.Count; i++)
-        {
-            if (lines[i].Length == columns)
-            {
-                continue;
-            }
+        return lines.Select(line => line.Length == size.Columns ? line : CopyLine(line, size.Columns)).ToArray();
+    }
 
-            var line = NewLine(columns);
-            Array.Copy(lines[i], line, Math.Min(columns, lines[i].Length));
-            lines[i] = line;
+    private int DropLine(List<TerminalCell[]> lines, int cursorY, bool pushToScrollback)
+    {
+        if (lines.Count - 1 > cursorY && IsBlank(lines[^1]))
+        {
+            lines.RemoveAt(lines.Count - 1);
+            return 0;
         }
-        return lines.ToArray();
+
+        if (pushToScrollback)
+        {
+            PushScrollback(lines[0]);
+        }
+
+        lines.RemoveAt(0);
+        return 1;
+    }
+
+    private static TerminalCell[] CopyLine(TerminalCell[] line, int columns)
+    {
+        var copy = NewLine(columns);
+        Array.Copy(line, copy, Math.Min(columns, line.Length));
+        return copy;
     }
 
     private static bool IsBlank(TerminalCell[] line) => line.All(c => c.Glyph == ' ' && c.Background == 0);
@@ -245,21 +240,12 @@ public sealed class TerminalBuffer
     {
         lock (_gate)
         {
-            var lines = new TerminalCell[Rows][];
             int offset = IsAlternateScreen ? 0 : _scrollOffset;
-            for (int row = 0; row < Rows; row++)
-            {
-                int source = row - offset;
-                TerminalCell[] line = source < 0 ? _scrollback[_scrollback.Count + source] : _screen[source];
-                var copy = NewLine(Columns);
-                Array.Copy(line, copy, Math.Min(Columns, line.Length));
-                lines[row] = copy;
-            }
             return new TerminalSnapshot
             {
                 Columns = Columns,
                 Rows = Rows,
-                Lines = lines,
+                Lines = VisibleLines(offset),
                 CursorX = Math.Min(_cursorX, Columns - 1),
                 CursorY = _cursorY + offset,
                 CursorVisible = CursorVisible && offset == 0,
@@ -267,6 +253,17 @@ public sealed class TerminalBuffer
                 ScrollbackLength = _scrollback.Count,
             };
         }
+    }
+
+    private TerminalCell[][] VisibleLines(int offset)
+    {
+        var lines = new TerminalCell[Rows][];
+        for (int row = 0; row < Rows; row++)
+        {
+            int source = row - offset;
+            lines[row] = CopyLine(source < 0 ? _scrollback[_scrollback.Count + source] : _screen[source], Columns);
+        }
+        return lines;
     }
 
     public string ScrollbackText()
@@ -282,6 +279,19 @@ public sealed class TerminalBuffer
             return sb.ToString().TrimEnd('\n');
         }
     }
+
+    private const int MaxOscLength = 4096;
+    private const int MaxParamDigits = 9;
+    private const char Bell = '\a';
+    private const char Cancel = '\x18';
+    private const char Substitute = '\x1A';
+    private const char Escape = '\x1B';
+    private const char Delete = '\x7F';
+    private const char CsiFinalFirst = '@';
+    private const char CsiFinalLast = '~';
+    private const char IntermediateFirst = '0';
+    private const char IntermediateLast = '~';
+    private const string IntermediateChars = " !\"$'";
 
     private static readonly Dictionary<State, Action<TerminalBuffer, char>> StateActions = new()
     {
@@ -469,28 +479,22 @@ public sealed class TerminalBuffer
         }
     }
 
+    private static readonly Dictionary<char, Action<TerminalBuffer>> ControlActions = new()
+    {
+        [Escape] = b => b._state = State.Escape,
+        ['\r'] = b => b.CarriageReturn(),
+        ['\n'] = b => b.LineFeed(),
+        ['\v'] = b => b.LineFeed(),
+        ['\f'] = b => b.LineFeed(),
+        ['\b'] = b => b.Backspace(),
+        ['\t'] = b => b.Tab(),
+    };
+
     private void Control(char c)
     {
-        switch (c)
+        if (ControlActions.TryGetValue(c, out var action))
         {
-            case '\x1B': _state = State.Escape; break;
-            case '\r': _cursorX = 0; _wrapPending = false; break;
-            case '\n': case '\v': case '\f': LineFeed(); break;
-            case '\b':
-                if (_wrapPending)
-                {
-                    _wrapPending = false;
-                }
-                else
-                {
-                    _cursorX = Math.Max(0, _cursorX - 1);
-                }
-
-                break;
-            case '\t':
-                _wrapPending = false;
-                _cursorX = Math.Min(Columns - 1, (_cursorX / TabWidth + 1) * TabWidth);
-                break;
+            action(this);
         }
     }
 
@@ -513,91 +517,6 @@ public sealed class TerminalBuffer
         }
     }
 
-    private void LineFeed()
-    {
-        _wrapPending = false;
-        if (_cursorY == _scrollBottom)
-        {
-            ScrollUp(1);
-        }
-        else
-        {
-            _cursorY = Math.Min(_cursorY + 1, Rows - 1);
-        }
-    }
-
-    private void ReverseIndex()
-    {
-        _wrapPending = false;
-        if (_cursorY == _scrollTop)
-        {
-            ScrollDown(1);
-        }
-        else
-        {
-            _cursorY = Math.Max(_cursorY - 1, 0);
-        }
-    }
-
-    private void ScrollUp(int count)
-    {
-        count = Math.Min(count, _scrollBottom - _scrollTop + 1);
-        for (int n = 0; n < count; n++)
-        {
-            var top = _screen[_scrollTop];
-            if (_scrollTop == 0 && !IsAlternateScreen)
-            {
-                PushScrollback(top);
-            }
-
-            for (int row = _scrollTop; row < _scrollBottom; row++)
-            {
-                _screen[row] = _screen[row + 1];
-            }
-
-            _screen[_scrollBottom] = NewLine(Columns, BlankWithBackground);
-        }
-    }
-
-    private void ScrollDown(int count)
-    {
-        count = Math.Min(count, _scrollBottom - _scrollTop + 1);
-        for (int n = 0; n < count; n++)
-        {
-            for (int row = _scrollBottom; row > _scrollTop; row--)
-            {
-                _screen[row] = _screen[row - 1];
-            }
-
-            _screen[_scrollTop] = NewLine(Columns, BlankWithBackground);
-        }
-    }
-
-    private void SaveCursor() { _savedX = _cursorX; _savedY = _cursorY; }
-
-    private void RestoreCursor()
-    {
-        _cursorX = Math.Clamp(_savedX, 0, Columns - 1);
-        _cursorY = Math.Clamp(_savedY, 0, Rows - 1);
-        _wrapPending = false;
-    }
-
-    private void FullReset()
-    {
-        _main = NewScreen(Columns, Rows);
-        _alternate = null;
-        _screen = _main;
-        _cursorX = _cursorY = 0;
-        _scrollTop = 0;
-        _scrollBottom = Rows - 1;
-        _fg = _bg = 0;
-        _attrs = CellAttributes.None;
-        _wrapPending = false;
-        ApplicationCursorKeys = BracketedPaste = SgrMouse = false;
-        MouseTracking = MouseTrackingMode.None;
-        CursorVisible = true;
-    }
-
     private void Osc()
     {
         var text = _osc.ToString();
@@ -616,25 +535,25 @@ public sealed class TerminalBuffer
 
     private int[] ParseParams()
     {
-        var raw = _params.ToString();
-        if (raw.Length > 0 && raw[0] is '?' or '>' or '<' or '=')
+        var raw = StripPrefix(_params.ToString());
+        return raw.Length == 0 ? [] : raw.Split(ParamSeparators).Select(ParseParam).ToArray();
+    }
+
+    private string StripPrefix(string raw)
+    {
+        if (raw.Length == 0 || raw[0] is not ('?' or '>' or '<' or '='))
         {
-            _csiPrefix = raw[0];
-            raw = raw[1..];
-        }
-        if (raw.Length == 0)
-        {
-            return [];
+            return raw;
         }
 
-        var parts = raw.Split(ParamSeparators);
-        var values = new int[parts.Length];
-        for (int i = 0; i < parts.Length; i++)
-        {
-            var digits = new string(parts[i].TakeWhile(char.IsAsciiDigit).Take(9).ToArray());
-            values[i] = digits.Length == 0 ? 0 : int.Parse(digits, System.Globalization.CultureInfo.InvariantCulture);
-        }
-        return values;
+        _csiPrefix = raw[0];
+        return raw[1..];
+    }
+
+    private static int ParseParam(string part)
+    {
+        var digits = new string(part.TakeWhile(char.IsAsciiDigit).Take(MaxParamDigits).ToArray());
+        return digits.Length == 0 ? 0 : int.Parse(digits, CultureInfo.InvariantCulture);
     }
 
     private static readonly char[] ParamSeparators = [';', ':'];
@@ -741,6 +660,130 @@ public sealed class TerminalBuffer
         {
             action(this, p);
         }
+    }
+
+    private const int TabWidth = 8;
+    private const int DeviceStatusReportCursorPosition = 6;
+    private const int DeviceStatusReportTerminal = 5;
+    private const int AlternateScreenSaveCursorMode = 1049;
+
+    private void LineFeed()
+    {
+        _wrapPending = false;
+        if (_cursorY == _scrollBottom)
+        {
+            ScrollUp(1);
+        }
+        else
+        {
+            _cursorY = Math.Min(_cursorY + 1, Rows - 1);
+        }
+    }
+
+    private void ReverseIndex()
+    {
+        _wrapPending = false;
+        if (_cursorY == _scrollTop)
+        {
+            ScrollDown(1);
+        }
+        else
+        {
+            _cursorY = Math.Max(_cursorY - 1, 0);
+        }
+    }
+
+    private void ScrollUp(int count)
+    {
+        count = Math.Min(count, _scrollBottom - _scrollTop + 1);
+        for (int n = 0; n < count; n++)
+        {
+            var top = _screen[_scrollTop];
+            if (_scrollTop == 0 && !IsAlternateScreen)
+            {
+                PushScrollback(top);
+            }
+
+            for (int row = _scrollTop; row < _scrollBottom; row++)
+            {
+                _screen[row] = _screen[row + 1];
+            }
+
+            _screen[_scrollBottom] = NewLine(Columns, BlankWithBackground);
+        }
+    }
+
+    private void ScrollDown(int count)
+    {
+        count = Math.Min(count, _scrollBottom - _scrollTop + 1);
+        for (int n = 0; n < count; n++)
+        {
+            for (int row = _scrollBottom; row > _scrollTop; row--)
+            {
+                _screen[row] = _screen[row - 1];
+            }
+
+            _screen[_scrollTop] = NewLine(Columns, BlankWithBackground);
+        }
+    }
+
+    private void CarriageReturn()
+    {
+        _cursorX = 0;
+        _wrapPending = false;
+    }
+
+    private void Backspace()
+    {
+        if (_wrapPending)
+        {
+            _wrapPending = false;
+        }
+        else
+        {
+            _cursorX = Math.Max(0, _cursorX - 1);
+        }
+    }
+
+    private void Tab()
+    {
+        _wrapPending = false;
+        _cursorX = Math.Min(Columns - 1, (_cursorX / TabWidth + 1) * TabWidth);
+    }
+
+    private void SaveCursor()
+    {
+        _savedX = _cursorX;
+        _savedY = _cursorY;
+    }
+
+    private void ResetMargins()
+    {
+        _scrollTop = 0;
+        _scrollBottom = Rows - 1;
+    }
+
+    private void RestoreCursor()
+    {
+        _cursorX = Math.Clamp(_savedX, 0, Columns - 1);
+        _cursorY = Math.Clamp(_savedY, 0, Rows - 1);
+        _wrapPending = false;
+    }
+
+    private void FullReset()
+    {
+        _main = NewScreen(Columns, Rows);
+        _alternate = null;
+        _screen = _main;
+        _cursorX = _cursorY = 0;
+        _scrollTop = 0;
+        _scrollBottom = Rows - 1;
+        _fg = _bg = 0;
+        _attrs = CellAttributes.None;
+        _wrapPending = false;
+        ApplicationCursorKeys = BracketedPaste = SgrMouse = false;
+        MouseTracking = MouseTrackingMode.None;
+        CursorVisible = true;
     }
 
     private (int top, int bottom) RowLimits()
@@ -865,28 +908,46 @@ public sealed class TerminalBuffer
 
     private void SwitchScreen(int mode, bool on)
     {
-        if (on && !IsAlternateScreen)
+        if (on != IsAlternateScreen)
         {
-            if (mode == AlternateScreenSaveCursorMode)
-            {
-                SaveCursor();
-            }
+            ToggleAlternateScreen(on, mode == AlternateScreenSaveCursorMode);
+        }
 
-            _alternate = NewScreen(Columns, Rows);
-            _screen = _alternate;
-            _cursorX = _cursorY = 0;
-        }
-        else if (!on && IsAlternateScreen)
+        ResetMargins();
+    }
+
+    private void ToggleAlternateScreen(bool on, bool keepCursor)
+    {
+        if (on)
         {
-            _screen = _main;
-            _alternate = null;
-            if (mode == AlternateScreenSaveCursorMode)
-            {
-                RestoreCursor();
-            }
+            EnterAlternateScreen(keepCursor);
         }
-        _scrollTop = 0;
-        _scrollBottom = Rows - 1;
+        else
+        {
+            LeaveAlternateScreen(keepCursor);
+        }
+    }
+
+    private void EnterAlternateScreen(bool saveCursor)
+    {
+        if (saveCursor)
+        {
+            SaveCursor();
+        }
+
+        _alternate = NewScreen(Columns, Rows);
+        _screen = _alternate;
+        _cursorX = _cursorY = 0;
+    }
+
+    private void LeaveAlternateScreen(bool restoreCursor)
+    {
+        _screen = _main;
+        _alternate = null;
+        if (restoreCursor)
+        {
+            RestoreCursor();
+        }
     }
 
     private static readonly Action<TerminalBuffer>[] EraseDisplayModes =
@@ -1009,6 +1070,25 @@ public sealed class TerminalBuffer
             line[x] = BlankWithBackground;
         }
     }
+
+    private const int SgrExtendedForeground = 38;
+    private const int SgrExtendedBackground = 48;
+    private const int SgrForegroundFirst = 30;
+    private const int SgrForegroundLast = 37;
+    private const int SgrBackgroundFirst = 40;
+    private const int SgrBackgroundLast = 47;
+    private const int SgrBrightForegroundFirst = 90;
+    private const int SgrBrightForegroundLast = 97;
+    private const int SgrBrightBackgroundFirst = 100;
+    private const int SgrBrightBackgroundLast = 107;
+    private const int BrightPaletteOffset = 8;
+    private const int SgrColorIndexed = 5;
+    private const int SgrColorRgb = 2;
+    private const int IndexedColorArgs = 1;
+    private const int RgbColorArgs = 3;
+    private const int RedIndex = 0;
+    private const int GreenIndex = 1;
+    private const int BlueIndex = 2;
 
     private static readonly Dictionary<int, Action<TerminalBuffer>> SgrSimple = new()
     {

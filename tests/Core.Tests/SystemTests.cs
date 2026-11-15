@@ -260,10 +260,10 @@ public class TerminalExtraTests
     [TestMethod]
     public void MouseEdgeCases()
     {
-        Assert.AreEqual("\x1b[<3;1;1m", MouseEncoder.Encode(MouseTrackingMode.AnyEvent, true, MouseEventKind.Release, MouseButton.None, 0, 0));
-        Assert.IsNull(MouseEncoder.Encode(MouseTrackingMode.Normal, false, MouseEventKind.Press, MouseButton.Left, 300, 0));
-        Assert.IsNull(MouseEncoder.Encode(MouseTrackingMode.Normal, false, MouseEventKind.Press, MouseButton.Left, 0, 300));
-        Assert.IsNull(MouseEncoder.Encode(MouseTrackingMode.Normal, true, MouseEventKind.Release, MouseButton.WheelUp, 0, 0));
+        Assert.AreEqual("\x1b[<3;1;1m", MouseEncoder.Encode(MouseTrackingMode.AnyEvent, true, new MouseEvent(MouseEventKind.Release, MouseButton.None, new CellPosition(0, 0))));
+        Assert.IsNull(MouseEncoder.Encode(MouseTrackingMode.Normal, false, new MouseEvent(MouseEventKind.Press, MouseButton.Left, new CellPosition(300, 0))));
+        Assert.IsNull(MouseEncoder.Encode(MouseTrackingMode.Normal, false, new MouseEvent(MouseEventKind.Press, MouseButton.Left, new CellPosition(0, 300))));
+        Assert.IsNull(MouseEncoder.Encode(MouseTrackingMode.Normal, true, new MouseEvent(MouseEventKind.Release, MouseButton.WheelUp, new CellPosition(0, 0))));
     }
 }
 
