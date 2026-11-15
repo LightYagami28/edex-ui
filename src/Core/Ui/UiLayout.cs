@@ -65,18 +65,26 @@ public sealed record UiLayout
         }
 
         var content = new UiRect(Margin, Margin, Math.Max(0, width - Margin * SideFactor), Math.Max(0, height - Margin * SideFactor));
-        if (content.IsEmpty)
+        if (!content.IsEmpty)
         {
-            return new UiLayout(panels, width, height);
+            PlaceContent(panels, content, showKeyboard);
         }
 
+        return new UiLayout(panels, width, height);
+    }
+
+    private static void PlaceContent(Dictionary<UiPanel, UiRect> panels, UiRect content, bool showKeyboard)
+    {
         panels[UiPanel.TopBar] = content.SliceTop(Math.Min(TopBarHeight, content.Height));
         var body = content.Below(panels[UiPanel.TopBar], Gap);
-        if (body.Width <= 0 || body.Height < MinBodyHeight)
+        if (body.Width > 0 && body.Height >= MinBodyHeight)
         {
-            return new UiLayout(panels, width, height);
+            PlaceBody(panels, body, showKeyboard);
         }
+    }
 
+    private static void PlaceBody(Dictionary<UiPanel, UiRect> panels, UiRect body, bool showKeyboard)
+    {
         double leftWidth = ColumnWidth(body.Width * LeftColumnFraction, true);
         double rightWidth = ColumnWidth(body.Width * RightColumnFraction, body.Height >= MinRightRowHeight * RightRowCount);
         double leftSpan = SpanWithGap(leftWidth);
@@ -85,7 +93,6 @@ public sealed record UiLayout
         panels[UiPanel.Terminal] = new UiRect(body.X + leftSpan, body.Y, Math.Max(0, body.Width - leftSpan - rightSpan), body.Height);
         PlaceLeftColumn(panels, new UiRect(body.X, body.Y, leftWidth, body.Height), showKeyboard);
         PlaceRightColumn(panels, new UiRect(body.Right - rightWidth, body.Y, rightWidth, body.Height));
-        return new UiLayout(panels, width, height);
     }
 
     private static double ColumnWidth(double width, bool fits) => fits && width >= MinColumnWidth ? width : 0;
