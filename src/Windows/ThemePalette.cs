@@ -10,16 +10,18 @@ namespace Edex.Windows;
 
 internal sealed class ThemePalette
 {
+    private const int RedShift = 16;
+    private const int GreenShift = 8;
     private const uint PaletteIndexMask = 0xFF;
     private const uint ChannelMask = 0xFF;
 
     private readonly Dictionary<UiBrush, SolidColorBrush> _brushes = [];
 
-    public ThemePalette(Theme theme) => Theme = theme;
+    internal ThemePalette(Theme theme) => Theme = theme;
 
-    public Theme Theme { get; }
+    internal Theme Theme { get; }
 
-    public SolidColorBrush Brush(UiBrush brush)
+    internal SolidColorBrush Brush(UiBrush brush)
     {
         if (_brushes.TryGetValue(brush, out var cached))
         {
@@ -32,7 +34,7 @@ internal sealed class ThemePalette
         return created;
     }
 
-    public Color Resolve(UiBrush brush) => brush switch
+    internal Color Resolve(UiBrush brush) => brush switch
     {
         UiBrush.Background => Parse(Theme.Background),
         UiBrush.Surface => Parse(Theme.Surface),
@@ -46,7 +48,7 @@ internal sealed class ThemePalette
         _ => Colors.Transparent,
     };
 
-    public Color TerminalForeground(uint value)
+    internal Color TerminalForeground(uint value)
     {
         if (value == 0)
         {
@@ -66,7 +68,7 @@ internal sealed class ThemePalette
         return Parse(Theme.EffectiveTerminalForeground);
     }
 
-    public Color TerminalBackground(uint value)
+    internal Color TerminalBackground(uint value)
     {
         if (value == 0)
         {
@@ -92,9 +94,9 @@ internal sealed class ThemePalette
         return index < palette.Count ? palette[(int)index] : Theme.Foreground;
     }
 
-    private static byte Red(uint value) => (byte)(value >> 16 & ChannelMask);
+    private static byte Red(uint value) => (byte)(value >> RedShift & ChannelMask);
 
-    private static byte Green(uint value) => (byte)(value >> 8 & ChannelMask);
+    private static byte Green(uint value) => (byte)(value >> GreenShift & ChannelMask);
 
     private static byte Blue(uint value) => (byte)(value & ChannelMask);
 
@@ -109,11 +111,11 @@ internal sealed class ThemePalette
         return Color.FromRgb(r, g, b);
     }
 
-    public static Typeface Typeface(string family) => new(
+    internal static Typeface Typeface(string family) => new(
         new FontFamily(family),
         FontStyles.Normal,
         FontWeights.Normal,
         FontStretches.Normal);
 
-    public static CultureInfo Culture => CultureInfo.InvariantCulture;
+    internal static CultureInfo Culture => CultureInfo.InvariantCulture;
 }

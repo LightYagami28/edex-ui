@@ -10,11 +10,11 @@ namespace Edex.Windows;
 
 internal static class Program
 {
-    public const string SmokeMarker = "edex-smoke-ok";
-    public const int SmokeTimeoutMilliseconds = 15000;
-    public const int SmokePollMilliseconds = 200;
-    public const int SmokeWidth = 1280;
-    public const int SmokeHeight = 800;
+    private const string SmokeMarker = "edex-smoke-ok";
+    private const int SmokeTimeoutMilliseconds = 15000;
+    private const int SmokePollMilliseconds = 200;
+    private const int SmokeWidth = 1280;
+    private const int SmokeHeight = 800;
 
     [STAThread]
     private static int Main(string[] args)
@@ -115,7 +115,7 @@ internal static class Program
 
     private static string Version()
     {
-        var informational = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        var informational = typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
         return informational?.Split('+')[0] ?? "3.0.0";
     }
 

@@ -3,17 +3,17 @@ namespace Edex.Core.Ui;
 
 public sealed record UiLayout
 {
-    public const double Margin = 12;
-    public const double Gap = 10;
-    public const double TopBarHeight = 46;
-    public const double LeftColumnFraction = 0.30;
-    public const double RightColumnFraction = 0.24;
-    public const double FilesFraction = 0.55;
-    public const double MinColumnWidth = 160;
-    public const double MinBodyHeight = 120;
-    public const double MinRightRowHeight = 40;
-    public const double SideFactor = 2;
-    public const int RightRowCount = 5;
+    internal const double Margin = 12;
+    internal const double Gap = 10;
+    internal const double TopBarHeight = 46;
+    internal const double LeftColumnFraction = 0.30;
+    internal const double RightColumnFraction = 0.24;
+    internal const double FilesFraction = 0.55;
+    internal const double MinColumnWidth = 160;
+    internal const double MinBodyHeight = 120;
+    internal const double MinRightRowHeight = 40;
+    internal const double SideFactor = 2;
+    internal const int RightRowCount = 5;
 
     private static readonly UiPanel[] RightPanels =
     [

@@ -13,7 +13,9 @@ public readonly record struct UiRect(double X, double Y, double Width, double He
 
     public bool IsEmpty => Width <= 0 || Height <= 0;
 
-    public bool Contains(double x, double y) => !IsEmpty && x >= X && y >= Y && x < Right && y < Bottom;
+    public bool Contains(double x, double y) => !IsEmpty && InRange(x, X, Right) && InRange(y, Y, Bottom);
+
+    private static bool InRange(double value, double start, double end) => value >= start && value < end;
 
     public UiRect Inset(double margin) => Inset(margin, margin);
 

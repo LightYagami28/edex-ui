@@ -16,25 +16,24 @@ namespace Edex.Windows;
 
 internal sealed class AppHost : IDisposable
 {
-    public const int TerminalColumns = 120;
-    public const int TerminalRows = 32;
-    public const int RefreshMilliseconds = 1000;
-    public const int NetworkRefreshMilliseconds = 3000;
-    public const int FileRefreshMilliseconds = 4000;
+    private const int TerminalColumns = 120;
+    private const int TerminalRows = 32;
+    private const int RefreshMilliseconds = 1000;
+    private const int NetworkRefreshMilliseconds = 3000;
+    private const int FileRefreshMilliseconds = 4000;
 
     private readonly DispatcherTimer _timer;
     private readonly SystemMonitor _monitor = new();
     private readonly NetworkMonitor _network;
-    private readonly SettingsStore _store;
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(6) };
     private readonly KeyboardState _keyboard = new();
     private int _fileCounter;
 
-    public AppHost()
+    internal AppHost()
     {
-        _store = new SettingsStore();
-        Settings = _store.Load();
-        Theme = ThemeLibrary.Find(ThemeLibrary.Load(_store.ThemesDirectory), Settings.Theme);
+        var store = new SettingsStore();
+        Settings = store.Load();
+        Theme = ThemeLibrary.Find(ThemeLibrary.Load(store.ThemesDirectory), Settings.Theme);
         KeyboardLayout = KeyboardLayout.Find(Settings.KeyboardLayout);
         Dashboard = new Dashboard(Settings, Theme, KeyboardLayout, _keyboard);
         _network = new NetworkMonitor(Settings.PingHost);
@@ -43,36 +42,36 @@ internal sealed class AppHost : IDisposable
         _timer.Tick += (_, _) => Refresh();
     }
 
-    public AppSettings Settings { get; }
+    internal AppSettings Settings { get; }
 
-    public Theme Theme { get; }
+    internal Theme Theme { get; }
 
-    public KeyboardLayout KeyboardLayout { get; }
+    internal KeyboardLayout KeyboardLayout { get; }
 
-    public Dashboard Dashboard { get; }
+    internal Dashboard Dashboard { get; }
 
-    public SceneRenderer Renderer { get; }
+    internal SceneRenderer Renderer { get; }
 
-    public TerminalSession? Terminal { get; private set; }
+    internal TerminalSession? Terminal { get; private set; }
 
-    public string? TerminalError { get; private set; }
+    internal string? TerminalError { get; private set; }
 
-    public void Start()
+    internal void Start()
     {
         StartTerminal();
         Refresh();
         _timer.Start();
     }
 
-    public void Resize(double width, double height)
+    internal void Resize(double width, double height)
     {
         Dashboard.Resize(width, height);
         Terminal?.Resize(TerminalColumns, TerminalRows);
     }
 
-    public void Send(string text) => Terminal?.Send(text);
+    internal void Send(string text) => Terminal?.Send(text);
 
-    public void SendKey(KeyDefinition key)
+    internal void SendKey(KeyDefinition key)
     {
         var text = _keyboard.Press(key);
         if (text is { Length: > 0 })
@@ -81,7 +80,7 @@ internal sealed class AppHost : IDisposable
         }
     }
 
-    public void Refresh()
+    internal void Refresh()
     {
         try
         {
@@ -104,7 +103,7 @@ internal sealed class AppHost : IDisposable
         }
 
         _fileCounter += RefreshMilliseconds;
-        RefreshNetwork();
+        _ = RefreshNetworkAsync();
     }
 
     public void Dispose()
@@ -142,7 +141,7 @@ internal sealed class AppHost : IDisposable
         Dashboard.AttachListing(FileBrowser.List(path, Settings.ShowHiddenFiles));
     }
 
-    private async void RefreshNetwork()
+    private async Task RefreshNetworkAsync()
     {
         try
         {

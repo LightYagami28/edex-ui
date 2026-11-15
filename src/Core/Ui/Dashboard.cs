@@ -13,22 +13,24 @@ namespace Edex.Core.Ui;
 
 public sealed class Dashboard
 {
-    public const int HistoryCapacity = 60;
-    public const int MaxFileRows = 64;
-    public const int MaxProcessRows = 12;
-    public const double TitleScale = 0.85;
-    public const double BodyScale = 1.0;
-    public const double SmallScale = 0.8;
-    public const double RowScale = 1.45;
-    public const double HalfFactor = 2;
-    public const double GlobeLandStep = 3;
-    public const double GlobeSpinDegreesPerSecond = 2;
-    public const double FullTurnDegrees = 360;
-    public const double DiscRadiusSquared = 1;
-    public const double PercentScale = 100;
-    public const double BytesPerKibibyte = 1024;
-    public const double Padding = UiLayout.Gap;
-    public const double TitleOffset = UiLayout.Gap * HalfFactor;
+    internal const int HistoryCapacity = 60;
+    internal const int MaxFileRows = 64;
+    internal const int MaxProcessRows = 12;
+    private const double TitleScaleValue = 0.85;
+
+    public static double TitleScale => TitleScaleValue;
+    internal const double BodyScale = 1.0;
+    internal const double SmallScale = 0.8;
+    internal const double RowScale = 1.45;
+    internal const double HalfFactor = 2;
+    internal const double GlobeLandStep = 3;
+    internal const double GlobeSpinDegreesPerSecond = 2;
+    internal const double FullTurnDegrees = 360;
+    internal const double DiscRadiusSquared = 1;
+    internal const double PercentScale = 100;
+    internal const double BytesPerKibibyte = 1024;
+    internal const double Padding = UiLayout.Gap;
+    internal const double TitleOffset = UiLayout.Gap * HalfFactor;
 
     private static readonly string[] ByteUnits = ["B", "K", "M", "G", "T"];
 
@@ -171,21 +173,21 @@ public sealed class Dashboard
             return -1;
         }
 
-        double cellWidth = bounds.Width / snapshot.Columns;
-        double cellHeight = bounds.Height / snapshot.Rows;
-        if (cellWidth <= 0 || cellHeight <= 0)
+        int column = CellIndex(x - bounds.X, bounds.Width, snapshot.Columns);
+        int row = CellIndex(y - bounds.Y, bounds.Height, snapshot.Rows);
+        return column < 0 || row < 0 ? -1 : row * snapshot.Columns + column;
+    }
+
+    private static int CellIndex(double offset, double size, int count)
+    {
+        double cell = size / count;
+        if (cell <= 0)
         {
             return -1;
         }
 
-        int column = (int)((x - bounds.X) / cellWidth);
-        int row = (int)((y - bounds.Y) / cellHeight);
-        if (column < 0 || column >= snapshot.Columns || row < 0 || row >= snapshot.Rows)
-        {
-            return -1;
-        }
-
-        return row * snapshot.Columns + column;
+        int index = (int)(offset / cell);
+        return index >= 0 && index < count ? index : -1;
     }
 
     internal static string FormatClock(DateTimeOffset now) => now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
@@ -262,13 +264,21 @@ public sealed class Dashboard
 
         _scene.Frame(bounds, UiPanel.TopBar, "");
         var inner = bounds.Inset(Padding);
-        string host = System?.HostName ?? Environment.MachineName;
-        string description = System?.OsDescription ?? "";
-        string identity = description.Length == 0 ? host : $"{host} — {description}";
         double captionHeight = Settings.FontSize * SmallScale;
-        _scene.Text(new UiRect(inner.X, inner.Y, inner.Width, inner.Height - captionHeight), identity, UiBrush.Foreground, Settings.FontSize * BodyScale, UiTextAlign.Left, UiPanel.TopBar);
-        _scene.Text(new UiRect(inner.X, inner.Y, inner.Width, inner.Height - captionHeight), FormatClock(now), UiBrush.Accent, Settings.FontSize * BodyScale, UiTextAlign.Right, UiPanel.TopBar);
-        _scene.Text(new UiRect(inner.X, inner.Bottom - captionHeight, inner.Width, captionHeight), FormatUptime(System?.Uptime ?? TimeSpan.Zero), UiBrush.Muted, Settings.FontSize * SmallScale, UiTextAlign.Left, UiPanel.TopBar);
+        double bodySize = Settings.FontSize * BodyScale;
+        var top = new UiRect(inner.X, inner.Y, inner.Width, inner.Height - captionHeight);
+        var caption = new UiRect(inner.X, inner.Bottom - captionHeight, inner.Width, captionHeight);
+        _scene.Text(top, Identity(System), UiBrush.Foreground, bodySize, UiTextAlign.Left, UiPanel.TopBar);
+        _scene.Text(top, FormatClock(now), UiBrush.Accent, bodySize, UiTextAlign.Right, UiPanel.TopBar);
+        var uptime = FormatUptime(System?.Uptime ?? TimeSpan.Zero);
+        _scene.Text(caption, uptime, UiBrush.Muted, captionHeight, UiTextAlign.Left, UiPanel.TopBar);
+    }
+
+    private static string Identity(SystemSnapshot? system)
+    {
+        string host = system?.HostName ?? Environment.MachineName;
+        string description = system?.OsDescription ?? "";
+        return description.Length == 0 ? host : $"{host} — {description}";
     }
 
     private void DrawTerminal()
@@ -309,22 +319,26 @@ public sealed class Dashboard
         }
 
         var entries = Listing?.Entries ?? [];
-        int capacity = Math.Min(MaxFileRows, (int)(inner.Height / rowHeight));
-        for (int i = 0; i < entries.Count && i < capacity; i++)
+        int count = Math.Min(entries.Count, Math.Min(MaxFileRows, (int)(inner.Height / rowHeight)));
+        for (int i = 0; i < count; i++)
         {
-            var entry = entries[i];
-            bool folder = entry.Kind == FileEntryKind.Directory;
-            _scene.Add(new UiElement
-            {
-                Kind = UiElementKind.Text,
-                Bounds = new UiRect(inner.X, inner.Y + rowHeight * i, inner.Width, rowHeight),
-                Brush = folder ? UiBrush.Accent : UiBrush.Foreground,
-                Size = Settings.FontSize * SmallScale,
-                Text = folder ? entry.Name + "/" : $"{entry.Name}  {FormatBytes(entry.Size)}",
-                Payload = entry,
-                Panel = UiPanel.Files,
-            });
+            _scene.Add(FileRow(entries[i], new UiRect(inner.X, inner.Y + rowHeight * i, inner.Width, rowHeight)));
         }
+    }
+
+    private UiElement FileRow(FileEntry entry, UiRect bounds)
+    {
+        bool folder = entry.Kind == FileEntryKind.Directory;
+        return new UiElement
+        {
+            Kind = UiElementKind.Text,
+            Bounds = bounds,
+            Brush = folder ? UiBrush.Accent : UiBrush.Foreground,
+            Size = Settings.FontSize * SmallScale,
+            Text = folder ? entry.Name + "/" : $"{entry.Name}  {FormatBytes(entry.Size)}",
+            Payload = entry,
+            Panel = UiPanel.Files,
+        };
     }
 
     private void DrawKeyboard()
@@ -350,7 +364,7 @@ public sealed class Dashboard
         _scene.Frame(bounds, UiPanel.Cpu, "cpu");
         var inner = Content(bounds, TitleOffset);
         double percent = System?.Cpu.TotalPercent ?? 0;
-        double barHeight = Math.Max(1, Settings.FontSize * TitleScale / HalfFactor);
+        double barHeight = Math.Max(1, Settings.FontSize * TitleScaleValue / HalfFactor);
         string label = string.Create(CultureInfo.InvariantCulture, $"{percent:F0}%  ·  {System?.Cpu.LogicalCores ?? 0} core");
         _scene.Text(inner.SliceTop(barHeight * HalfFactor), label, UiBrush.Foreground, Settings.FontSize * SmallScale, UiTextAlign.Left, UiPanel.Cpu);
         var bar = new UiRect(inner.X, inner.Y + barHeight * HalfFactor, inner.Width, barHeight);
@@ -447,37 +461,38 @@ public sealed class Dashboard
         }
 
         _scene.Frame(bounds, UiPanel.Globe, "posizione");
-        double centerLatitude = Location?.Latitude ?? 0;
-        double centerLongitude = (Location?.Longitude ?? 0) + _spin;
-        var projection = new Orthographic(centerLatitude, centerLongitude);
+        var location = Location;
+        var projection = new Orthographic(location?.Latitude ?? 0, (location?.Longitude ?? 0) + _spin);
+        ProjectLand(projection);
+        UiPoint? marker = location is null ? null : ProjectOnDisc(projection, location.Latitude, location.Longitude);
+        double captionHeight = Settings.FontSize * SmallScale;
+        var inner = Content(bounds, TitleOffset + captionHeight);
+        _scene.Globe(inner, new UiGlobeFrame(_projectedLand.ToArray(), marker));
+        var captionBounds = new UiRect(bounds.X, bounds.Bottom - captionHeight, bounds.Width, captionHeight);
+        _scene.Text(captionBounds, GlobeCaption(location), UiBrush.Muted, Settings.FontSize * SmallScale, UiTextAlign.Center, UiPanel.Globe);
+    }
+
+    private void ProjectLand(Orthographic projection)
+    {
         _projectedLand.Clear();
         foreach (var (latitude, longitude) in _land)
         {
-            var (x, y, visible) = projection.Project(latitude, longitude);
-            var point = new UiPoint(x, y);
-            if (visible && IsOnDisc(point))
+            if (ProjectOnDisc(projection, latitude, longitude) is { } point)
             {
                 _projectedLand.Add(point);
             }
         }
-
-        UiPoint? marker = null;
-        if (Location is { } location)
-        {
-            var (x, y, visible) = projection.Project(location.Latitude, location.Longitude);
-            var point = new UiPoint(x, y);
-            if (visible && IsOnDisc(point))
-            {
-                marker = point;
-            }
-        }
-
-        string caption = Location?.City ?? Location?.Country ?? Location?.Ip ?? "posizione non disponibile";
-        double captionHeight = Settings.FontSize * SmallScale;
-        var inner = Content(bounds, TitleOffset + captionHeight);
-        _scene.Globe(inner, new UiGlobeFrame(_projectedLand.ToArray(), marker));
-        _scene.Text(new UiRect(bounds.X, bounds.Bottom - captionHeight, bounds.Width, captionHeight), caption, UiBrush.Muted, Settings.FontSize * SmallScale, UiTextAlign.Center, UiPanel.Globe);
     }
+
+    private static UiPoint? ProjectOnDisc(Orthographic projection, double latitude, double longitude)
+    {
+        var (x, y, visible) = projection.Project(latitude, longitude);
+        var point = new UiPoint(x, y);
+        return visible && IsOnDisc(point) ? point : null;
+    }
+
+    private static string GlobeCaption(GeoLocation? location) =>
+        location?.City ?? location?.Country ?? location?.Ip ?? "posizione non disponibile";
 
     private static bool IsOnDisc(UiPoint point) => point.X * point.X + point.Y * point.Y <= DiscRadiusSquared;
 }

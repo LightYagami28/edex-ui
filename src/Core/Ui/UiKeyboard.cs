@@ -13,7 +13,7 @@ public sealed record UiHit(UiPanel Panel, UiElement Element, int Index, object? 
 
 public static class UiKeyboard
 {
-    public const double KeyGap = 3;
+    internal const double KeyGap = 3;
 
     public static IReadOnlyList<UiKey> Arrange(KeyboardLayout layout, UiRect bounds, KeyboardState state)
     {

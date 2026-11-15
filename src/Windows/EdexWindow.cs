@@ -9,13 +9,13 @@ namespace Edex.Windows;
 
 internal sealed class EdexWindow : Window, IDisposable
 {
-    public const double MinimumWidth = 640;
-    public const double MinimumHeight = 400;
+    private const double MinimumWidth = 640;
+    private const double MinimumHeight = 400;
 
     private readonly AppHost _host;
     private readonly Surface _surface;
 
-    public EdexWindow()
+    internal EdexWindow()
     {
         _host = new AppHost();
         _surface = new Surface(_host);
@@ -32,7 +32,7 @@ internal sealed class EdexWindow : Window, IDisposable
         SizeChanged += OnSizeChanged;
     }
 
-    public AppHost Host => _host;
+    internal AppHost Host => _host;
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {

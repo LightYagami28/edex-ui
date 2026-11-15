@@ -6,7 +6,7 @@ namespace Edex.Windows;
 
 internal sealed class Surface(AppHost host) : FrameworkElement
 {
-    public AppHost Host { get; } = host;
+    internal AppHost Host { get; } = host;
 
     protected override void OnRender(DrawingContext drawingContext)
     {
