@@ -3,6 +3,16 @@ namespace Edex.Core.Files;
 
 public sealed record FuzzyMatch(string FullPath, string RelativePath, int Score);
 
+public sealed record FuzzySearchOptions
+{
+    private const int DefaultMaxResults = 50;
+    private const int DefaultMaxDepth = 4;
+
+    public int MaxResults { get; init; } = DefaultMaxResults;
+    public int MaxDepth { get; init; } = DefaultMaxDepth;
+    public bool ShowHidden { get; init; }
+}
+
 public static class FuzzyFinder
 {
     private const int NoPrevious = -2;
@@ -25,46 +35,49 @@ public static class FuzzyFinder
                 return NoMatch;
             }
 
-            score += found == previous + 1 ? ConsecutiveBonus : MatchBonus;
-            if (found == 0 || name[found - 1] is '.' or '-' or '_' or ' ')
-            {
-                score += WordStartBonus;
-            }
-
+            score += Bonus(name, found, previous);
             previous = found;
             position = found + 1;
         }
         return score - name.Length / LengthPenaltyDivisor;
     }
 
-    public static IReadOnlyList<FuzzyMatch> Search(string root, string query, int maxResults = 50, int maxDepth = 4, bool showHidden = false)
+    private static int Bonus(string name, int found, int previous) =>
+        (found == previous + 1 ? ConsecutiveBonus : MatchBonus) + (IsWordStart(name, found) ? WordStartBonus : 0);
+
+    private static bool IsWordStart(string name, int index) => index == 0 || name[index - 1] is '.' or '-' or '_' or ' ';
+
+    public static IReadOnlyList<FuzzyMatch> Search(string root, string query) => Search(root, query, new FuzzySearchOptions());
+
+    public static IReadOnlyList<FuzzyMatch> Search(string root, string query, FuzzySearchOptions options)
     {
-        var results = new List<FuzzyMatch>();
         if (!Directory.Exists(root))
         {
-            return results;
+            return [];
         }
 
-        var options = new EnumerationOptions { IgnoreInaccessible = true, RecurseSubdirectories = true, MaxRecursionDepth = maxDepth, AttributesToSkip = 0 };
-        foreach (var path in Directory.EnumerateFileSystemEntries(root, "*", options))
-        {
-            var relative = Path.GetRelativePath(root, path);
-            if (!showHidden && relative.Split(Path.DirectorySeparatorChar).Any(p => p.StartsWith('.')))
-            {
-                continue;
-            }
-
-            int score = Score(Path.GetFileName(path), query);
-            if (score >= 0)
-            {
-                results.Add(new FuzzyMatch(path, relative, score));
-            }
-        }
-        return results
+        return Matches(root, query, options)
             .OrderByDescending(m => m.Score)
             .ThenBy(m => m.RelativePath.Length)
             .ThenBy(m => m.RelativePath, StringComparer.OrdinalIgnoreCase)
-            .Take(maxResults)
+            .Take(options.MaxResults)
             .ToList();
     }
+
+    private static IEnumerable<FuzzyMatch> Matches(string root, string query, FuzzySearchOptions options)
+    {
+        var enumeration = new EnumerationOptions { IgnoreInaccessible = true, RecurseSubdirectories = true, MaxRecursionDepth = options.MaxDepth, AttributesToSkip = 0 };
+        foreach (var path in Directory.EnumerateFileSystemEntries(root, "*", enumeration))
+        {
+            var relative = Path.GetRelativePath(root, path);
+            int score = options.ShowHidden || !IsHiddenPath(relative) ? Score(Path.GetFileName(path), query) : NoMatch;
+            if (score >= 0)
+            {
+                yield return new FuzzyMatch(path, relative, score);
+            }
+        }
+    }
+
+    private static bool IsHiddenPath(string relative) =>
+        relative.Split(Path.DirectorySeparatorChar).Any(p => p.StartsWith('.'));
 }

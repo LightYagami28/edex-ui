@@ -28,21 +28,16 @@ public static class Shortcuts
         new("Ctrl+Shift+P", "password"),
     ];
 
+    private static readonly string[] Modifiers = ["CTRL", "ALT", "SHIFT"];
+
     public static string Normalize(string keys)
     {
-        bool ctrl = false, alt = false, shift = false;
-        string key = "";
-        foreach (var part in keys.Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
-        {
-            switch (part.ToUpperInvariant())
-            {
-                case "CTRL" or "CONTROL": ctrl = true; break;
-                case "ALT": alt = true; break;
-                case "SHIFT": shift = true; break;
-                default: key = part.ToUpperInvariant(); break;
-            }
-        }
-        return (ctrl ? "CTRL+" : "") + (alt ? "ALT+" : "") + (shift ? "SHIFT+" : "") + key;
+        var parts = keys.Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => part.ToUpperInvariant())
+            .Select(part => part == "CONTROL" ? "CTRL" : part)
+            .ToList();
+        var key = parts.LastOrDefault(part => !Modifiers.Contains(part)) ?? "";
+        return string.Concat(Modifiers.Where(parts.Contains).Select(modifier => modifier + "+")) + key;
     }
 
     public static IReadOnlyList<Shortcut> Parse(string? json)

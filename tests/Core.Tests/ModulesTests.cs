@@ -96,7 +96,7 @@ public class UpdateCheckerTests
         const string json = """{"tag_name":"v4.0.0","html_url":"https://example.test/r"}""";
         using var client = new HttpClient(new Stub(HttpStatusCode.OK, json));
         var info = await UpdateChecker.CheckAsync(client, "o/r", "3.0.0", TestContext.CancellationToken);
-        Assert.AreEqual(new UpdateInfo("4.0.0", "https://example.test/r"), info);
+        Assert.AreEqual(new UpdateInfo("4.0.0", new Uri("https://example.test/r")), info);
         Assert.IsNull(await UpdateChecker.CheckAsync(client, "o/r", "4.0.0", TestContext.CancellationToken));
     }
 
@@ -142,8 +142,8 @@ public class FuzzyFinderTests
         {
             var found = FuzzyFinder.Search(root, "main");
             Assert.AreSequenceEqual(new[] { "main.cs", Path.Combine("sub", "main_test.cs") }, found.Select(f => f.RelativePath));
-            Assert.HasCount(3, FuzzyFinder.Search(root, "main", showHidden: true));
-            Assert.HasCount(1, FuzzyFinder.Search(root, "main", maxResults: 1));
+            Assert.HasCount(3, FuzzyFinder.Search(root, "main", new FuzzySearchOptions { ShowHidden = true }));
+            Assert.HasCount(1, FuzzyFinder.Search(root, "main", new FuzzySearchOptions { MaxResults = 1 }));
             Assert.IsEmpty(FuzzyFinder.Search(Path.Combine(root, "missing"), "x"));
         }
         finally
