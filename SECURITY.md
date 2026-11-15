@@ -3,8 +3,8 @@
 ## Versioni supportate
 
 Riceve correzioni di sicurezza solo il ramo `master`, cioè la riscrittura
-nativa in .NET. Il vecchio codice Electron (tag `archivio/electron`) non è
-più mantenuto.
+nativa dell'applicazione. Il vecchio codice Electron (tag
+`archivio/electron`) non è più mantenuto.
 
 ## Segnalare una vulnerabilità
 

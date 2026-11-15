@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
-"""
-Merge Cobertura reports from several runners into one SonarQube coverage file.
+"""Merge Cobertura reports from several runners into one Sonar report."""
+import sys
+from html import escape
+from html.parser import HTMLParser
+from pathlib import Path
 
-Usage: coverage_to_sonar.py OUTPUT REPORT [REPORT ...]
+USAGE = """Usage: coverage_to_sonar.py OUTPUT REPORT [REPORT ...]
 
 Each runner measures only the code that runs on its own operating system,
 so a line (and each branch condition of a line) counts as covered when any
 report covers it. Paths are made relative to the repository ("src/Core/...").
 """
-import sys
-from html import escape
-from html.parser import HTMLParser
-from pathlib import Path
 
 
 def relative_path(filename):
@@ -43,12 +42,17 @@ class CoberturaReader(HTMLParser):
             self.path = relative_path(values.get("filename") or "")
         elif tag == "line":
             self.lines.append((self.path, values, []))
-        elif tag == "condition" and self.lines:
-            self.lines[-1][2].append(values)
+        elif tag == "condition":
+            self.add_condition(values)
 
     def handle_startendtag(self, tag, attrs):
         """Treat self closing elements like opening ones."""
         self.handle_starttag(tag, attrs)
+
+    def add_condition(self, values):
+        """Attach a condition to the last line read."""
+        if self.lines:
+            self.lines[-1][2].append(values)
 
 
 def read(report):
@@ -59,15 +63,20 @@ def read(report):
     return reader.lines
 
 
+def covered_conditions(conditions):
+    """Return the numbers of the conditions covered at least once."""
+    return {int(c.get("number") or "0") for c in conditions
+            if c.get("coverage") != "0%"}
+
+
 def branch_details(values, conditions):
     """Return (total, covered condition numbers, covered count)."""
     if values.get("branch") != "True":
         return 0, set(), 0
     if conditions:
-        covered = {int(c.get("number") or "0") for c in conditions
-                   if c.get("coverage") != "0%"}
-        return len(conditions), covered, 0
-    covered, total = condition_counts(values.get("condition-coverage") or "(0/0)")
+        return len(conditions), covered_conditions(conditions), 0
+    coverage = values.get("condition-coverage") or "(0/0)"
+    covered, total = condition_counts(coverage)
     return total, set(), covered
 
 
@@ -78,15 +87,20 @@ def combine(old, hits, details):
             max(old[3], covered))
 
 
+def add_line(lines, path, values, conditions):
+    """Add one line of a report to the merged lines."""
+    key = (path, int(values.get("number") or "0"))
+    hits = int(values.get("hits") or "0") > 0
+    old = lines.get(key, (False, 0, set(), 0))
+    lines[key] = combine(old, hits, branch_details(values, conditions))
+
+
 def merge(reports):
     """Merge reports into {(path, line): (hit, branches, covered branches)}."""
     lines = {}
     for report in reports:
         for path, values, conditions in read(report):
-            key = (path, int(values.get("number") or "0"))
-            hits = int(values.get("hits") or "0") > 0
-            old = lines.get(key, (False, 0, set(), 0))
-            lines[key] = combine(old, hits, branch_details(values, conditions))
+            add_line(lines, path, values, conditions)
     return {key: (hit, total, max(len(indices), covered))
             for key, (hit, total, indices, covered) in lines.items()}
 
@@ -120,7 +134,7 @@ def write(lines, output):
 def main(arguments):
     """Merge the reports named on the command line."""
     if len(arguments) < 3:
-        print(__doc__)
+        print(USAGE)
         return 2
     lines = merge(arguments[2:])
     write(lines, arguments[1])

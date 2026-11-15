@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
-"""
-Rasterize Natural Earth 1:110m land polygons into the globe land mask.
+"""Rasterize Natural Earth 1:110m land polygons into the globe land mask."""
+import json
+import sys
+from pathlib import Path
 
-Usage: python3 tools/gen_landmask.py ne_110m_land.geojson land-1deg.bin
+USAGE = """Usage: gen_landmask.py ne_110m_land.geojson land-1deg.bin
 Source: Natural Earth (public domain), geojson/ne_110m_land.geojson in
 https://github.com/nvkelso/natural-earth-vector
 Layout: 360x180 bits, row 0 = 89.5N, column 0 = 179.5W,
 bit i = byte i>>3, bit i&7 (LSB first).
 Both paths must stay inside the current working directory.
 """
-import json
-import sys
-from pathlib import Path
 
+if len(sys.argv) < 3:
+    sys.exit(USAGE)
 src, dst = (Path(a).resolve().relative_to(Path.cwd().resolve())
             for a in sys.argv[1:3])
 rings = []

@@ -132,6 +132,12 @@ class LandMaskTests(unittest.TestCase):
         self.assertTrue(is_land(40, 290))    # 49.5N, 109.5E dentro il secondo poligono
         self.assertFalse(is_land(10, 10))    # oceano
 
+    def test_prints_usage_without_two_paths(self):
+        with mock.patch.object(sys, "argv", ["gen_landmask.py"]):
+            with self.assertRaises(SystemExit) as raised:
+                runpy.run_path(str(TOOLS / "gen_landmask.py"), run_name="__main__")
+        self.assertIn("Usage:", str(raised.exception.code))
+
     def test_rejects_paths_outside_the_working_directory(self):
         with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as outside:
             previous = Path.cwd()
