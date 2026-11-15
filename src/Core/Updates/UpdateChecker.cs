@@ -23,15 +23,15 @@ public static class UpdateChecker
         return Version.TryParse(text, out version!);
     }
 
-    public static Task<UpdateInfo?> CheckAsync(HttpClient client, string repository, string currentVersion) =>
-        CheckAsync(client, repository, currentVersion, CancellationToken.None);
-
     public static async Task<UpdateInfo?> CheckAsync(HttpClient client, string repository, string currentVersion, CancellationToken cancel)
     {
         try
         {
-            var json = await FetchLatestAsync(client, repository, currentVersion, cancel).ConfigureAwait(false);
-            return json is null ? null : Parse(json, currentVersion);
+            using var request = LatestReleaseRequest(repository, currentVersion);
+            using var response = await client.SendAsync(request, cancel).ConfigureAwait(false);
+            return response.IsSuccessStatusCode
+                ? Parse(await response.Content.ReadAsStringAsync(cancel).ConfigureAwait(false), currentVersion)
+                : null;
         }
         catch (Exception e) when (e is HttpRequestException or JsonException or KeyNotFoundException or InvalidOperationException)
         {
@@ -39,12 +39,11 @@ public static class UpdateChecker
         }
     }
 
-    private static async Task<string?> FetchLatestAsync(HttpClient client, string repository, string currentVersion, CancellationToken cancel)
+    private static HttpRequestMessage LatestReleaseRequest(string repository, string currentVersion)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{repository}/releases/latest");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{repository}/releases/latest");
         request.Headers.UserAgent.Add(new ProductInfoHeaderValue("edex-ui", currentVersion));
-        using var response = await client.SendAsync(request, cancel).ConfigureAwait(false);
-        return response.IsSuccessStatusCode ? await response.Content.ReadAsStringAsync(cancel).ConfigureAwait(false) : null;
+        return request;
     }
 
     private static UpdateInfo? Parse(string json, string currentVersion)

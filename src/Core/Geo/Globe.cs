@@ -91,38 +91,42 @@ public static class GeoLocator
     private const double MaxLongitude = 180;
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(6);
 
-    private static readonly (string Url, Func<JsonElement, GeoLocation?> Parse)[] Providers =
+    private static readonly (Uri Url, Func<JsonElement, GeoLocation?> Parse)[] Providers =
     [
-        ("https://ipwho.is/", ParseIpWhoIs),
-        ("https://ipapi.co/json/", ParseIpApiCo),
+        (new Uri("https://ipwho.is/"), ParseIpWhoIs),
+        (new Uri("https://ipapi.co/json/"), ParseIpApiCo),
     ];
 
     public static async Task<GeoLocation?> LocateAsync(HttpClient http, CancellationToken token)
     {
-        foreach (var (url, parse) in Providers)
+        foreach (var (url, parse) in Providers.Where(_ => !token.IsCancellationRequested))
         {
-            var location = await TryLocateAsync(http, url, parse, token).ConfigureAwait(false);
-            if (location is not null || token.IsCancellationRequested)
+            try
             {
-                return location;
+                using var cts = WithTimeout(token);
+                var location = parse(await http.GetFromJsonAsync<JsonElement>(url, cts.Token).ConfigureAwait(false));
+                if (location is not null)
+                {
+                    return location;
+                }
+            }
+            catch (Exception e) when (IsTransient(e))
+            {
+                _ = e;
             }
         }
         return null;
     }
 
-    private static async Task<GeoLocation?> TryLocateAsync(HttpClient http, string url, Func<JsonElement, GeoLocation?> parse, CancellationToken token)
+    private static CancellationTokenSource WithTimeout(CancellationToken token)
     {
-        try
-        {
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-            cts.CancelAfter(RequestTimeout);
-            return parse(await http.GetFromJsonAsync<JsonElement>(url, cts.Token).ConfigureAwait(false));
-        }
-        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or JsonException or NotSupportedException)
-        {
-            return null;
-        }
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        cts.CancelAfter(RequestTimeout);
+        return cts;
     }
+
+    private static bool IsTransient(Exception e) =>
+        e is HttpRequestException or TaskCanceledException or JsonException or NotSupportedException;
 
     public static GeoLocation? ParseIpWhoIs(JsonElement json)
     {
