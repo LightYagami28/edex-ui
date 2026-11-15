@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.10.0.schema.json
+PackageIdentifier: LightYagami28.EdexUI
+PackageVersion: @VERSION@
+PackageLocale: it-IT
+Publisher: Light Yagami
+PublisherUrl: https://github.com/LightYagami28
+PackageName: eDEX-UI
+PackageUrl: https://github.com/LightYagami28/edex-ui
+License: GPL-3.0-only
+LicenseUrl: https://github.com/LightYagami28/edex-ui/blob/master/LICENSE
+ShortDescription: Terminale a schermo intero in stile fantascienza con pannelli di sistema.
+Description: eDEX-UI nativo (.NET) con pannelli di sistema (CPU, RAM, rete, processi, file) e tastiera su schermo. Eseguibile autonomo, non richiede il runtime .NET.
+Moniker: edex-ui
+Tags:
+- terminal
+- shell
+- sci-fi
+ManifestType: defaultLocale
+ManifestVersion: 1.10.0
