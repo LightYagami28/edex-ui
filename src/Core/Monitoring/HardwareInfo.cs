@@ -14,7 +14,11 @@ public static class HardwareInfo
             const string key = @"HKEY_LOCAL_MACHINE\HARDWARE\DESCRIPTION\System\BIOS";
             return new HardwareSample(Registry("SystemManufacturer", key), Registry("SystemProductName", key), "");
         }
-        if (OperatingSystem.IsMacOS()) return new HardwareSample("Apple", MacSysctl.ReadString("hw.model"), "");
+        if (OperatingSystem.IsMacOS())
+        {
+            return new HardwareSample("Apple", MacSysctl.ReadString("hw.model"), "");
+        }
+
         return new HardwareSample(Dmi("sys_vendor"), Dmi("product_name"), ChassisName(Dmi("chassis_type")));
     }
 
@@ -30,7 +34,6 @@ public static class HardwareInfo
 
     internal static string Clean(string? value) => value?.Trim() ?? "";
 
-    /// <summary>SMBIOS chassis type number to a name.</summary>
     internal static string ChassisName(string code) => code switch
     {
         "3" or "4" or "5" or "6" or "7" or "15" or "16" => "Desktop",

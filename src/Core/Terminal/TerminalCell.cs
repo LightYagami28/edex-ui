@@ -14,10 +14,6 @@ public enum CellAttributes : ushort
     Strikethrough = 64,
 }
 
-/// <summary>
-/// One character cell. Colors are encoded as: 0 = default,
-/// 0x01000000 | index = palette entry (0-255), 0x02000000 | RRGGBB = true color.
-/// </summary>
 public readonly record struct TerminalCell(char Glyph, uint Foreground, uint Background, CellAttributes Attributes)
 {
     public static readonly TerminalCell Blank = new(' ', 0, 0, CellAttributes.None);
@@ -29,7 +25,6 @@ public readonly record struct TerminalCell(char Glyph, uint Foreground, uint Bac
     public static uint Rgb(int r, int g, int b) => RgbFlag | (uint)((r & 0xFF) << 16 | (g & 0xFF) << 8 | (b & 0xFF));
 }
 
-/// <summary>An immutable copy of the visible screen used by renderers.</summary>
 public sealed class TerminalSnapshot
 {
     public required int Columns { get; init; }

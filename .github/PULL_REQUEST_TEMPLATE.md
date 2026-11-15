@@ -1,16 +1,17 @@
-## Descrizione
-Cosa cambia e perché.
+# Descrizione
+
+Cosa cambia e perché. Collega la issue con `Closes #numero`.
 
 ## Tipo di modifica
-- [ ] Bug fix
-- [ ] Nuova funzionalità
+
+- [ ] Correzione di un bug
+- [ ] Nuova funzione
 - [ ] Documentazione
-- [ ] Refactoring
+- [ ] Refactoring o CI
 
 ## Verifica
-- [ ] Build ok
-- [ ] Test ok
-- [ ] Nessun segreto/dato personale nel diff
 
-## Note
-(altro contesto utile)
+- [ ] `dotnet build -c Release` senza avvisi
+- [ ] `dotnet test -c Release` verde
+- [ ] Test aggiunti o aggiornati per il codice modificato
+- [ ] Nessun segreto o dato personale nel diff

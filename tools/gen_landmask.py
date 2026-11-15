@@ -1,21 +1,27 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
-"""Rasterizes Natural Earth 1:110m land polygons (public domain) into the 1-degree land mask used by the globe.
-
-Usage: python3 tools/gen-landmask.py ne_110m_land.geojson src/Core/Geo/land-1deg.bin
-Source: https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_110m_land.geojson
-Layout: 360x180 bits, row 0 = 89.5N, column 0 = 179.5W, bit i = byte i>>3, bit i&7 (LSB first).
-"""
+"""Rasterize Natural Earth 1:110m land polygons into the globe land mask."""
 import json
 import sys
 from pathlib import Path
 
-# i percorsi devono restare dentro la cartella da cui si lancia lo script
-src, dst = (Path(a).resolve().relative_to(Path.cwd().resolve()) for a in sys.argv[1:3])
+USAGE = """Usage: gen_landmask.py ne_110m_land.geojson land-1deg.bin
+Source: Natural Earth (public domain), geojson/ne_110m_land.geojson in
+https://github.com/nvkelso/natural-earth-vector
+Layout: 360x180 bits, row 0 = 89.5N, column 0 = 179.5W,
+bit i = byte i>>3, bit i&7 (LSB first).
+Both paths must stay inside the current working directory.
+"""
+
+if len(sys.argv) < 3:
+    sys.exit(USAGE)
+src, dst = (Path(a).resolve().relative_to(Path.cwd().resolve())
+            for a in sys.argv[1:3])
 rings = []
 for feature in json.loads(src.read_text(encoding="utf-8"))["features"]:
     geometry = feature["geometry"]
-    polygons = [geometry["coordinates"]] if geometry["type"] == "Polygon" else geometry["coordinates"]
+    polygons = ([geometry["coordinates"]] if geometry["type"] == "Polygon"
+                else geometry["coordinates"])
     for polygon in polygons:
         rings.extend(polygon)
 
