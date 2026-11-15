@@ -1,0 +1,50 @@
+name: Segnalazione di un bug
+description: Qualcosa non funziona come previsto.
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: textarea
+    id: descrizione
+    attributes:
+      label: Descrizione
+      description: Cosa succede?
+    validations:
+      required: true
+  - type: textarea
+    id: passi
+    attributes:
+      label: Passi per riprodurre
+      placeholder: |
+        1. Avvia l'app con ...
+        2. Esegui ...
+        3. Osserva ...
+    validations:
+      required: true
+  - type: textarea
+    id: atteso
+    attributes:
+      label: Comportamento atteso
+    validations:
+      required: true
+  - type: dropdown
+    id: sistema
+    attributes:
+      label: Sistema operativo
+      options:
+        - Windows
+        - Linux
+        - macOS
+    validations:
+      required: true
+  - type: input
+    id: versione
+    attributes:
+      label: Commit o versione di eDEX-UI
+      placeholder: master @ 1a2b3c4
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log o schermate
+      render: text

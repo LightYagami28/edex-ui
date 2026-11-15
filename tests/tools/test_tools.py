@@ -16,7 +16,7 @@ TOOLS = Path(__file__).resolve().parents[2] / "tools"
 
 
 def load_coverage_tool():
-    spec = importlib.util.spec_from_file_location("coverage_to_sonar", TOOLS / "coverage-to-sonar.py")
+    spec = importlib.util.spec_from_file_location("coverage_to_sonar", TOOLS / "coverage_to_sonar.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -36,7 +36,10 @@ class CoverageToSonarTests(unittest.TestCase):
         self.tool = load_coverage_tool()
         self.dir = tempfile.TemporaryDirectory()
         self.addCleanup(self.dir.cleanup)
-        self.root = Path(self.dir.name)
+        self.root = Path(self.dir.name).resolve()
+        previous = Path.cwd()
+        os.chdir(self.root)
+        self.addCleanup(os.chdir, previous)
 
     def test_relative_path_handles_windows_separators(self):
         self.assertEqual(self.tool.relative_path(r"D:\a\repo\src\Core\X.cs"), "src/Core/X.cs")
@@ -84,13 +87,19 @@ class CoverageToSonarTests(unittest.TestCase):
             self.assertEqual(self.tool.main(["tool", "only-output.xml"]), 2)
         self.assertIn("Usage:", stdout.getvalue())
 
+    def test_main_rejects_paths_outside_the_working_directory(self):
+        with tempfile.TemporaryDirectory() as outside:
+            report = Path(outside) / "r.xml"
+            with self.assertRaises(ValueError):
+                self.tool.main(["tool", "out.xml", str(report)])
+
     def test_script_exit_code_comes_from_main(self):
         report, output = self.root / "r.xml", self.root / "out.xml"
         cobertura(report, "/r/src/A.cs", ['<line number="1" hits="1"/>'])
-        argv = ["coverage-to-sonar.py", str(output), str(report)]
+        argv = ["coverage_to_sonar.py", str(output), str(report)]
         with mock.patch.object(sys, "argv", argv), contextlib.redirect_stdout(io.StringIO()):
             with self.assertRaises(SystemExit) as raised:
-                runpy.run_path(str(TOOLS / "coverage-to-sonar.py"), run_name="__main__")
+                runpy.run_path(str(TOOLS / "coverage_to_sonar.py"), run_name="__main__")
         self.assertEqual(raised.exception.code, 0)
 
     def test_main_merges_and_prints_summary(self):
@@ -117,8 +126,8 @@ class LandMaskTests(unittest.TestCase):
             previous = Path.cwd()
             os.chdir(work)
             try:
-                with mock.patch.object(sys, "argv", ["gen-landmask.py", "land.geojson", "mask.bin"]):
-                    runpy.run_path(str(TOOLS / "gen-landmask.py"), run_name="__main__")
+                with mock.patch.object(sys, "argv", ["gen_landmask.py", "land.geojson", "mask.bin"]):
+                    runpy.run_path(str(TOOLS / "gen_landmask.py"), run_name="__main__")
             finally:
                 os.chdir(previous)
             mask = (work / "mask.bin").read_bytes()
@@ -132,14 +141,20 @@ class LandMaskTests(unittest.TestCase):
         self.assertTrue(is_land(40, 290))    # 49.5N, 109.5E dentro il secondo poligono
         self.assertFalse(is_land(10, 10))    # oceano
 
+    def test_prints_usage_without_two_paths(self):
+        with mock.patch.object(sys, "argv", ["gen_landmask.py"]):
+            with self.assertRaises(SystemExit) as raised:
+                runpy.run_path(str(TOOLS / "gen_landmask.py"), run_name="__main__")
+        self.assertIn("Usage:", str(raised.exception.code))
+
     def test_rejects_paths_outside_the_working_directory(self):
         with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as outside:
             previous = Path.cwd()
             os.chdir(directory)
             try:
-                argv = ["gen-landmask.py", str(Path(outside) / "land.geojson"), "mask.bin"]
+                argv = ["gen_landmask.py", str(Path(outside) / "land.geojson"), "mask.bin"]
                 with mock.patch.object(sys, "argv", argv), self.assertRaises(ValueError):
-                    runpy.run_path(str(TOOLS / "gen-landmask.py"), run_name="__main__")
+                    runpy.run_path(str(TOOLS / "gen_landmask.py"), run_name="__main__")
             finally:
                 os.chdir(previous)
 

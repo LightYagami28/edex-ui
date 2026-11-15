@@ -6,7 +6,6 @@ public enum FileCategory
     Folder, Link, Text, Code, Data, Image, Audio, Video, Archive, Pdf, Document, Spreadsheet, Presentation, Executable, Font, Disk, Other,
 }
 
-/// <summary>Classifies files by extension for icons and the built-in viewers.</summary>
 public static class FileTypes
 {
     private static readonly Dictionary<string, FileCategory> ByExtension = Build();
@@ -24,7 +23,10 @@ public static class FileTypes
         var map = new Dictionary<string, FileCategory>(StringComparer.OrdinalIgnoreCase);
         void Add(FileCategory category, string list)
         {
-            foreach (var ext in list.Split(' ', StringSplitOptions.RemoveEmptyEntries)) map["." + ext] = category;
+            foreach (var ext in list.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            {
+                map["." + ext] = category;
+            }
         }
         Add(FileCategory.Text, "txt md markdown rst log nfo readme license changelog tex");
         Add(FileCategory.Code, "c h cc cpp cxx hpp hh cs fs vb java kt kts scala go rs swift m mm py rb pl pm php js mjs cjs ts tsx jsx vue svelte " +
@@ -46,35 +48,48 @@ public static class FileTypes
 
     public static FileCategory Classify(string name, FileEntryKind kind = FileEntryKind.File)
     {
-        if (kind == FileEntryKind.Directory) return FileCategory.Folder;
+        if (kind == FileEntryKind.Directory)
+        {
+            return FileCategory.Folder;
+        }
+
         var ext = Path.GetExtension(name);
         if (string.IsNullOrEmpty(ext))
         {
             return ClassifyExtensionless(name, kind);
         }
-        if (ByExtension.TryGetValue(ext, out var category)) return category;
-        if (name.StartsWith('.') && name.IndexOf('.', 1) < 0) return FileCategory.Data;
+        if (ByExtension.TryGetValue(ext, out var category))
+        {
+            return category;
+        }
+
+        if (name.StartsWith('.') && name.IndexOf('.', 1) < 0)
+        {
+            return FileCategory.Data;
+        }
+
         return kind == FileEntryKind.Link ? FileCategory.Link : FileCategory.Other;
     }
 
-    // Well-known extensionless files.
     private static FileCategory ClassifyExtensionless(string name, FileEntryKind kind)
     {
         if (ByName.TryGetValue(name, out var category))
         {
             return category;
         }
-        if (name.StartsWith('.')) return FileCategory.Data;
+        if (name.StartsWith('.'))
+        {
+            return FileCategory.Data;
+        }
+
         return kind == FileEntryKind.Link ? FileCategory.Link : FileCategory.Other;
     }
 
-    /// <summary>Short upper-case label drawn on generic icons, e.g. "PDF".</summary>
     public static string Label(string name)
     {
         var ext = Path.GetExtension(name).TrimStart('.');
         return ext.Length is > 0 and <= 4 ? ext.ToUpperInvariant() : "";
     }
 
-    /// <summary>True for files the text viewer can show.</summary>
     public static bool IsTextLike(FileCategory category) => category is FileCategory.Text or FileCategory.Code or FileCategory.Data;
 }
