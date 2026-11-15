@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Eseguibile minimo (opzioni di versione e aiuto): è ciò che packaging/ pubblica finché le app native (Windows, Linux, macOS) non esistono. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>edex-ui</AssemblyName>
+    <RootNamespace>Edex.Cli</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <PublishSingleFile>true</PublishSingleFile>
+    <PublishTrimmed>true</PublishTrimmed>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+</Project>

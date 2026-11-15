@@ -1,0 +1,11 @@
+Package: edex-ui
+Version: @VERSION@-1
+Architecture: amd64
+Maintainer: Light Yagami <maule2703@gmail.com>
+Section: utils
+Priority: optional
+Homepage: https://github.com/LightYagami28/edex-ui
+Depends: libc6, libgcc-s1, libstdc++6, zlib1g, libssl3 | libssl3t64
+Description: terminale a schermo intero in stile fantascienza
+ eDEX-UI nativo (.NET) con pannelli di sistema: CPU, RAM, rete, processi,
+ file e tastiera su schermo. Eseguibile autonomo, non richiede il runtime .NET.

@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Cli/Edex.Cli.csproj" />
     <Project Path="src/Core/Edex.Core.csproj" />
   </Folder>
   <Folder Name="/tests/">
