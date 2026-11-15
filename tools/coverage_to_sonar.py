@@ -13,6 +13,11 @@ report covers it. Paths are made relative to the repository ("src/Core/...").
 """
 
 
+def inside_cwd(name):
+    """Return name as a path inside the current directory or raise."""
+    return Path(name).resolve().relative_to(Path.cwd().resolve())
+
+
 def relative_path(filename):
     """Return the repository relative path of a Cobertura file name."""
     path = filename.replace(chr(92), "/")
@@ -136,8 +141,9 @@ def main(arguments):
     if len(arguments) < 3:
         print(USAGE)
         return 2
-    lines = merge(arguments[2:])
-    write(lines, arguments[1])
+    output = inside_cwd(arguments[1])
+    lines = merge([inside_cwd(report) for report in arguments[2:]])
+    write(lines, output)
     hit = sum(1 for value in lines.values() if value[0])
     print(f"{hit}/{len(lines)} lines covered")
     return 0

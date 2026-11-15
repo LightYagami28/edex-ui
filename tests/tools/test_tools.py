@@ -36,7 +36,10 @@ class CoverageToSonarTests(unittest.TestCase):
         self.tool = load_coverage_tool()
         self.dir = tempfile.TemporaryDirectory()
         self.addCleanup(self.dir.cleanup)
-        self.root = Path(self.dir.name)
+        self.root = Path(self.dir.name).resolve()
+        previous = Path.cwd()
+        os.chdir(self.root)
+        self.addCleanup(os.chdir, previous)
 
     def test_relative_path_handles_windows_separators(self):
         self.assertEqual(self.tool.relative_path(r"D:\a\repo\src\Core\X.cs"), "src/Core/X.cs")
@@ -83,6 +86,12 @@ class CoverageToSonarTests(unittest.TestCase):
         with contextlib.redirect_stdout(stdout):
             self.assertEqual(self.tool.main(["tool", "only-output.xml"]), 2)
         self.assertIn("Usage:", stdout.getvalue())
+
+    def test_main_rejects_paths_outside_the_working_directory(self):
+        with tempfile.TemporaryDirectory() as outside:
+            report = Path(outside) / "r.xml"
+            with self.assertRaises(ValueError):
+                self.tool.main(["tool", "out.xml", str(report)])
 
     def test_script_exit_code_comes_from_main(self):
         report, output = self.root / "r.xml", self.root / "out.xml"
