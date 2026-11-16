@@ -5,7 +5,7 @@ Grazie per l'interesse. Prima di aprire una pull request leggi queste regole.
 ## Prima di iniziare
 
 1. Per modifiche non banali apri prima una issue e descrivi il cambiamento.
-2. Lavora su un ramo dedicato nato da `master`.
+2. Lavora su un ramo dedicato nato da `main`.
 3. Leggi [SPEC.md](SPEC.md): è la fonte delle regole e del piano.
 
 ## Regole del codice

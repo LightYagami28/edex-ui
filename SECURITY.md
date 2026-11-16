@@ -2,7 +2,7 @@
 
 ## Versioni supportate
 
-Riceve correzioni di sicurezza solo il ramo `master`, cioè la riscrittura
+Riceve correzioni di sicurezza solo il ramo `main`, cioè la riscrittura
 nativa dell'applicazione. Il vecchio codice Electron (tag
 `archivio/electron`) non è più mantenuto.
 
@@ -23,7 +23,7 @@ Nella segnalazione indica:
 - passi per riprodurre il problema e impatto previsto.
 
 Riceverai una risposta nella stessa segnalazione. La correzione viene
-pubblicata su `master` e la segnalazione resta privata fino al rilascio.
+pubblicata su `main` e la segnalazione resta privata fino al rilascio.
 
 ## Controlli automatici
 
