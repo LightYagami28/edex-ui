@@ -49,9 +49,9 @@ internal static class Program
         return 0;
     }
 
-    private static int Fail(string message)
+    private static int Fail(string detail)
     {
-        Console.Error.WriteLine(message);
+        Console.Error.WriteLine(detail);
         return 1;
     }
 
