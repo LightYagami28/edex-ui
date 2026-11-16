@@ -11,7 +11,6 @@ namespace Edex.Windows;
 internal static class Program
 {
     private const string SmokeMarker = "edex-smoke-ok";
-    private const string Usage = "Uso: edex-ui [--version | --help | --smoke-test [--screenshot <file>]]";
     private const int SmokeTimeoutMilliseconds = 15000;
     private const int SmokePollMilliseconds = 200;
     private const int SmokeWidth = 1280;
@@ -20,7 +19,6 @@ internal static class Program
     private static readonly (string Flag, Func<string[], int> Run)[] Commands =
     [
         ("--version", _ => PrintVersion()),
-        ("--help", _ => PrintHelp()),
         ("--smoke-test", SmokeTest),
     ];
 
@@ -28,6 +26,12 @@ internal static class Program
     private static int Main(string[] args)
     {
         AttachConsole(AttachParentProcess);
+        if (args.Contains("--help"))
+        {
+            Console.WriteLine("Uso: edex-ui [--version | --help | --smoke-test [--screenshot <file>]]");
+            return 0;
+        }
+
         var command = Array.Find(Commands, candidate => args.Contains(candidate.Flag));
         if (command.Run is not null)
         {
@@ -42,12 +46,6 @@ internal static class Program
     private static int PrintVersion()
     {
         Console.WriteLine($"eDEX-UI {Version()}");
-        return 0;
-    }
-
-    private static int PrintHelp()
-    {
-        Console.WriteLine(Usage);
         return 0;
     }
 
