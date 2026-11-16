@@ -16,31 +16,43 @@ internal static class Program
     private const int SmokeWidth = 1280;
     private const int SmokeHeight = 800;
 
+    private static readonly (string Flag, Func<string[], int> Run)[] Commands =
+    [
+        ("--version", _ => PrintVersion()),
+        ("--smoke-test", SmokeTest),
+    ];
+
     [STAThread]
     private static int Main(string[] args)
     {
         AttachConsole(AttachParentProcess);
-
-        if (args.Contains("--version"))
-        {
-            Console.WriteLine($"eDEX-UI {Version()}");
-            return 0;
-        }
-
         if (args.Contains("--help"))
         {
             Console.WriteLine("Uso: edex-ui [--version | --help | --smoke-test [--screenshot <file>]]");
             return 0;
         }
 
-        if (args.Contains("--smoke-test"))
+        var command = Array.Find(Commands, candidate => args.Contains(candidate.Flag));
+        if (command.Run is not null)
         {
-            return SmokeTest(args);
+            return command.Run(args);
         }
 
         var application = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
         application.Run(new EdexWindow());
         return 0;
+    }
+
+    private static int PrintVersion()
+    {
+        Console.WriteLine($"eDEX-UI {Version()}");
+        return 0;
+    }
+
+    private static int Fail(string detail)
+    {
+        Console.Error.WriteLine(detail);
+        return 1;
     }
 
     private static int SmokeTest(string[] args)
@@ -49,18 +61,15 @@ internal static class Program
         using var host = new AppHost();
         host.Resize(SmokeWidth, SmokeHeight);
         host.Start();
-
         if (host.Terminal is null)
         {
-            Console.Error.WriteLine(host.TerminalError ?? "shell non avviata");
-            return 1;
+            return Fail(host.TerminalError ?? "shell non avviata");
         }
 
         host.Send($"echo {SmokeMarker}\r");
         if (!WaitForMarker(host))
         {
-            Console.Error.WriteLine($"marcatore '{SmokeMarker}' non trovato nel terminale");
-            return 1;
+            return Fail($"marcatore '{SmokeMarker}' non trovato nel terminale");
         }
 
         host.Refresh();
