@@ -15,77 +15,53 @@ internal sealed class ThemePalette
     private const uint PaletteIndexMask = 0xFF;
     private const uint ChannelMask = 0xFF;
 
+    private static readonly Dictionary<UiBrush, Func<Theme, string>> BrushColors = new()
+    {
+        [UiBrush.Background] = theme => theme.Background,
+        [UiBrush.Surface] = theme => theme.Surface,
+        [UiBrush.Foreground] = theme => theme.Foreground,
+        [UiBrush.Muted] = theme => theme.Muted,
+        [UiBrush.Accent] = theme => theme.Accent,
+        [UiBrush.Danger] = theme => theme.Danger,
+        [UiBrush.TerminalForeground] = theme => theme.EffectiveTerminalForeground,
+        [UiBrush.TerminalBackground] = theme => theme.EffectiveTerminalBackground,
+        [UiBrush.Cursor] = theme => theme.EffectiveCursor,
+    };
+
     private readonly Dictionary<UiBrush, SolidColorBrush> _brushes = [];
 
     internal ThemePalette(Theme theme) => Theme = theme;
 
     internal Theme Theme { get; }
 
-    internal SolidColorBrush Brush(UiBrush brush)
+    internal SolidColorBrush Brush(UiBrush kind)
     {
-        if (_brushes.TryGetValue(brush, out var cached))
+        if (_brushes.TryGetValue(kind, out var cached))
         {
             return cached;
         }
 
-        var created = new SolidColorBrush(Resolve(brush));
+        var created = new SolidColorBrush(Resolve(kind));
         created.Freeze();
-        _brushes[brush] = created;
+        _brushes[kind] = created;
         return created;
     }
 
-    internal Color Resolve(UiBrush brush) => brush switch
-    {
-        UiBrush.Background => Parse(Theme.Background),
-        UiBrush.Surface => Parse(Theme.Surface),
-        UiBrush.Foreground => Parse(Theme.Foreground),
-        UiBrush.Muted => Parse(Theme.Muted),
-        UiBrush.Accent => Parse(Theme.Accent),
-        UiBrush.Danger => Parse(Theme.Danger),
-        UiBrush.TerminalForeground => Parse(Theme.EffectiveTerminalForeground),
-        UiBrush.TerminalBackground => Parse(Theme.EffectiveTerminalBackground),
-        UiBrush.Cursor => Parse(Theme.EffectiveCursor),
-        _ => Colors.Transparent,
-    };
+    internal Color Resolve(UiBrush kind) =>
+        BrushColors.TryGetValue(kind, out var color) ? Parse(color(Theme)) : Colors.Transparent;
 
-    internal Color TerminalForeground(uint value)
-    {
-        if (value == 0)
-        {
-            return Parse(Theme.EffectiveTerminalForeground);
-        }
+    internal Color TerminalForeground(uint value) => TerminalColor(value) ?? Parse(Theme.EffectiveTerminalForeground);
 
+    internal Color TerminalBackground(uint value) => TerminalColor(value) ?? Colors.Transparent;
+
+    private Color? TerminalColor(uint value)
+    {
         if ((value & TerminalCell.PaletteFlag) != 0)
         {
             return Parse(Ansi(value & PaletteIndexMask));
         }
 
-        if ((value & TerminalCell.RgbFlag) != 0)
-        {
-            return Color.FromRgb(Red(value), Green(value), Blue(value));
-        }
-
-        return Parse(Theme.EffectiveTerminalForeground);
-    }
-
-    internal Color TerminalBackground(uint value)
-    {
-        if (value == 0)
-        {
-            return Colors.Transparent;
-        }
-
-        if ((value & TerminalCell.PaletteFlag) != 0)
-        {
-            return Parse(Ansi(value & PaletteIndexMask));
-        }
-
-        if ((value & TerminalCell.RgbFlag) != 0)
-        {
-            return Color.FromRgb(Red(value), Green(value), Blue(value));
-        }
-
-        return Colors.Transparent;
+        return (value & TerminalCell.RgbFlag) != 0 ? Color.FromRgb(Red(value), Green(value), Blue(value)) : null;
     }
 
     private string Ansi(uint index)
