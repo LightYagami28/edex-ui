@@ -32,6 +32,10 @@ public sealed class Dashboard
     internal const double Padding = UiLayout.Gap;
     internal const double TitleOffset = UiLayout.Gap * HalfFactor;
 
+    private const string NoLocation = "posizione non disponibile";
+
+    private static readonly DirectoryListing EmptyListing = new("", [], null);
+
     private static readonly string[] ByteUnits = ["B", "K", "M", "G", "T"];
 
     private readonly double[] _cpuHistory = new double[HistoryCapacity];
@@ -98,12 +102,18 @@ public sealed class Dashboard
 
     public void AttachTerminal(TerminalSnapshot snapshot) => Terminal = snapshot;
 
+    private double CpuPercent() => System?.Cpu.TotalPercent ?? 0;
+
+    private double DownloadRate() => Math.Max(0, Network?.DownloadBytesPerSecond ?? 0);
+
+    private double UploadRate() => Math.Max(0, Network?.UploadBytesPerSecond ?? 0);
+
     public void PushSample()
     {
         AdvanceRing();
-        _cpuHistory[_historyStart] = ClampFraction((System?.Cpu.TotalPercent ?? 0) / PercentScale);
-        _downloadHistory[_historyStart] = Math.Max(0, Network?.DownloadBytesPerSecond ?? 0);
-        _uploadHistory[_historyStart] = Math.Max(0, Network?.UploadBytesPerSecond ?? 0);
+        _cpuHistory[_historyStart] = ClampFraction(CpuPercent() / PercentScale);
+        _downloadHistory[_historyStart] = DownloadRate();
+        _uploadHistory[_historyStart] = UploadRate();
     }
 
     public UiScene BuildScene(DateTimeOffset now)
@@ -123,41 +133,39 @@ public sealed class Dashboard
         return _scene;
     }
 
-    public bool HitTest(double x, double y, out UiHit hit)
+    public UiHit? HitTest(double x, double y)
     {
-        hit = new UiHit(UiPanel.None, default, -1, null);
-        if (_scene.HitTest(x, y) is not { } element)
+        var element = _scene.HitTest(x, y);
+        return element is null ? null : Resolve(element.Value, x, y);
+    }
+
+    private UiHit? Resolve(UiElement element, double x, double y)
+    {
+        if (element.Kind == UiElementKind.Keys)
         {
-            return false;
+            return KeyHit(element, x, y);
         }
 
-        switch (element.Kind)
+        if (element.Kind == UiElementKind.Cells)
         {
-            case UiElementKind.Keys:
-                int key = UiKeyboard.HitTest(Keys, x, y);
-                if (key < 0)
-                {
-                    return false;
-                }
-
-                hit = new UiHit(UiPanel.Keyboard, element, key, Keys[key].Key);
-                return true;
-            case UiElementKind.Cells:
-                int cell = TerminalCellIndex(x, y);
-                if (cell < 0)
-                {
-                    return false;
-                }
-
-                hit = new UiHit(UiPanel.Terminal, element, cell, null);
-                return true;
-            case UiElementKind.Text when element.Payload is FileEntry entry:
-                hit = new UiHit(UiPanel.Files, element, 0, entry);
-                return true;
-            default:
-                hit = new UiHit(element.Panel, element, -1, element.Payload);
-                return true;
+            return CellHit(element, x, y);
         }
+
+        return element.Kind == UiElementKind.Text && element.Payload is FileEntry entry
+            ? new UiHit(UiPanel.Files, element, 0, entry)
+            : new UiHit(element.Panel, element, -1, element.Payload);
+    }
+
+    private UiHit? KeyHit(UiElement element, double x, double y)
+    {
+        int key = UiKeyboard.HitTest(Keys, x, y);
+        return key < 0 ? null : new UiHit(UiPanel.Keyboard, element, key, Keys[key].Key);
+    }
+
+    private UiHit? CellHit(UiElement element, double x, double y)
+    {
+        int cell = TerminalCellIndex(x, y);
+        return cell < 0 ? null : new UiHit(UiPanel.Terminal, element, cell, null);
     }
 
     public int TerminalCellIndex(double x, double y)
@@ -254,76 +262,83 @@ public sealed class Dashboard
         Math.Max(0, bounds.Width - Padding * HalfFactor),
         Math.Max(0, bounds.Height - Padding * HalfFactor - reserved));
 
+    private UiRect? OpenPanel(UiPanel panel, string title)
+    {
+        var bounds = Layout.Rect(panel);
+        if (bounds.IsEmpty)
+        {
+            return null;
+        }
+
+        _scene.Frame(bounds, panel, title);
+        return bounds;
+    }
+
+    private UiTextStyle Small(UiPanel panel, UiBrush brush) => new(brush, Settings.FontSize * SmallScale, UiTextAlign.Left, panel);
+
     private void DrawTopBar(DateTimeOffset now)
     {
-        var bounds = Layout.Rect(UiPanel.TopBar);
-        if (bounds.IsEmpty)
+        if (OpenPanel(UiPanel.TopBar, "") is not { } bounds)
         {
             return;
         }
 
-        _scene.Frame(bounds, UiPanel.TopBar, "");
         var inner = bounds.Inset(Padding);
         double captionHeight = Settings.FontSize * SmallScale;
         double bodySize = Settings.FontSize * BodyScale;
         var top = new UiRect(inner.X, inner.Y, inner.Width, inner.Height - captionHeight);
         var caption = new UiRect(inner.X, inner.Bottom - captionHeight, inner.Width, captionHeight);
-        _scene.Text(top, Identity(System), UiBrush.Foreground, bodySize, UiTextAlign.Left, UiPanel.TopBar);
-        _scene.Text(top, FormatClock(now), UiBrush.Accent, bodySize, UiTextAlign.Right, UiPanel.TopBar);
-        var uptime = FormatUptime(System?.Uptime ?? TimeSpan.Zero);
-        _scene.Text(caption, uptime, UiBrush.Muted, captionHeight, UiTextAlign.Left, UiPanel.TopBar);
+        _scene.Text(top, Identity(System), new UiTextStyle(UiBrush.Foreground, bodySize, UiTextAlign.Left, UiPanel.TopBar));
+        _scene.Text(top, FormatClock(now), new UiTextStyle(UiBrush.Accent, bodySize, UiTextAlign.Right, UiPanel.TopBar));
+        _scene.Text(caption, FormatUptime(System?.Uptime ?? TimeSpan.Zero), Small(UiPanel.TopBar, UiBrush.Muted));
     }
 
-    private static string Identity(SystemSnapshot? system)
-    {
-        string host = system?.HostName ?? Environment.MachineName;
-        string description = system?.OsDescription ?? "";
-        return description.Length == 0 ? host : $"{host} — {description}";
-    }
+    private static string Identity(SystemSnapshot? system) =>
+        system is null ? Environment.MachineName : Identity(system.HostName, system.OsDescription);
+
+    private static string Identity(string host, string description) => description.Length == 0 ? host : $"{host} — {description}";
 
     private void DrawTerminal()
     {
-        var bounds = Layout.Rect(UiPanel.Terminal);
-        if (bounds.IsEmpty)
+        if (OpenPanel(UiPanel.Terminal, "") is { } bounds && Terminal is { } snapshot)
         {
-            return;
-        }
-
-        _scene.Frame(bounds, UiPanel.Terminal, "");
-        if (Terminal is { } snapshot)
-        {
-            _scene.Cells(bounds.Inset(Padding), snapshot);
+            _scene.Cells(bounds.Inset(Padding), snapshot, UiPanel.Terminal);
         }
     }
 
     private void DrawFiles()
     {
-        var bounds = Layout.Rect(UiPanel.Files);
-        if (bounds.IsEmpty)
+        var listing = Listing ?? EmptyListing;
+        if (OpenPanel(UiPanel.Files, listing.Path) is not { } bounds)
         {
             return;
         }
 
-        _scene.Frame(bounds, UiPanel.Files, Listing?.Path ?? "");
         var inner = Content(bounds, TitleOffset);
-        if (Listing?.Error is { Length: > 0 } error)
+        if (string.IsNullOrEmpty(listing.Error))
         {
-            _scene.Text(inner, error, UiBrush.Danger, Settings.FontSize * SmallScale, UiTextAlign.Left, UiPanel.Files);
-            return;
+            DrawFileRows(inner, listing.Entries);
         }
+        else
+        {
+            _scene.Text(inner, listing.Error, Small(UiPanel.Files, UiBrush.Danger));
+        }
+    }
 
+    private void DrawFileRows(UiRect inner, IReadOnlyList<FileEntry> entries)
+    {
+        int count = Math.Min(entries.Count, VisibleRows(inner, MaxFileRows));
         double rowHeight = Settings.FontSize * RowScale;
-        if (rowHeight <= 0 || inner.Height < rowHeight)
-        {
-            return;
-        }
-
-        var entries = Listing?.Entries ?? [];
-        int count = Math.Min(entries.Count, Math.Min(MaxFileRows, (int)(inner.Height / rowHeight)));
         for (int i = 0; i < count; i++)
         {
             _scene.Add(FileRow(entries[i], new UiRect(inner.X, inner.Y + rowHeight * i, inner.Width, rowHeight)));
         }
+    }
+
+    private int VisibleRows(UiRect inner, int maximum)
+    {
+        double rowHeight = Settings.FontSize * RowScale;
+        return rowHeight <= 0 || inner.Height < rowHeight ? 0 : Math.Min(maximum, (int)(inner.Height / rowHeight));
     }
 
     private UiElement FileRow(FileEntry entry, UiRect bounds)
@@ -343,73 +358,68 @@ public sealed class Dashboard
 
     private void DrawKeyboard()
     {
-        var bounds = Layout.Rect(UiPanel.Keyboard);
-        if (bounds.IsEmpty)
+        if (OpenPanel(UiPanel.Keyboard, KeyboardLayout.Name) is { } bounds)
         {
-            return;
+            _scene.Keys(Content(bounds, TitleOffset), Keys, UiPanel.Keyboard);
         }
-
-        _scene.Frame(bounds, UiPanel.Keyboard, KeyboardLayout.Name);
-        _scene.Keys(Content(bounds, TitleOffset), Keys);
     }
 
     private void DrawCpu()
     {
-        var bounds = Layout.Rect(UiPanel.Cpu);
-        if (bounds.IsEmpty)
+        if (OpenPanel(UiPanel.Cpu, "cpu") is not { } bounds)
         {
             return;
         }
 
-        _scene.Frame(bounds, UiPanel.Cpu, "cpu");
         var inner = Content(bounds, TitleOffset);
-        double percent = System?.Cpu.TotalPercent ?? 0;
         double barHeight = Math.Max(1, Settings.FontSize * TitleScaleValue / HalfFactor);
-        string label = string.Create(CultureInfo.InvariantCulture, $"{percent:F0}%  ·  {System?.Cpu.LogicalCores ?? 0} core");
-        _scene.Text(inner.SliceTop(barHeight * HalfFactor), label, UiBrush.Foreground, Settings.FontSize * SmallScale, UiTextAlign.Left, UiPanel.Cpu);
+        string label = string.Create(CultureInfo.InvariantCulture, $"{CpuPercent():F0}%  ·  {System?.Cpu.LogicalCores ?? 0} core");
+        _scene.Text(inner.SliceTop(barHeight * HalfFactor), label, Small(UiPanel.Cpu, UiBrush.Foreground));
         var bar = new UiRect(inner.X, inner.Y + barHeight * HalfFactor, inner.Width, barHeight);
-        _scene.Bar(bar, percent / PercentScale, UiBrush.Accent, UiPanel.Cpu);
+        _scene.Bar(bar, CpuPercent() / PercentScale, UiBrush.Accent, UiPanel.Cpu);
         double graphTop = bar.Bottom + UiLayout.Gap;
         _scene.Polyline(new UiRect(inner.X, graphTop, inner.Width, Math.Max(0, inner.Bottom - graphTop)), CpuHistory, UiBrush.Accent, UiPanel.Cpu);
     }
 
     private void DrawMemory()
     {
-        var bounds = Layout.Rect(UiPanel.Memory);
-        if (bounds.IsEmpty)
+        if (OpenPanel(UiPanel.Memory, "memoria") is not { } bounds)
         {
             return;
         }
 
-        _scene.Frame(bounds, UiPanel.Memory, "memoria");
         var inner = Content(bounds, TitleOffset);
         var memory = System?.Memory;
-        string label = memory is { } sample ? $"{FormatBytes((long)sample.UsedBytes)} / {FormatBytes((long)sample.TotalBytes)}" : "—";
         double labelHeight = inner.Height / HalfFactor;
-        _scene.Text(inner.SliceTop(labelHeight), label, UiBrush.Foreground, Settings.FontSize * SmallScale, UiTextAlign.Left, UiPanel.Memory);
-        double barHeight = Math.Max(0, inner.Height - labelHeight);
-        _scene.Bar(new UiRect(inner.X, inner.Y + labelHeight, inner.Width, barHeight), ClampFraction((memory?.UsedPercent ?? 0) / PercentScale), UiBrush.Accent, UiPanel.Memory);
+        _scene.Text(inner.SliceTop(labelHeight), MemoryLabel(memory), Small(UiPanel.Memory, UiBrush.Foreground));
+        var bar = new UiRect(inner.X, inner.Y + labelHeight, inner.Width, Math.Max(0, inner.Height - labelHeight));
+        _scene.Bar(bar, MemoryFraction(memory), UiBrush.Accent, UiPanel.Memory);
     }
+
+    private static string MemoryLabel(MemorySample? memory) =>
+        memory is null ? "—" : $"{FormatBytes((long)memory.UsedBytes)} / {FormatBytes((long)memory.TotalBytes)}";
+
+    private static double MemoryFraction(MemorySample? memory) => ClampFraction((memory?.UsedPercent ?? 0) / PercentScale);
 
     private void DrawNetwork()
     {
-        var bounds = Layout.Rect(UiPanel.Network);
-        if (bounds.IsEmpty)
+        if (OpenPanel(UiPanel.Network, "rete") is not { } bounds)
         {
             return;
         }
 
-        _scene.Frame(bounds, UiPanel.Network, "rete");
         var inner = Content(bounds, TitleOffset);
         var network = Network;
         double rowHeight = inner.Height / HalfFactor;
-        string throughput = network is { } snapshot
-            ? $"↓ {FormatBytes((long)snapshot.DownloadBytesPerSecond)}/s  ↑ {FormatBytes((long)snapshot.UploadBytesPerSecond)}/s"
-            : "—";
-        _scene.Text(inner.SliceTop(rowHeight), throughput, UiBrush.Foreground, Settings.FontSize * SmallScale, UiTextAlign.Left, UiPanel.Network);
-        _scene.Text(new UiRect(inner.X, inner.Y + rowHeight, inner.Width, Math.Max(0, inner.Height - rowHeight)), NetworkStatus(network), network?.Online == true ? UiBrush.Muted : UiBrush.Danger, Settings.FontSize * SmallScale, UiTextAlign.Left, UiPanel.Network);
+        _scene.Text(inner.SliceTop(rowHeight), Throughput(network), Small(UiPanel.Network, UiBrush.Foreground));
+        var status = new UiRect(inner.X, inner.Y + rowHeight, inner.Width, Math.Max(0, inner.Height - rowHeight));
+        _scene.Text(status, NetworkStatus(network), Small(UiPanel.Network, network?.Online == true ? UiBrush.Muted : UiBrush.Danger));
         _scene.Polyline(inner, DownloadHistory, UiBrush.Accent, UiPanel.Network);
     }
+
+    private static string Throughput(NetworkSnapshot? network) => network is null
+        ? "—"
+        : $"↓ {FormatBytes((long)network.DownloadBytesPerSecond)}/s  ↑ {FormatBytes((long)network.UploadBytesPerSecond)}/s";
 
     internal static string NetworkStatus(NetworkSnapshot? network)
     {
@@ -428,49 +438,46 @@ public sealed class Dashboard
 
     private void DrawProcesses()
     {
-        var bounds = Layout.Rect(UiPanel.Processes);
-        if (bounds.IsEmpty)
+        if (OpenPanel(UiPanel.Processes, "processi") is not { } bounds)
         {
             return;
         }
 
-        _scene.Frame(bounds, UiPanel.Processes, "processi");
         var inner = Content(bounds, TitleOffset);
-        double rowHeight = Settings.FontSize * RowScale;
-        if (rowHeight <= 0 || inner.Height < rowHeight)
-        {
-            return;
-        }
-
         var processes = System?.TopProcesses ?? [];
-        int capacity = Math.Min(MaxProcessRows, (int)(inner.Height / rowHeight));
-        for (int i = 0; i < processes.Count && i < capacity; i++)
+        int count = Math.Min(processes.Count, VisibleRows(inner, MaxProcessRows));
+        double rowHeight = Settings.FontSize * RowScale;
+        for (int i = 0; i < count; i++)
         {
-            var process = processes[i];
-            string label = string.Create(CultureInfo.InvariantCulture, $"{process.Name}  {process.CpuPercent:F0}%  {FormatBytes(process.WorkingSetBytes)}");
-            _scene.Text(new UiRect(inner.X, inner.Y + rowHeight * i, inner.Width, rowHeight), label, UiBrush.Muted, Settings.FontSize * SmallScale, UiTextAlign.Left, UiPanel.Processes);
+            var row = new UiRect(inner.X, inner.Y + rowHeight * i, inner.Width, rowHeight);
+            _scene.Text(row, ProcessLabel(processes[i]), Small(UiPanel.Processes, UiBrush.Muted));
         }
     }
+
+    private static string ProcessLabel(ProcessSample process) =>
+        string.Create(CultureInfo.InvariantCulture, $"{process.Name}  {process.CpuPercent:F0}%  {FormatBytes(process.WorkingSetBytes)}");
 
     private void DrawGlobe()
     {
-        var bounds = Layout.Rect(UiPanel.Globe);
-        if (bounds.IsEmpty)
+        if (OpenPanel(UiPanel.Globe, "posizione") is not { } bounds)
         {
             return;
         }
 
-        _scene.Frame(bounds, UiPanel.Globe, "posizione");
         var location = Location;
-        var projection = new Orthographic(location?.Latitude ?? 0, (location?.Longitude ?? 0) + _spin);
+        var projection = Projection(location);
         ProjectLand(projection);
-        UiPoint? marker = location is null ? null : ProjectOnDisc(projection, location.Latitude, location.Longitude);
         double captionHeight = Settings.FontSize * SmallScale;
-        var inner = Content(bounds, TitleOffset + captionHeight);
-        _scene.Globe(inner, new UiGlobeFrame(_projectedLand.ToArray(), marker));
+        _scene.Globe(Content(bounds, TitleOffset + captionHeight), new UiGlobeFrame(_projectedLand.ToArray(), Marker(projection, location)), UiPanel.Globe);
         var captionBounds = new UiRect(bounds.X, bounds.Bottom - captionHeight, bounds.Width, captionHeight);
-        _scene.Text(captionBounds, GlobeCaption(location), UiBrush.Muted, Settings.FontSize * SmallScale, UiTextAlign.Center, UiPanel.Globe);
+        _scene.Text(captionBounds, GlobeCaption(location), new UiTextStyle(UiBrush.Muted, captionHeight, UiTextAlign.Center, UiPanel.Globe));
     }
+
+    private Orthographic Projection(GeoLocation? location) =>
+        location is null ? new Orthographic(0, _spin) : new Orthographic(location.Latitude, location.Longitude + _spin);
+
+    private static UiPoint? Marker(Orthographic projection, GeoLocation? location) =>
+        location is null ? null : ProjectOnDisc(projection, location.Latitude, location.Longitude);
 
     private void ProjectLand(Orthographic projection)
     {
@@ -492,7 +499,7 @@ public sealed class Dashboard
     }
 
     private static string GlobeCaption(GeoLocation? location) =>
-        location?.City ?? location?.Country ?? location?.Ip ?? "posizione non disponibile";
+        location is null ? NoLocation : location.City ?? location.Country ?? location.Ip ?? NoLocation;
 
     private static bool IsOnDisc(UiPoint point) => point.X * point.X + point.Y * point.Y <= DiscRadiusSquared;
 }

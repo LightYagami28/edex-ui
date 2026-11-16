@@ -66,12 +66,7 @@ internal sealed class EdexWindow : Window, IDisposable
     private void OnMouseDown(object sender, MouseButtonEventArgs e)
     {
         var point = e.GetPosition(_surface);
-        if (!_host.Dashboard.HitTest(point.X, point.Y, out var hit))
-        {
-            return;
-        }
-
-        if (hit.Value is KeyDefinition key)
+        if (_host.Dashboard.HitTest(point.X, point.Y)?.Value is KeyDefinition key)
         {
             _host.SendKey(key);
         }

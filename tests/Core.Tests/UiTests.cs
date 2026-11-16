@@ -199,8 +199,8 @@ public sealed class UiSceneTests
     {
         var scene = new UiScene();
         Assert.AreEqual(0, scene.Count);
-        scene.Text(new UiRect(0, 0, 10, 10), "a", UiBrush.Foreground, 12);
-        scene.Rule(new UiRect(0, 0, 10, 1), UiBrush.Muted);
+        scene.Text(new UiRect(0, 0, 10, 10), "a", new UiTextStyle(UiBrush.Foreground, 12, UiTextAlign.Left, UiPanel.None));
+        scene.Rule(new UiRect(0, 0, 10, 1), UiBrush.Muted, UiPanel.None);
         Assert.AreEqual(2, scene.Count);
         scene.Clear();
         Assert.AreEqual(0, scene.Count);
@@ -210,9 +210,9 @@ public sealed class UiSceneTests
     public void BarClampsOutOfRangeAndNonFiniteFractions()
     {
         var scene = new UiScene();
-        scene.Bar(new UiRect(0, 0, 10, 10), 1.8, UiBrush.Accent);
-        scene.Bar(new UiRect(0, 0, 10, 10), -0.4, UiBrush.Accent);
-        scene.Bar(new UiRect(0, 0, 10, 10), double.NaN, UiBrush.Accent);
+        scene.Bar(new UiRect(0, 0, 10, 10), 1.8, UiBrush.Accent, UiPanel.None);
+        scene.Bar(new UiRect(0, 0, 10, 10), -0.4, UiBrush.Accent, UiPanel.None);
+        scene.Bar(new UiRect(0, 0, 10, 10), double.NaN, UiBrush.Accent, UiPanel.None);
         Assert.AreEqual(1, scene.Elements[0].Value);
         Assert.AreEqual(0, scene.Elements[1].Value);
         Assert.AreEqual(0, scene.Elements[2].Value);
@@ -235,7 +235,7 @@ public sealed class UiSceneTests
     public void HitTestSkipsRulesAndMissesOutside()
     {
         var scene = new UiScene();
-        scene.Rule(new UiRect(0, 0, 100, 100), UiBrush.Muted);
+        scene.Rule(new UiRect(0, 0, 100, 100), UiBrush.Muted, UiPanel.None);
         Assert.IsNull(scene.HitTest(10, 10));
         scene.Frame(new UiRect(0, 0, 100, 100), UiPanel.Globe, "g");
         Assert.IsNull(scene.HitTest(150, 150));
@@ -249,9 +249,9 @@ public sealed class UiSceneTests
         var bounds = new UiRect(0, 0, 10, 10);
         double[] samples = [0.1, 0.9];
         scene.Polyline(bounds, samples, UiBrush.Accent, UiPanel.Network);
-        scene.Cells(bounds, "snapshot");
-        scene.Keys(bounds, "keys");
-        scene.Globe(bounds, "globe");
+        scene.Cells(bounds, "snapshot", UiPanel.Terminal);
+        scene.Keys(bounds, "keys", UiPanel.Keyboard);
+        scene.Globe(bounds, "globe", UiPanel.Globe);
         Assert.AreSame(samples, scene.Elements[0].Payload);
         Assert.AreEqual(UiPanel.Network, scene.Elements[0].Panel);
         Assert.AreEqual(UiElementKind.Cells, scene.Elements[1].Kind);
@@ -658,7 +658,8 @@ public sealed class DashboardTests
         dashboard.BuildScene(DateTimeOffset.UnixEpoch);
         Assert.IsNotEmpty(dashboard.Keys);
         var target = dashboard.Keys[5].Bounds;
-        Assert.IsTrue(dashboard.HitTest(target.X + 1, target.Y + 1, out var hit));
+        var hit = dashboard.HitTest(target.X + 1, target.Y + 1);
+        Assert.IsNotNull(hit);
         Assert.AreEqual(UiPanel.Keyboard, hit.Panel);
         Assert.AreEqual(5, hit.Index);
         Assert.AreSame(dashboard.Keys[5].Key, hit.Value);
@@ -674,7 +675,8 @@ public sealed class DashboardTests
         var bounds = dashboard.Layout.Rect(UiPanel.Terminal).Inset(Dashboard.Padding);
         double cellWidth = bounds.Width / snapshot.Columns;
         double cellHeight = bounds.Height / snapshot.Rows;
-        Assert.IsTrue(dashboard.HitTest(bounds.X + cellWidth * 3.5, bounds.Y + cellHeight * 2.5, out var hit));
+        var hit = dashboard.HitTest(bounds.X + cellWidth * 3.5, bounds.Y + cellHeight * 2.5);
+        Assert.IsNotNull(hit);
         Assert.AreEqual(UiPanel.Terminal, hit.Panel);
         Assert.AreEqual(2 * snapshot.Columns + 3, hit.Index);
     }
@@ -686,7 +688,8 @@ public sealed class DashboardTests
         dashboard.AttachListing(new DirectoryListing("/tmp", [new FileEntry("a.txt", "/tmp/a.txt", FileEntryKind.File, 1, DateTime.UnixEpoch, false)], null));
         var scene = dashboard.BuildScene(DateTimeOffset.UnixEpoch);
         var row = scene.Elements.First(e => e.Payload is FileEntry);
-        Assert.IsTrue(dashboard.HitTest(row.Bounds.X + 1, row.Bounds.Y + 1, out var hit));
+        var hit = dashboard.HitTest(row.Bounds.X + 1, row.Bounds.Y + 1);
+        Assert.IsNotNull(hit);
         Assert.AreEqual(UiPanel.Files, hit.Panel);
         Assert.IsInstanceOfType<FileEntry>(hit.Value);
     }
@@ -696,8 +699,7 @@ public sealed class DashboardTests
     {
         var dashboard = NewDashboard();
         dashboard.BuildScene(DateTimeOffset.UnixEpoch);
-        Assert.IsFalse(dashboard.HitTest(-50, -50, out var hit));
-        Assert.AreEqual(UiPanel.None, hit.Panel);
+        Assert.IsNull(dashboard.HitTest(-50, -50));
     }
 
     [TestMethod]
@@ -705,7 +707,7 @@ public sealed class DashboardTests
     {
         var dashboard = NewDashboard(showKeyboard: false);
         dashboard.BuildScene(DateTimeOffset.UnixEpoch);
-        Assert.IsFalse(dashboard.HitTest(dashboard.Layout.Rect(UiPanel.Keyboard).X + 1, 1, out _));
+        Assert.IsNull(dashboard.HitTest(dashboard.Layout.Rect(UiPanel.Keyboard).X + 1, 1));
     }
 
     [TestMethod]
