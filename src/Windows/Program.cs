@@ -11,6 +11,7 @@ namespace Edex.Windows;
 internal static class Program
 {
     private const string SmokeMarker = "edex-smoke-ok";
+    private const string Usage = "Uso: edex-ui [--version | --help | --smoke-test [--screenshot <file>]]";
     private const int SmokeTimeoutMilliseconds = 15000;
     private const int SmokePollMilliseconds = 200;
     private const int SmokeWidth = 1280;
@@ -46,7 +47,7 @@ internal static class Program
 
     private static int PrintHelp()
     {
-        Console.WriteLine("Uso: edex-ui [--version | --help | --smoke-test [--screenshot <file>]]");
+        Console.WriteLine(Usage);
         return 0;
     }
 
