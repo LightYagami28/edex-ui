@@ -82,15 +82,7 @@ internal sealed class AppHost : IDisposable
 
     internal void Refresh()
     {
-        try
-        {
-            Dashboard.AttachSystem(_monitor.Sample());
-        }
-        catch (Exception e) when (e is InvalidOperationException or NotSupportedException)
-        {
-            // Il campionamento del sistema può non essere disponibile su ogni piattaforma.
-        }
-
+        SampleSystem();
         Dashboard.PushSample();
         if (Terminal is { } terminal)
         {
@@ -104,6 +96,18 @@ internal sealed class AppHost : IDisposable
 
         _fileCounter += RefreshMilliseconds;
         _ = RefreshNetworkAsync();
+    }
+
+    private void SampleSystem()
+    {
+        try
+        {
+            Dashboard.AttachSystem(_monitor.Sample());
+        }
+        catch (Exception e) when (e is InvalidOperationException or NotSupportedException)
+        {
+            _ = e;
+        }
     }
 
     public void Dispose()
@@ -150,7 +154,7 @@ internal sealed class AppHost : IDisposable
         }
         catch (Exception e) when (e is HttpRequestException or IOException or InvalidOperationException)
         {
-            // La rete può non rispondere: i pannelli restano con gli ultimi valori.
+            _ = e;
         }
     }
 }

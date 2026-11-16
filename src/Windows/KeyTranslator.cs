@@ -40,15 +40,17 @@ internal static class KeyTranslator
 
     internal static string? Translate(Key key, ModifierKeys modifiers, bool applicationCursorKeys)
     {
-        bool alt = modifiers.HasFlag(ModifierKeys.Alt);
         string? sequence = Cursor(key, applicationCursorKeys) ?? Function(key);
-        if (sequence is not null)
+        if (sequence is null)
         {
-            return alt ? TerminalKeys.Escape + sequence : sequence;
+            return Special(key, modifiers) ?? Typed(key, modifiers);
         }
 
-        return Special(key, modifiers) ?? Typed(key, modifiers);
+        return WithAlt(sequence, modifiers);
     }
+
+    private static string WithAlt(string text, ModifierKeys modifiers) =>
+        modifiers.HasFlag(ModifierKeys.Alt) ? TerminalKeys.Escape + text : text;
 
     private static string? Special(Key key, ModifierKeys modifiers) => key switch
     {
@@ -63,19 +65,13 @@ internal static class KeyTranslator
     private static string? Typed(Key key, ModifierKeys modifiers)
     {
         char? character = Character(key, modifiers.HasFlag(ModifierKeys.Shift));
-        if (character is null)
-        {
-            return null;
-        }
+        return character is null ? null : TypedCharacter(character.Value, modifiers);
+    }
 
-        string? control = modifiers.HasFlag(ModifierKeys.Control) ? TerminalKeys.Control(character.Value) : null;
-        if (control is not null)
-        {
-            return control;
-        }
-
-        string typed = character.Value.ToString(CultureInfo.InvariantCulture);
-        return modifiers.HasFlag(ModifierKeys.Alt) ? TerminalKeys.Escape + typed : typed;
+    private static string TypedCharacter(char character, ModifierKeys modifiers)
+    {
+        string? control = modifiers.HasFlag(ModifierKeys.Control) ? TerminalKeys.Control(character) : null;
+        return control ?? WithAlt(character.ToString(CultureInfo.InvariantCulture), modifiers);
     }
 
     private static string? Cursor(Key key, bool applicationCursorKeys) =>
@@ -84,24 +80,39 @@ internal static class KeyTranslator
     private static string? Function(Key key) =>
         key is >= Key.F1 and <= Key.F12 ? TerminalKeys.Function(key - Key.F1 + 1) : null;
 
-    private static char? Character(Key key, bool shift)
+    private static char? Character(Key key, bool shift) =>
+        Letter(key, shift) ?? Digit(key, shift) ?? NumPadDigit(key) ?? PunctuationMark(key);
+
+    private static char? Letter(Key key, bool shift)
     {
-        if (key is >= Key.A and <= Key.Z)
+        if (key is < Key.A or > Key.Z)
         {
-            return (char)((shift ? 'A' : 'a') + (key - Key.A));
+            return null;
         }
 
-        if (key is >= Key.D0 and <= Key.D9)
-        {
-            int digit = key - Key.D0;
-            return shift ? ShiftedDigits[digit] : (char)('0' + digit);
-        }
-
-        if (key is >= Key.NumPad0 and <= Key.NumPad9)
-        {
-            return (char)('0' + (key - Key.NumPad0));
-        }
-
-        return Punctuation.TryGetValue(key, out char punctuation) ? punctuation : null;
+        return (char)((shift ? 'A' : 'a') + (key - Key.A));
     }
+
+    private static char? Digit(Key key, bool shift)
+    {
+        if (key is < Key.D0 or > Key.D9)
+        {
+            return null;
+        }
+
+        int digit = key - Key.D0;
+        return shift ? ShiftedDigits[digit] : (char)('0' + digit);
+    }
+
+    private static char? NumPadDigit(Key key)
+    {
+        if (key is < Key.NumPad0 or > Key.NumPad9)
+        {
+            return null;
+        }
+
+        return (char)('0' + (key - Key.NumPad0));
+    }
+
+    private static char? PunctuationMark(Key key) => Punctuation.TryGetValue(key, out char punctuation) ? punctuation : null;
 }

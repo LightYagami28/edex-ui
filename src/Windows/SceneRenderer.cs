@@ -161,18 +161,21 @@ internal sealed class SceneRenderer(ThemePalette palette)
         var cellSize = new Size(element.Bounds.Width / snapshot.Columns, element.Bounds.Height / snapshot.Rows);
         for (int row = 0; row < snapshot.Rows; row++)
         {
-            var line = snapshot.Lines[row];
-            int columns = Math.Min(snapshot.Columns, line.Length);
-            for (int column = 0; column < columns; column++)
-            {
-                var origin = new Point(element.Bounds.X + column * cellSize.Width, element.Bounds.Y + row * cellSize.Height);
-                DrawCell(context, line[column], origin, cellSize);
-            }
+            var origin = new Point(element.Bounds.X, element.Bounds.Y + row * cellSize.Height);
+            DrawLine(context, snapshot.Lines[row].AsSpan(0, Math.Min(snapshot.Columns, snapshot.Lines[row].Length)), origin, cellSize);
         }
 
         if (snapshot.CursorVisible)
         {
             DrawCursor(context, element.Bounds, snapshot, cellSize);
+        }
+    }
+
+    private void DrawLine(DrawingContext context, ReadOnlySpan<TerminalCell> line, Point origin, Size cellSize)
+    {
+        for (int column = 0; column < line.Length; column++)
+        {
+            DrawCell(context, line[column], new Point(origin.X + column * cellSize.Width, origin.Y), cellSize);
         }
     }
 
@@ -264,16 +267,20 @@ internal sealed class SceneRenderer(ThemePalette palette)
 
         var center = new Point(element.Bounds.X + element.Bounds.Width / Half, element.Bounds.Y + element.Bounds.Height / Half);
         context.DrawEllipse(null, new Pen(palette.Brush(UiBrush.Muted), BorderThickness), center, radius, radius);
-        var land = new SolidColorBrush(palette.Resolve(UiBrush.Accent)) { Opacity = LandOpacity };
-        foreach (var point in frame.Land)
-        {
-            context.DrawEllipse(land, null, OnGlobe(center, radius, point), LandPointRadius, LandPointRadius);
-        }
-
+        DrawLand(context, frame.Land, center, radius);
         if (frame.Marker is { } marker)
         {
             var markerBrush = new SolidColorBrush(palette.Resolve(UiBrush.Danger));
             context.DrawEllipse(markerBrush, null, OnGlobe(center, radius, marker), MarkerRadius, MarkerRadius);
+        }
+    }
+
+    private void DrawLand(DrawingContext context, IReadOnlyList<UiPoint> points, Point center, double radius)
+    {
+        var land = new SolidColorBrush(palette.Resolve(UiBrush.Accent)) { Opacity = LandOpacity };
+        foreach (var point in points)
+        {
+            context.DrawEllipse(land, null, OnGlobe(center, radius, point), LandPointRadius, LandPointRadius);
         }
     }
 
