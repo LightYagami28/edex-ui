@@ -26,25 +26,28 @@ public static class UiKeyboard
         double rowHeight = (bounds.Height + KeyGap) / layout.Rows.Count - KeyGap;
         for (int row = 0; row < layout.Rows.Count; row++)
         {
-            var definitions = layout.Rows[row];
-            if (definitions.Count == 0)
-            {
-                continue;
-            }
-
-            double units = definitions.Sum(d => d.Width);
-            double slot = (bounds.Width + KeyGap) / units;
-            double x = bounds.X;
-            double y = bounds.Y + (rowHeight + KeyGap) * row;
-            foreach (var definition in definitions)
-            {
-                double width = Math.Max(0, slot * definition.Width - KeyGap);
-                keys.Add(new UiKey(new UiRect(x, y, width, rowHeight), definition, state.Display(definition), IsActive(state, definition)));
-                x += slot * definition.Width;
-            }
+            var rowBounds = new UiRect(bounds.X, bounds.Y + (rowHeight + KeyGap) * row, bounds.Width, rowHeight);
+            ArrangeRow(keys, layout.Rows[row], rowBounds, state);
         }
 
         return keys;
+    }
+
+    private static void ArrangeRow(List<UiKey> keys, IReadOnlyList<KeyDefinition> definitions, UiRect row, KeyboardState state)
+    {
+        if (definitions.Count == 0)
+        {
+            return;
+        }
+
+        double slot = (row.Width + KeyGap) / definitions.Sum(d => d.Width);
+        double x = row.X;
+        foreach (var definition in definitions)
+        {
+            double width = Math.Max(0, slot * definition.Width - KeyGap);
+            keys.Add(new UiKey(new UiRect(x, row.Y, width, row.Height), definition, state.Display(definition), IsActive(state, definition)));
+            x += slot * definition.Width;
+        }
     }
 
     public static int HitTest(IReadOnlyList<UiKey> keys, double x, double y)
