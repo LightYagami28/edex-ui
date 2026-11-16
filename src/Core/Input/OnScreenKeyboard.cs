@@ -37,20 +37,18 @@ public sealed record KeyboardLayout(string Name, IReadOnlyList<IReadOnlyList<Key
 
     private static KeyDefinition Special(string label, KeyAction action) => new(label, Action: action);
 
-    private static KeyDefinition Special(string label, KeyAction action, double width) => new(label, Action: action, Width: width);
-
     private static IReadOnlyList<IReadOnlyList<KeyDefinition>> Build(params (string normal, string shifted)[] rows) =>
     [
-        Row(Special("Esc", KeyAction.Escape), rows[0], Special("⌫", KeyAction.Backspace, 1.8)),
-        Row(Special("Tab", KeyAction.Tab, 1.5), rows[1], Special("Del", KeyAction.Delete, 1.3)),
-        Row(Special("Caps", KeyAction.CapsLock, 1.8), rows[HomeRow], Special("Enter", KeyAction.Enter, 2.0)),
-        Row(Special("Shift", KeyAction.Shift, 2.3), rows[BottomRow], Special("↑", KeyAction.Up), Special("Shift", KeyAction.Shift, 1.6)),
+        Row(Special("Esc", KeyAction.Escape), rows[0], new KeyDefinition("⌫", Action: KeyAction.Backspace, Width: 1.8)),
+        Row(new KeyDefinition("Tab", Action: KeyAction.Tab, Width: 1.5), rows[1], new KeyDefinition("Del", Action: KeyAction.Delete, Width: 1.3)),
+        Row(new KeyDefinition("Caps", Action: KeyAction.CapsLock, Width: 1.8), rows[HomeRow], new KeyDefinition("Enter", Action: KeyAction.Enter, Width: 2.0)),
+        Row(new KeyDefinition("Shift", Action: KeyAction.Shift, Width: 2.3), rows[BottomRow], Special("↑", KeyAction.Up), new KeyDefinition("Shift", Action: KeyAction.Shift, Width: 1.6)),
         [
-            Special("Ctrl", KeyAction.Control, 1.6),
-            Special("Alt", KeyAction.Alt, 1.4),
-            Special("", KeyAction.Space, 7.4),
-            Special("Home", KeyAction.Home, 1.2),
-            Special("End", KeyAction.End, 1.2),
+            new KeyDefinition("Ctrl", Action: KeyAction.Control, Width: 1.6),
+            new KeyDefinition("Alt", Action: KeyAction.Alt, Width: 1.4),
+            new KeyDefinition("", Action: KeyAction.Space, Width: 7.4),
+            new KeyDefinition("Home", Action: KeyAction.Home, Width: 1.2),
+            new KeyDefinition("End", Action: KeyAction.End, Width: 1.2),
             Special("←", KeyAction.Left),
             Special("↓", KeyAction.Down),
             Special("→", KeyAction.Right),
