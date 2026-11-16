@@ -9,7 +9,7 @@ pannelli di sistema (CPU, RAM, rete, processi, file, globo) e tastiera su
 schermo. Un'applicazione nativa per ogni sistema, senza librerie di terzi:
 solo .NET e le API del sistema operativo.
 
-Il codice Electron originale è nella storia di `master` e nel tag
+Il codice Electron originale è nella storia di `main` e nel tag
 `archivio/electron`.
 
 ## Stato

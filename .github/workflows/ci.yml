@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [master, native/base, native/windows, native/linux, native/macos]
+    branches: [main, native/base, native/windows, native/linux, native/macos]
   pull_request:
   workflow_dispatch:
 

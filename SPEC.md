@@ -1,7 +1,7 @@
 # eDEX-UI nativo (.NET) - SPEC
 
 Riscrittura da zero di eDEX-UI. Il vecchio codice Electron (JavaScript,
-`src/`) resta solo nella storia git (`master`). Questa è l'unica fonte di
+`src/`) resta solo nella storia git (`main`). Questa è l'unica fonte di
 verità per funzioni, architettura e piano.
 
 ## 1. Regole
@@ -17,7 +17,7 @@ verità per funzioni, architettura e piano.
   (`NOSONAR`, `#pragma warning disable`, `SuppressMessage`, esclusioni
   fittizie).
 - Un ramo per sistema: `native/windows`, `native/linux`, `native/macos`, tutti
-  nati da `native/base`. Nessuna unione in `master` senza decisione di Light.
+  nati da `native/base`. Nessuna unione in `main` senza decisione di Light.
 
 ## 2. Funzioni da riprodurre (dal codice Electron)
 

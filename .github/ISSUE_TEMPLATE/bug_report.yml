@@ -40,7 +40,7 @@ body:
     id: versione
     attributes:
       label: Commit o versione di eDEX-UI
-      placeholder: master @ 1a2b3c4
+      placeholder: main @ 1a2b3c4
     validations:
       required: true
   - type: textarea
