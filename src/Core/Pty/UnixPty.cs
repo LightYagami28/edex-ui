@@ -24,44 +24,71 @@ internal sealed partial class UnixPty : IPtyConnection
         _master = master;
         _output = new FileStream(new SafeFileHandle((IntPtr)master, ownsHandle: true), FileAccess.Read, 1, false);
         _input = new FileStream(new SafeFileHandle((IntPtr)Dup(master), ownsHandle: true), FileAccess.Write, 1, false);
-        new Thread(WatchExit) { IsBackground = true, Name = "pty-exit-watcher" }.Start();
-    }
 
-    private void WatchExit()
-    {
-        int code = ExitCodeFromStatus(WaitForExit(_pid));
-        ExitCode = code;
-        Exited?.Invoke(this, code);
-    }
-
-    private static int WaitForExit(int pid)
-    {
-        int status;
-        bool interrupted;
-        do
+        var waiter = new Thread(() =>
         {
-            interrupted = WaitPid(pid, out status, 0) == -1 && Marshal.GetLastPInvokeError() == EINTR;
-        }
-        while (interrupted);
-        return status;
+            int status;
+            bool interrupted;
+            do
+            {
+                interrupted = WaitPid(_pid, out status, 0) == -1 && Marshal.GetLastPInvokeError() == EINTR;
+            }
+            while (interrupted);
+            int code = (status & 0x7f) == 0 ? (status >> 8) & 0xff : 128 + (status & 0x7f);
+            ExitCode = code;
+            Exited?.Invoke(this, code);
+        })
+        { IsBackground = true, Name = "pty-exit-watcher" };
+        waiter.Start();
     }
-
-    private static int ExitCodeFromStatus(int status) =>
-        (status & SignalMask) == 0 ? (status >> ExitStatusShift) & ExitStatusMask : SignalExitBase + (status & SignalMask);
 
     internal static UnixPty Spawn(PtyOptions options)
     {
         string executable = ResolveExecutable(options.Shell);
         var env = PtyFactory.BuildEnvironment(options.Environment);
-        var size = WindowSize(options.Columns, options.Rows);
-        using var native = new NativeAllocations();
-        var launch = new Launch(
-            native.Text(executable),
-            native.Array(new[] { executable }.Concat(options.Args)),
-            native.Array(env.Select(e => $"{e.Key}={e.Value}")),
-            native.Text(WorkingDirectory(options)));
-        int pid = Fork(launch, ref size, out int master);
+        string cwd = !string.IsNullOrEmpty(options.WorkingDirectory) && Directory.Exists(options.WorkingDirectory)
+            ? options.WorkingDirectory
+            : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+        var allocations = new List<IntPtr>();
+        static IntPtr Str(List<IntPtr> allocations, string s)
+        {
+            var p = Marshal.StringToHGlobalAnsi(s);
+            allocations.Add(p);
+            return p;
+        }
+        static IntPtr Array(List<IntPtr> allocations, IEnumerable<string> items)
+        {
+            var pointers = items.Select(item => Str(allocations, item)).Append(IntPtr.Zero).ToArray();
+            var block = Marshal.AllocHGlobal(IntPtr.Size * pointers.Length);
+            for (int i = 0; i < pointers.Length; i++)
+            {
+                Marshal.WriteIntPtr(block, i * IntPtr.Size, pointers[i]);
+            }
+
+            allocations.Add(block);
+            return block;
+        }
+
+        IntPtr path = Str(allocations, executable);
+        IntPtr argv = Array(allocations, new[] { executable }.Concat(options.Args));
+        IntPtr envp = Array(allocations, env.Select(e => $"{e.Key}={e.Value}"));
+        IntPtr dir = Str(allocations, cwd);
+        var size = new WinSize { Rows = (ushort)Math.Max(2, options.Rows), Columns = (ushort)Math.Max(2, options.Columns) };
+
+        Marshal.PrelinkAll(typeof(UnixPty));
+        int pid = ForkPty(out int master, IntPtr.Zero, IntPtr.Zero, ref size);
+        if (pid == 0)
+        {
+            Exit(ChDir(dir) == 0 && ExecVe(path, argv, envp) == 0 ? 0 : ChildFailed);
+        }
+
         int error = Marshal.GetLastPInvokeError();
+        foreach (var p in allocations)
+        {
+            Marshal.FreeHGlobal(p);
+        }
+
         if (pid < 0)
         {
             throw new IOException($"forkpty failed (errno {error})");
@@ -69,26 +96,6 @@ internal sealed partial class UnixPty : IPtyConnection
 
         return new UnixPty(pid, master);
     }
-
-    private static int Fork(Launch launch, ref WinSize size, out int master)
-    {
-        Marshal.PrelinkAll(typeof(UnixPty));
-        int pid = ForkPty(out master, IntPtr.Zero, IntPtr.Zero, ref size);
-        if (pid == 0)
-        {
-            Exit(ChDir(launch.Directory) == 0 && ExecVe(launch.Path, launch.Argv, launch.Envp) == 0 ? 0 : ChildFailed);
-        }
-
-        return pid;
-    }
-
-    private static string WorkingDirectory(PtyOptions options) =>
-        !string.IsNullOrEmpty(options.WorkingDirectory) && Directory.Exists(options.WorkingDirectory)
-            ? options.WorkingDirectory
-            : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-
-    private static WinSize WindowSize(int columns, int rows) =>
-        new() { Rows = (ushort)Math.Max(MinSize, rows), Columns = (ushort)Math.Max(MinSize, columns) };
 
     internal static string ResolveExecutable(string shell)
     {
@@ -115,7 +122,7 @@ internal sealed partial class UnixPty : IPtyConnection
             return;
         }
 
-        var size = WindowSize(columns, rows);
+        var size = new WinSize { Rows = (ushort)Math.Max(2, rows), Columns = (ushort)Math.Max(2, columns) };
         _ = Ioctl(_master, OperatingSystem.IsMacOS() ? TiocswinszMac : TiocswinszLinux, ref size);
     }
 
@@ -127,15 +134,22 @@ internal sealed partial class UnixPty : IPtyConnection
         }
 
         _ = Kill(_pid, SIGHUP);
-        PtyStreams.DisposeQuietly(_input);
-        PtyStreams.DisposeQuietly(_output);
+        DisposeQuietly(_input);
+        DisposeQuietly(_output);
     }
 
-    private const int MinSize = 2;
-    private const int SignalMask = 0x7f;
-    private const int ExitStatusShift = 8;
-    private const int ExitStatusMask = 0xff;
-    private const int SignalExitBase = 128;
+    private static void DisposeQuietly(Stream stream)
+    {
+        try
+        {
+            stream.Dispose();
+        }
+        catch (IOException e)
+        {
+            _ = e;
+        }
+    }
+
     private const int SIGHUP = 1;
     private const int EINTR = 4;
     private const int ChildFailed = 127;
@@ -143,42 +157,7 @@ internal sealed partial class UnixPty : IPtyConnection
     private const nuint TiocswinszMac = 0x80087467;
 
     [StructLayout(LayoutKind.Sequential)]
-    private record struct WinSize
-    {
-        public ushort Rows;
-        public ushort Columns;
-        public ushort XPixels;
-        public ushort YPixels;
-    }
-
-    private readonly record struct Launch(IntPtr Path, IntPtr Argv, IntPtr Envp, IntPtr Directory);
-
-    private sealed class NativeAllocations : IDisposable
-    {
-        private readonly List<IntPtr> _pointers = [];
-
-        public IntPtr Text(string value) => Track(Marshal.StringToHGlobalAnsi(value));
-
-        public IntPtr Array(IEnumerable<string> items)
-        {
-            var pointers = items.Select(Text).Append(IntPtr.Zero).ToArray();
-            var block = Track(Marshal.AllocHGlobal(IntPtr.Size * pointers.Length));
-            for (int i = 0; i < pointers.Length; i++)
-            {
-                Marshal.WriteIntPtr(block, i * IntPtr.Size, pointers[i]);
-            }
-
-            return block;
-        }
-
-        public void Dispose() => _pointers.ForEach(Marshal.FreeHGlobal);
-
-        private IntPtr Track(IntPtr pointer)
-        {
-            _pointers.Add(pointer);
-            return pointer;
-        }
-    }
+    private struct WinSize { public ushort Rows, Columns, XPixels, YPixels; }
 
     [LibraryImport("libc", EntryPoint = "forkpty", SetLastError = true)]
     private static partial int ForkPty(out int master, IntPtr name, IntPtr termios, ref WinSize size);
