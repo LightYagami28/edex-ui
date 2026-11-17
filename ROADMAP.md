@@ -1,15 +1,19 @@
 # Roadmap
 
-This page summarizes candidate work in [SPEC.md](SPEC.md). Proposals have no delivery dates and are not commitments.
+Stato al 2026-11-17. Il piano tecnico completo è documentato in SPEC.md.
 
-## Documented status
+This document summarizes candidate work and proposals aligned with [SPEC.md](SPEC.md). Read the [README](README.md) and [architecture](ARCHITECTURE.md) for the current implementation.
 
-The project is a GPL-3.0-only eDEX-UI fork. The specification records the core and Windows application work as implemented, with Windows packaging artifacts still pending. Read the [README](README.md) and [architecture](docs/architettura.md) for the current implementation.
+## Prossimi passi in ordine di priorità
 
-## Proposals and open decisions
+1. **Copertura test al 100%**: completare i test unitari in `tests/Core.Tests` per i rami di errore di PTY, parser ANSI e monitor di sistema.
+2. **Quality Gate Codacy & SonarCloud Grade A**: mantenimento di 0 issue e complessità ciclomatica controllata su tutti i sorgenti C# senza l'uso di soppressori di codice (`#pragma` o `[SuppressMessage]`).
+3. **Client nativo Linux**: implementazione di `src/Linux` con binding diretti X11/Wayland e PTY POSIX nativa (`forkpty`), azzerando ogni dipendenza da Electron.
+4. **Client nativo macOS**: implementazione di `src/Mac` tramite Swift / Metal o host nativo Cocoa.
+5. **Distribuzione e packaging**: generazione manifest Winget automatizzato (schema 1.10.0), pacchetto MSIX per Windows e tarball binari Linux deterministici.
+6. **Supporto temi e tastiere personalizzate**: estensione del parser JSON interno per caricare layout ANSI/ISO e palette colori senza allocazioni dinamiche nel ciclo di rendering.
 
-- Linux X11 support remains planned work.
-- macOS support remains planned work; the implementation approach and UI choices are open in `SPEC.md`.
-- Revisit packaging and signing decisions before publishing platform builds.
+## Fuori ambito
 
-These items do not imply current platform support. Update this page when the specification or maintained scope changes.
+- Ritorno a runtime Web/Electron o inclusione di Chromium/Node.js.
+- Dipendenze NuGet pesanti di terze parti per UI o controlli complessi.
