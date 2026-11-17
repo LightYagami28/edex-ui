@@ -72,3 +72,10 @@ Leggi [CONTRIBUTING.md](CONTRIBUTING.md), il
 ## Licenza
 
 GPL-3.0-only, vedi [LICENSE](LICENSE).
+
+
+## Documentazione
+
+- [Indice della documentazione](docs/README.md)
+- [Architettura](ARCHITECTURE.md)
+- [Roadmap](ROADMAP.md)
