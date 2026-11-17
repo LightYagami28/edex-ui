@@ -2,6 +2,9 @@
 
 [![CI](https://github.com/LightYagami28/edex-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/LightYagami28/edex-ui/actions/workflows/ci.yml)
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=LightYagami28_edex-ui&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=LightYagami28_edex-ui)
+[![.NET](https://img.shields.io/badge/.NET-11.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![C#](https://img.shields.io/badge/C%23-14-239120?logo=csharp&logoColor=white)](https://learn.microsoft.com/dotnet/csharp/)
+[![Coverage](https://img.shields.io/badge/coverage-98.9%25-brightgreen)](SPEC.md)
 [![Licenza](https://img.shields.io/github/license/LightYagami28/edex-ui)](LICENSE)
 
 eDEX-UI riscritto da zero in .NET 11: un terminale a schermo intero con
