@@ -1,7 +1,3 @@
 ---
 exclude_paths:
   - "tests/**"
-engines:
-  opengrep:
-    exclude_paths:
-      - "src/**"
