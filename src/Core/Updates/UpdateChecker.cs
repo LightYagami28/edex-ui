@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text.Json;
 
@@ -35,6 +36,7 @@ public static class UpdateChecker
         }
         catch (Exception e) when (e is HttpRequestException or JsonException or KeyNotFoundException or InvalidOperationException)
         {
+            Trace.WriteLine($"UpdateChecker: controllo aggiornamenti fallito: {e.GetType().Name}: {e.Message}");
             return null;
         }
     }
