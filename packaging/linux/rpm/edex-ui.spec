@@ -39,5 +39,5 @@ install -Dm644 share/icons/hicolor/256x256/apps/edex-ui.png %{buildroot}%{_datad
 %{_datadir}/icons/hicolor/256x256/apps/edex-ui.png
 
 %changelog
-* Wed Nov 11 2026 Light Yagami <maule2703@gmail.com> - @VERSION@-1
+* Wed Nov 11 2026 Light Yagami <developer@lightyagami.dev> - @VERSION@-1
 - Pacchetto binario dal tar.gz standalone

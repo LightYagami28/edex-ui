@@ -70,3 +70,31 @@ AI, MITRE ATLAS. Ogni PR verifica: zero errori, zero avvisi, zero soppressioni.
 - **Componenti AI**: il progetto non usa LLM/RAG; se introdotti, separare
   istruzioni di sistema da input utente, trattare l'output come non attendibile,
   limitare agency e consumi (token/cost cap, timeout, quota).
+
+## Applicazione delle checklist JARVIS
+
+Le tre checklist in `00 Jarvis/Squadra/Sicurezza/` sono state riviste punto per
+punto. Esito per il progetto:
+
+- **Checklist siti web**: non applicabile al prodotto (applicazione desktop senza
+  server web). Applicabili e rispettate: gestione segreti, dipendenze e lockfile,
+  GitHub Action pinnate, log senza PII, errori generici e rollback. Se in futuro
+  verrà aggiunto un endpoint HTTP, gli header HTTPS obbligatori sono specificati
+  in questa sezione.
+- **Checklist database**: non applicabile: il progetto non usa database.
+- **Checklist codice C#**: applicate le sezioni 1 (validazione input), 2 (output e
+  stringhe), 6 (serializzazione), 10 (segreti/configurazione), 11 (crittografia),
+  12 (eccezioni e log), 13 (concorrenza), 14 (NuGet), 15 (build/rilascio),
+  16 (desktop), 19 (test/analisi) e 20 (pre-pubblicazione). Non applicabili:
+  sezione 3 (SQL), 4/5 (autenticazione e ASP.NET Core), 17 (servizi Windows) e
+  18 (interoperabilità nativa: il PTY usa API di sistema tramite wrapper del
+  runtime, senza assembly non verificati).
+
+## Eccezioni HTTPS documentate
+
+- `media/logo.svg`, `packaging/windows/**/*.xml` e `*.nuspec` contengono URI di
+  namespace XML (`http://www.w3.org/2000/svg`, `http://schemas.microsoft.com/...`):
+  sono identificatori normalizzati da specifica, non URL richiesti in rete.
+  Convertirli romperebbe gli schema; non sono richieste di rete.
+- `LICENSE` riporta `<http://fsf.org/>` nel testo originale: il testo della FSF
+  vieta modifiche e va conservato verbatim.

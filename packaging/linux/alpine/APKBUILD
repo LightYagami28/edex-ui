@@ -1,4 +1,4 @@
-# Maintainer: Light Yagami <maule2703@gmail.com>
+# Maintainer: Light Yagami <developer@lightyagami.dev>
 pkgname=edex-ui
 pkgver=@VERSION@
 pkgrel=0
