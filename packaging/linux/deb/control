@@ -1,7 +1,7 @@
 Package: edex-ui
 Version: @VERSION@-1
 Architecture: amd64
-Maintainer: Light Yagami <maule2703@gmail.com>
+Maintainer: Light Yagami <developer@lightyagami.dev>
 Section: utils
 Priority: optional
 Homepage: https://github.com/LightYagami28/edex-ui
