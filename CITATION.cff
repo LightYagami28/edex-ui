@@ -1,7 +1,18 @@
 cff-version: 1.2.0
-message: "If you use this software, please cite it."
-title: "edex-ui"
-date-released: 2026-10-05
+message: "Se usi questo software, citalo come segue."
+title: "eDEX-UI nativo"
+type: software
+abstract: "Riscrittura nativa in .NET 11 di un terminale a schermo intero con monitor di sistema e tastiera su schermo."
 authors:
   - family-names: Maule
     given-names: Alessandro
+    alias: "Light Yagami"
+repository-code: "https://github.com/LightYagami28/edex-ui"
+license: GPL-3.0-only
+date-released: "2026-11-21"
+version: "3.0.0"
+keywords:
+  - dotnet
+  - csharp
+  - terminal
+  - pty

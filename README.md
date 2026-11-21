@@ -4,81 +4,68 @@
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=LightYagami28_edex-ui&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=LightYagami28_edex-ui)
 [![.NET](https://img.shields.io/badge/.NET-11.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![C#](https://img.shields.io/badge/C%23-14-239120?logo=csharp&logoColor=white)](https://learn.microsoft.com/dotnet/csharp/)
-[![Coverage](https://img.shields.io/badge/coverage-98.9%25-brightgreen)](SPEC.md)
 [![Licenza](https://img.shields.io/github/license/LightYagami28/edex-ui)](LICENSE)
 
-eDEX-UI riscritto da zero in .NET 11: un terminale a schermo intero con
-pannelli di sistema (CPU, RAM, rete, processi, file, globo) e tastiera su
-schermo. Un'applicazione nativa per ogni sistema, senza librerie di terzi:
-solo .NET e le API del sistema operativo.
+eDEX-UI riscritto da zero in .NET 11: terminale a schermo intero con pannelli
+di sistema (CPU, RAM, rete, processi, file, globo) e tastiera su schermo.
+L'applicazione è nativa su ogni piattaforma e non dipende da Electron, Node.js
+o librerie UI di terze parti: solo .NET e le API del sistema operativo.
 
-Il codice Electron originale è nella storia di `main` e nel tag
+Il codice Electron originale resta nella storia di `main` e nel tag
 `archivio/electron`.
 
-## Stato
+## Stato dell'implementazione
 
-- `src/Core` (terminale, PTY, monitor, file, tema, tastiera, impostazioni,
-  avvio, aggiornamenti, scena): fatto, con test MSTest.
-- `src/Windows` (WPF): fatto, app a schermo intero con smoke test in CI.
-- App Linux (X11): da fare.
-- App macOS (Swift): da fare.
+| Componente | Stato |
+|---|---|
+| `src/Core`: terminale, PTY, monitor, file, temi, tastiera, impostazioni, avvio, aggiornamenti, scena | pronto, coperto da MSTest |
+| `src/Windows` (WPF): app a schermo intero e smoke test in CI | pronto |
+| Applicazione Linux nativa (X11/Wayland, PTY POSIX) | da fare |
+| Applicazione macOS nativa (Swift/Cocoa) | da fare |
 
-Dettagli e piano in [SPEC.md](SPEC.md).
+Piano tecnico e regole di progetto: [SPEC.md](SPEC.md). Architettura:
+[ARCHITECTURE.md](ARCHITECTURE.md). Priorità: [ROADMAP.md](ROADMAP.md).
 
 ## Requisiti
 
-- .NET SDK 11 (versione in `global.json`).
-- Windows 10 1809 o successivo (ConPTY), Linux con glibc o musl, macOS.
+- .NET SDK 11 (versione esatta in `global.json`).
+- Windows 10 1809 o successivo per ConPTY; Linux con glibc o musl; macOS.
 
-## Compilare e provare
+## Compilazione e test
 
 ```sh
-dotnet build -c Release
-dotnet test -c Release
-dotnet test --coverage --coverage-output-format cobertura \
+dotnet build EdexUI.slnx -c Release
+dotnet test EdexUI.slnx -c Release
+dotnet test EdexUI.slnx --coverage --coverage-output-format cobertura \
   --coverage-output cov.cobertura.xml
 ```
 
-App Windows e smoke test:
+Applicazione Windows e smoke test:
 
 ```sh
 dotnet build src/Windows/Edex.Windows.csproj -c Release
-cd src/Windows/bin/Release/net11.0-windows/win-x64
-./edex-ui.exe --smoke-test --screenshot smoke.png
+dotnet test tests/Windows.Tests/ -c Release
 ```
 
-Lo smoke test avvia la shell su un pseudo terminale, esegue un comando, ne
-verifica l'output nel terminale e salva uno screenshot della scena.
+La build tratta gli avvisi come errori: il risultato atteso è zero errori e zero
+avvisi, senza soppressioni di analisi.
 
-`global.json` attiva il test runner Microsoft.Testing.Platform. I test usano
-MSTest. Gli script di `tools/` si provano con
-`python3 -m unittest discover -s tests/tools`.
+## Sicurezza
 
-## Struttura
-
-```text
-src/Core/         libreria Edex.Core (nessuna dipendenza)
-src/Windows/      app WPF (finestra, rendering, input)
-tests/Core.Tests/ test di Core
-tests/tools/      test degli script di sviluppo
-assets/           temi, layout tastiera, audio, caratteri
-tools/            script di sviluppo
-docs/             architettura e sviluppo
-```
+- Nessun segreto nel repository; le impostazioni sensibili restano fuori dal codice.
+- `AppSettings.Validate()` e `SettingsStore.LoadStrict()` rifiutano valori non
+  validi e segnalano gli errori di lettura senza mascherarli.
+- `Safe.Run` e `UpdateChecker` registrano su `Trace` le eccezioni attese; i log
+  non contengono dati sensibili.
+- Segnalazioni private: vedere [SECURITY.md](SECURITY.md). Le GitHub Action sono
+  pinnate a commit SHA completo.
 
 ## Contribuire
 
-Leggi [CONTRIBUTING.md](CONTRIBUTING.md), il
-[codice di condotta](CODE_OF_CONDUCT.md) e, per le vulnerabilità,
-[SECURITY.md](SECURITY.md). Per aiuto vedi [SUPPORT.md](SUPPORT.md).
+Leggere [CONTRIBUTING.md](CONTRIBUTING.md) e il
+[codice di condotta](CODE_OF_CONDUCT.md).
 
 ## Licenza
 
-GPL-3.0-only, vedi [LICENSE](LICENSE).
-
-
-## Documentazione
-
-- [Indice della documentazione](docs/README.md)
-- [Architettura](ARCHITECTURE.md)
-- [Roadmap](ROADMAP.md)
+GPL-3.0-only. Il testo integrale è in [LICENSE](LICENSE); le attribuzioni e le
+licenze dei componenti di terze parti sono in [NOTICE.md](NOTICE.md).
