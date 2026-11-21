@@ -66,3 +66,5 @@ __pycache__/
 !.env.example
 *.pem
 *.key
+
+.gitleaksignore
