@@ -1,7 +1,8 @@
-<Project Sdk="MSTest.Sdk/4.5.2">
+<Project Sdk="MSTest.Sdk/4.5.3">
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <TestingExtensionsProfile>AllMicrosoft</TestingExtensionsProfile>
+    <MicrosoftTestingExtensionsFakesVersion>18.10.0</MicrosoftTestingExtensionsFakesVersion>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Core/Edex.Core.csproj" />
