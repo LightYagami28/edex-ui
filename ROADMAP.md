@@ -1,8 +1,27 @@
 # Roadmap
 
-Stato al 2026-11-17. Il piano tecnico completo è documentato in SPEC.md.
+Stato al 2026-11-21. Il piano tecnico completo è documentato in SPEC.md.
 
-This document summarizes candidate work and proposals aligned with [SPEC.md](SPEC.md). Read the [README](README.md) and [architecture](ARCHITECTURE.md) for the current implementation.
+Il documento riassume il lavoro candidato in linea con [SPEC.md](SPEC.md). Per
+l'implementazione corrente vedere [README](README.md) e
+[architettura](ARCHITECTURE.md).
+
+## Stato attuale
+
+- Solution `EdexUI.slnx` su .NET 11, comprendente `Edex.Core`, `Edex.Cli` e
+  `Edex.Core.Tests`; build con zero errori e zero warning.
+- Test: 226 totali, 224 superati e 2 ignorati per piattaforma (Windows/OSX).
+- `AppSettings` espone `Validate()` con soglie numeriche e controllo dei percorsi;
+  `SettingsStore` offre `LoadStrict()` e `SaveValidated()` per non nascondere
+  errori di lettura o valori non validi, oltre a `Load()` best-effort con traccia.
+- `Safe.Run` e `UpdateChecker` registrano con `Trace` le eccezioni attese, senza
+  soppressioni del compilatore.
+- SDK MSTest aggiornato a 4.5.3 con runner Microsoft.Testing.Platform.
+
+## Fatto di recente
+
+Convalida delle impostazioni, lettura e scrittura rigorose, logging delle
+eccezioni attese, documentazione XML delle impostazioni e nuovi test dedicati.
 
 ## Prossimi passi in ordine di priorità
 
