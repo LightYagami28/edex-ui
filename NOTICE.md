@@ -24,7 +24,8 @@ integrale è in [LICENSE](LICENSE). Autore della riscrittura: Alessandro Maule
 - **Windows**: Windows Pseudo Console API (ConPTY) e Windows Presentation
   Foundation (WPF) con integrazione DirectX.
 - **Test**: MSTest SDK e Microsoft.Testing.Platform (licenza MIT).
-- **Strumenti di analisi**: SonarCloud, CodeQL, Codacy e Socket, usati solo in CI.
+- **Strumenti di analisi**: SonarCloud, CodeQL, Codacy e Socket, usati solo in
+CI.
 
 Non ci sono dipendenze NuGet a runtime nel prodotto: le dipendenze elencate
 riguardano esclusivamente la fase di sviluppo e di verifica.

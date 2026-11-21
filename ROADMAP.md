@@ -29,7 +29,8 @@ l'architettura in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Prossimi passi in ordine di priorità
 
-1. **Copertura test al 100%**: completare i test in `tests/Core.Tests` per i rami
+1. **Copertura test al 100%**: completare i test in `tests/Core.Tests` per i
+rami
    di errore di PTY, parser ANSI e monitor di sistema.
 2. **Quality Gate Codacy e SonarCloud Grade A**: mantenere zero issue e
    complessità ciclomatica controllata senza soppressori di codice.

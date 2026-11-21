@@ -1,7 +1,8 @@
 # eDEX-UI nativo (.NET)
 
 [![CI](https://github.com/LightYagami28/edex-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/LightYagami28/edex-ui/actions/workflows/ci.yml)
-[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=LightYagami28_edex-ui&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=LightYagami28_edex-ui)
+[![Quality
+Gate](https://sonarcloud.io/api/project_badges/measure?project=LightYagami28_edex-ui&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=LightYagami28_edex-ui)
 [![.NET](https://img.shields.io/badge/.NET-11.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![C#](https://img.shields.io/badge/C%23-14-239120?logo=csharp&logoColor=white)](https://learn.microsoft.com/dotnet/csharp/)
 [![Licenza](https://img.shields.io/github/license/LightYagami28/edex-ui)](LICENSE)
@@ -17,7 +18,7 @@ Il codice Electron originale resta nella storia di `main` e nel tag
 ## Stato dell'implementazione
 
 | Componente | Stato |
-|---|---|
+| --- | --- |
 | `src/Core`: terminale, PTY, monitor, file, temi, tastiera, impostazioni, avvio, aggiornamenti, scena | pronto, coperto da MSTest |
 | `src/Windows` (WPF): app a schermo intero e smoke test in CI | pronto |
 | Applicazione Linux nativa (X11/Wayland, PTY POSIX) | da fare |
@@ -52,7 +53,8 @@ avvisi, senza soppressioni di analisi.
 
 ## Sicurezza
 
-- Nessun segreto nel repository; le impostazioni sensibili restano fuori dal codice.
+- Nessun segreto nel repository; le impostazioni sensibili restano fuori dal
+codice.
 - `AppSettings.Validate()` e `SettingsStore.LoadStrict()` rifiutano valori non
   validi e segnalano gli errori di lettura senza mascherarli.
 - `Safe.Run` e `UpdateChecker` registrano su `Trace` le eccezioni attese; i log

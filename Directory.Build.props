@@ -10,4 +10,9 @@
     <Product>eDEX-UI</Product>
     <Version>3.0.0</Version>
   </PropertyGroup>
+  <ItemGroup>
+    <AssemblyAttribute Include="System.CLSCompliantAttribute">
+      <_Parameter1>false</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
 </Project>

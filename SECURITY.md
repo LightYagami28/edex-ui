@@ -3,7 +3,8 @@
 ## Versioni supportate
 
 Riceve correzioni di sicurezza solo il ramo `main`, cioè la riscrittura nativa
-dell'applicazione. Il vecchio codice Electron (tag `archivio/electron`) non è più
+dell'applicazione. Il vecchio codice Electron (tag `archivio/electron`) non è
+più
 mantenuto.
 
 ## Segnalare una vulnerabilità
@@ -43,7 +44,8 @@ AI, MITRE ATLAS. Ogni PR verifica: zero errori, zero avvisi, zero soppressioni.
   restano nella directory utente.
 - **A02 Security Misconfiguration**: l'applicazione non espone server web; se in
   futuro verrà aggiunto un endpoint HTTP, dovrà inviare CSP, HSTS,
-  X-Content-Type-Options, X-Frame-Options e Referrer-Policy, con debug e directory
+    X-Content-Type-Options, X-Frame-Options e Referrer-Policy, con debug e
+  directory
   listing disattivati in produzione.
 - **Validazione input**: `AppSettings.Validate()` verifica soglie numeriche e
   percorsi assoluti; `SettingsStore.LoadStrict()` segnala errori di lettura e
@@ -76,14 +78,18 @@ AI, MITRE ATLAS. Ogni PR verifica: zero errori, zero avvisi, zero soppressioni.
 Le tre checklist in `00 Jarvis/Squadra/Sicurezza/` sono state riviste punto per
 punto. Esito per il progetto:
 
-- **Checklist siti web**: non applicabile al prodotto (applicazione desktop senza
-  server web). Applicabili e rispettate: gestione segreti, dipendenze e lockfile,
+- **Checklist siti web**: non applicabile al prodotto (applicazione desktop
+senza
+    server web). Applicabili e rispettate: gestione segreti, dipendenze e
+  lockfile,
   GitHub Action pinnate, log senza PII, errori generici e rollback. Se in futuro
   verrà aggiunto un endpoint HTTP, gli header HTTPS obbligatori sono specificati
   in questa sezione.
 - **Checklist database**: non applicabile: il progetto non usa database.
-- **Checklist codice C#**: applicate le sezioni 1 (validazione input), 2 (output e
-  stringhe), 6 (serializzazione), 10 (segreti/configurazione), 11 (crittografia),
+- **Checklist codice C#**: applicate le sezioni 1 (validazione input), 2 (output
+e
+    stringhe), 6 (serializzazione), 10 (segreti/configurazione), 11
+  (crittografia),
   12 (eccezioni e log), 13 (concorrenza), 14 (NuGet), 15 (build/rilascio),
   16 (desktop), 19 (test/analisi) e 20 (pre-pubblicazione). Non applicabili:
   sezione 3 (SQL), 4/5 (autenticazione e ASP.NET Core), 17 (servizi Windows) e
@@ -93,7 +99,8 @@ punto. Esito per il progetto:
 ## Eccezioni HTTPS documentate
 
 - `media/logo.svg`, `packaging/windows/**/*.xml` e `*.nuspec` contengono URI di
-  namespace XML (`http://www.w3.org/2000/svg`, `http://schemas.microsoft.com/...`):
+    namespace XML (`http://www.w3.org/2000/svg`,
+  `http://schemas.microsoft.com/...`):
   sono identificatori normalizzati da specifica, non URL richiesti in rete.
   Convertirli romperebbe gli schema; non sono richieste di rete.
 - `LICENSE` riporta `<http://fsf.org/>` nel testo originale: il testo della FSF

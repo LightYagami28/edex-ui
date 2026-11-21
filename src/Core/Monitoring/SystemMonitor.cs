@@ -12,6 +12,7 @@ internal static class Percentages
 }
 
 public sealed record CpuSample(double TotalPercent, int LogicalCores, string Model);
+[CLSCompliant(false)]
 public sealed record MemorySample(ulong TotalBytes, ulong AvailableBytes)
 {
     public ulong UsedBytes => TotalBytes > AvailableBytes ? TotalBytes - AvailableBytes : 0;
@@ -22,6 +23,7 @@ public sealed record DiskSample(string Name, string Mount, string Format, long T
 {
     public double UsedPercent => Percentages.Of(TotalBytes - FreeBytes, TotalBytes);
 }
+[CLSCompliant(false)]
 public sealed record SystemSnapshot(
     DateTimeOffset Timestamp,
     string HostName,
