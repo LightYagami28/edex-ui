@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
 using System.Globalization;
-using System.Windows.Input;
 using Edex.Core.Input;
 
 namespace Edex.Windows;

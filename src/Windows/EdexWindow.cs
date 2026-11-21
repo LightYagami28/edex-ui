@@ -1,6 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-only
-using System.Windows;
-using System.Windows.Input;
 using System.Windows.Media;
 using Edex.Core.Input;
 using Edex.Core.Ui;
