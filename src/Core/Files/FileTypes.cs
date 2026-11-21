@@ -33,10 +33,16 @@ public static class FileTypes
 
     private static readonly Dictionary<string, FileCategory> ByName = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["makefile"] = FileCategory.Code, ["dockerfile"] = FileCategory.Code, ["jenkinsfile"] = FileCategory.Code,
-        ["rakefile"] = FileCategory.Code, ["gemfile"] = FileCategory.Code,
-        ["readme"] = FileCategory.Text, ["license"] = FileCategory.Text, ["copying"] = FileCategory.Text,
-        ["authors"] = FileCategory.Text, ["changelog"] = FileCategory.Text,
+        ["makefile"] = FileCategory.Code,
+        ["dockerfile"] = FileCategory.Code,
+        ["jenkinsfile"] = FileCategory.Code,
+        ["rakefile"] = FileCategory.Code,
+        ["gemfile"] = FileCategory.Code,
+        ["readme"] = FileCategory.Text,
+        ["license"] = FileCategory.Text,
+        ["copying"] = FileCategory.Text,
+        ["authors"] = FileCategory.Text,
+        ["changelog"] = FileCategory.Text,
     };
 
     private static Dictionary<string, FileCategory> Build()

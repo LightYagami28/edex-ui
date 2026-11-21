@@ -648,7 +648,7 @@ public sealed class DashboardTests
         }
 
         Assert.AreEqual(3, dashboard.HistoryCount);
-    Assert.AreSequenceEqual(ExpectedCpuRamp, dashboard.CpuHistory.Select(v => Math.Round(v, 3)).ToArray());
+        Assert.AreSequenceEqual(ExpectedCpuRamp, dashboard.CpuHistory.Select(v => Math.Round(v, 3)).ToArray());
     }
 
     [TestMethod]

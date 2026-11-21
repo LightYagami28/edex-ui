@@ -278,10 +278,20 @@ public class KeyboardExtraTests
         var state = new KeyboardState();
         var expected = new Dictionary<KeyAction, string>
         {
-            [KeyAction.Space] = " ", [KeyAction.Enter] = "\r", [KeyAction.Backspace] = "\x7f", [KeyAction.Tab] = "\t",
-            [KeyAction.Escape] = "\x1b", [KeyAction.Delete] = "\x1b[3~", [KeyAction.Up] = "\x1b[A", [KeyAction.Down] = "\x1b[B",
-            [KeyAction.Right] = "\x1b[C", [KeyAction.Left] = "\x1b[D", [KeyAction.Home] = "\x1b[H", [KeyAction.End] = "\x1b[F",
-            [KeyAction.PageUp] = "\x1b[5~", [KeyAction.PageDown] = "\x1b[6~",
+            [KeyAction.Space] = " ",
+            [KeyAction.Enter] = "\r",
+            [KeyAction.Backspace] = "\x7f",
+            [KeyAction.Tab] = "\t",
+            [KeyAction.Escape] = "\x1b",
+            [KeyAction.Delete] = "\x1b[3~",
+            [KeyAction.Up] = "\x1b[A",
+            [KeyAction.Down] = "\x1b[B",
+            [KeyAction.Right] = "\x1b[C",
+            [KeyAction.Left] = "\x1b[D",
+            [KeyAction.Home] = "\x1b[H",
+            [KeyAction.End] = "\x1b[F",
+            [KeyAction.PageUp] = "\x1b[5~",
+            [KeyAction.PageDown] = "\x1b[6~",
         };
         foreach (var (action, text) in expected)
         {
