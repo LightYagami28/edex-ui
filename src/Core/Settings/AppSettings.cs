@@ -76,7 +76,7 @@ public sealed record AppSettings
             problems.Add("Shell non può essere vuoto.");
         }
 
-        if (double.IsNaN(FontSize) || double.IsInfinity(FontSize) || FontSize is < MinFontSize or > MaxFontSize)
+        if (IsOutOfRange(FontSize, MinFontSize, MaxFontSize))
         {
             problems.Add($"FontSize deve essere tra {MinFontSize} e {MaxFontSize} (valore: {FontSize}).");
         }
@@ -91,7 +91,7 @@ public sealed record AppSettings
             problems.Add($"MonitorIntervalMs deve essere tra {MinMonitorIntervalMs} e {MaxMonitorIntervalMs} (valore: {MonitorIntervalMs}).");
         }
 
-        if (double.IsNaN(SoundVolume) || double.IsInfinity(SoundVolume) || SoundVolume is < 0 or > 1)
+        if (IsOutOfRange(SoundVolume, 0, 1))
         {
             problems.Add($"SoundVolume deve essere tra 0 e 1 (valore: {SoundVolume}).");
         }
@@ -108,6 +108,9 @@ public sealed record AppSettings
 
         return problems;
     }
+
+    private static bool IsOutOfRange(double value, double min, double max) =>
+        !double.IsFinite(value) || value < min || value > max;
 
     /// <summary>Interprete predefinito per la piattaforma corrente.</summary>
     public static string DefaultShell() =>
