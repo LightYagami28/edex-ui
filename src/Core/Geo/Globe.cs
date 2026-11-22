@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-only
-using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace Edex.Core.Geo;
