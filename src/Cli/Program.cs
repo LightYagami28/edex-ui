@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 using System.Reflection;
 
-[assembly: CLSCompliant(true)]
-
 const int UsageError = 2;
 var version = typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "0";
 

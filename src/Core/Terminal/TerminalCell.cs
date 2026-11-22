@@ -14,6 +14,7 @@ public enum CellAttributes
     Strikethrough = 64,
 }
 
+[CLSCompliant(false)]
 public readonly record struct TerminalCell(char Glyph, uint Foreground, uint Background, CellAttributes Attributes)
 {
     private const uint PaletteBit = 0x01000000;
@@ -24,10 +25,16 @@ public readonly record struct TerminalCell(char Glyph, uint Foreground, uint Bac
 
     public static readonly TerminalCell Blank = new(' ', 0, 0, CellAttributes.None);
 
+    [CLSCompliant(false)]
     public static uint PaletteFlag => PaletteBit;
+
+    [CLSCompliant(false)]
     public static uint RgbFlag => RgbBit;
 
+    [CLSCompliant(false)]
     public static uint Palette(int index) => PaletteBit | (uint)(index & ChannelMask);
+
+    [CLSCompliant(false)]
     public static uint Rgb(int r, int g, int b) =>
         RgbBit | (uint)((r & ChannelMask) << RedShift | (g & ChannelMask) << GreenShift | (b & ChannelMask));
 }
@@ -36,6 +43,7 @@ public sealed class TerminalSnapshot
 {
     public required int Columns { get; init; }
     public required int Rows { get; init; }
+    [CLSCompliant(false)]
     public required TerminalCell[][] Lines { get; init; }
     public required int CursorX { get; init; }
     public required int CursorY { get; init; }

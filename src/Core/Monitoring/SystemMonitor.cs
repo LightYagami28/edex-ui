@@ -12,6 +12,7 @@ internal static class Percentages
 }
 
 public sealed record CpuSample(double TotalPercent, int LogicalCores, string Model);
+[CLSCompliant(false)]
 public sealed record MemorySample(ulong TotalBytes, ulong AvailableBytes)
 {
     public ulong UsedBytes => TotalBytes > AvailableBytes ? TotalBytes - AvailableBytes : 0;
@@ -22,6 +23,7 @@ public sealed record DiskSample(string Name, string Mount, string Format, long T
 {
     public double UsedPercent => Percentages.Of(TotalBytes - FreeBytes, TotalBytes);
 }
+[CLSCompliant(false)]
 public sealed record SystemSnapshot(
     DateTimeOffset Timestamp,
     string HostName,
@@ -44,8 +46,10 @@ public sealed class SystemMonitor
     private DateTime _lastProcessSample = DateTime.MinValue;
     private readonly string _cpuModel = CpuInfo.ReadModel();
 
+    [CLSCompliant(false)]
     public SystemSnapshot Sample() => Sample(DefaultTopProcessCount);
 
+    [CLSCompliant(false)]
     public SystemSnapshot Sample(int topProcessCount)
     {
         return new SystemSnapshot(

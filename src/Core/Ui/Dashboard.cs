@@ -70,6 +70,7 @@ public sealed class Dashboard
 
     public UiLayout Layout { get; private set; }
 
+    [CLSCompliant(false)]
     public SystemSnapshot? System { get; private set; }
 
     public NetworkSnapshot? Network { get; private set; }
@@ -92,6 +93,7 @@ public sealed class Dashboard
 
     public void Resize(double width, double height) => Layout = UiLayout.Compute(width, height, Settings.ShowKeyboard);
 
+    [CLSCompliant(false)]
     public void AttachSystem(SystemSnapshot snapshot) => System = snapshot;
 
     public void AttachNetwork(NetworkSnapshot snapshot) => Network = snapshot;
