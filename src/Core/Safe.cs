@@ -30,7 +30,7 @@ internal static class Safe
         }
         catch (Exception e) when (IsExpected(e))
         {
-            Trace.WriteLine($"Safe.Run: eccezione attesa ignorata: {e.GetType().Name}: {e.Message}");
+            Trace.TraceInformation($"Safe.Run: eccezione attesa ignorata: {e.GetType().Name}: {e.Message}");
             return fallback;
         }
     }

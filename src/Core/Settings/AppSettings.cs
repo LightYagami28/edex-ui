@@ -186,7 +186,7 @@ public sealed class SettingsStore
         }
         catch (Exception e) when (e is JsonException or IOException or UnauthorizedAccessException)
         {
-            Trace.WriteLine($"SettingsStore.Load: uso i valori predefiniti, lettura di '{FilePath}' fallita: {e.GetType().Name}: {e.Message}");
+            Trace.TraceInformation($"SettingsStore.Load: uso i valori predefiniti, lettura di '{FilePath}' fallita: {e.GetType().Name}: {e.Message}");
         }
         return new AppSettings();
     }
@@ -209,7 +209,7 @@ public sealed class SettingsStore
         }
         catch (Exception e) when (e is JsonException or IOException or UnauthorizedAccessException)
         {
-            Trace.WriteLine($"SettingsStore.LoadStrict: lettura di '{FilePath}' fallita: {e.GetType().Name}: {e.Message}");
+            Trace.TraceInformation($"SettingsStore.LoadStrict: lettura di '{FilePath}' fallita: {e.GetType().Name}: {e.Message}");
             throw new InvalidOperationException($"Impossibile leggere le impostazioni da '{FilePath}'.", e);
         }
 
@@ -217,7 +217,7 @@ public sealed class SettingsStore
         if (problems.Count > 0)
         {
             var message = $"Impostazioni non valide in '{FilePath}': {string.Join("; ", problems)}";
-            Trace.WriteLine($"SettingsStore.LoadStrict: {message}");
+            Trace.TraceInformation($"SettingsStore.LoadStrict: {message}");
             throw new InvalidOperationException(message);
         }
         return settings;
@@ -246,7 +246,7 @@ public sealed class SettingsStore
         if (problems.Count > 0)
         {
             var message = $"Impostazioni non valide, nulla è stato scritto: {string.Join("; ", problems)}";
-            Trace.WriteLine($"SettingsStore.SaveValidated: {message}");
+            Trace.TraceInformation($"SettingsStore.SaveValidated: {message}");
             throw new InvalidOperationException(message);
         }
         Save(settings);
