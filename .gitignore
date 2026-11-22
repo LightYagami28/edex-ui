@@ -66,3 +66,6 @@ __pycache__/
 !.env.example
 *.pem
 *.key
+
+# Stato locale di Visual Studio
+.vs/
