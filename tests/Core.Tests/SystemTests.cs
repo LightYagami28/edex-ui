@@ -564,7 +564,7 @@ public class PtyExtraTests
 
         pty.Out.Push("hello");
         WaitFor(() => session.Buffer.Snapshot().LineText(0) == "hello");
-        Assert.IsGreaterThan(0, updates);
+        WaitFor(() => Volatile.Read(ref updates) > 0);
 
         session.Send("");
         session.Send("ls\r");
