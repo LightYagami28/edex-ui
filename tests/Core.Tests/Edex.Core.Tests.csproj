@@ -8,6 +8,38 @@
     <ProjectReference Include="../../src/Core/Edex.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Transitive dependency versions are pinned to the current releases. -->
+    <PackageReference Include="Microsoft.ApplicationInsights" Version="3.2.0" />
+    <PackageReference Include="Microsoft.Diagnostics.NETCore.Client" Version="0.2.750501" />
+    <PackageReference Include="Microsoft.DiaSymReader" Version="3.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyModel" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="11.0.0" />
+    <PackageReference Include="Microsoft.TestPlatform.ObjectModel" Version="18.12.0" />
+    <PackageReference Include="System.Security.Permissions" Version="11.0.0" />
+    <PackageReference Include="System.Windows.Extensions" Version="11.0.0" />
+    <PackageReference Include="Azure.Core" Version="1.65.0" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Identity.Client" Version="4.92.0" />
+    <PackageReference Include="Microsoft.Identity.Client.Extensions.Msal" Version="4.92.0" />
+    <PackageReference Include="Microsoft.IdentityModel.Abstractions" Version="8.23.0" />
+    <PackageReference Include="OpenTelemetry" Version="1.21.0" />
+    <PackageReference Include="OpenTelemetry.Api" Version="1.21.0" />
+    <PackageReference Include="OpenTelemetry.Api.ProviderBuilderExtensions" Version="1.21.0" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.21.0" />
+    <PackageReference Include="OpenTelemetry.PersistentStorage.Abstractions" Version="1.2.0" />
+    <PackageReference Include="OpenTelemetry.PersistentStorage.FileSystem" Version="1.2.0" />
+    <PackageReference Include="System.ClientModel" Version="1.17.0" />
+    <PackageReference Include="System.Memory.Data" Version="11.0.0" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="11.0.0" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Update="Microsoft.Testing.Extensions.AzureDevOpsReport" Version="2.5.3" />
   </ItemGroup>
   <ItemGroup>
