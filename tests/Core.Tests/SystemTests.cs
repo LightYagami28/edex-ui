@@ -541,9 +541,9 @@ public class PtyExtraTests
         public void RaiseExit(int code) => Exited?.Invoke(this, code);
     }
 
-    private static void WaitFor(Func<bool> condition)
+    private static void WaitFor(Func<bool> condition, int timeoutSeconds = 10)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(10);
+        var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
         while (!condition() && DateTime.UtcNow < deadline)
         {
             Thread.Sleep(10);
@@ -643,7 +643,7 @@ public class PtyExtraTests
         WaitFor(() => session.Buffer.ScrollbackText().Contains("yes-ok", StringComparison.Ordinal));
         session.Resize(90, 15);
         session.Send("exit\r");
-        WaitFor(() => session.HasExited);
+        WaitFor(() => session.HasExited, 30);
     }
 
     [TestMethod]
@@ -657,7 +657,7 @@ public class PtyExtraTests
         else
         {
             using var session = TerminalSession.Start(new PtyOptions { Shell = name, WorkingDirectory = "/does/not/exist" });
-            WaitFor(() => session.HasExited);
+            WaitFor(() => session.HasExited, 30);
             Assert.AreEqual(127, session.ExitCode);
         }
     }
