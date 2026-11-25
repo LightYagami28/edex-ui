@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 
@@ -146,7 +147,7 @@ internal sealed partial class UnixPty : IPtyConnection
         }
         catch (IOException e)
         {
-            _ = e;
+            Trace.TraceWarning($"UnixPty: chiusura dello stream fallita: {e.Message}");
         }
     }
 

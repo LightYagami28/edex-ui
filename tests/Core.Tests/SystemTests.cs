@@ -142,7 +142,7 @@ public class FilesTests
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            _ = e;
+            Assert.Inconclusive($"Link simbolici non creabili in questo ambiente: {e.Message}");
         }
     }
 
