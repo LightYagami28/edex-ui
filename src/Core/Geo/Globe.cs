@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace Edex.Core.Geo;
@@ -111,7 +112,7 @@ public static class GeoLocator
             }
             catch (Exception e) when (IsTransient(e))
             {
-                _ = e;
+                Trace.TraceWarning($"GeoLocator: provider {url} non disponibile: {e.GetType().Name}: {e.Message}");
             }
         }
         return null;

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+using System.Diagnostics;
 using System.Text;
 using Edex.Core.Pty;
 
@@ -73,7 +74,7 @@ public sealed class TerminalSession : IDisposable
         }
         catch (Exception e) when (e is IOException or ObjectDisposedException)
         {
-            _ = e;
+            Trace.TraceInformation($"TerminalSession: lettura terminata, pty chiuso: {e.GetType().Name}: {e.Message}");
         }
         Updated?.Invoke(this, EventArgs.Empty);
     }
@@ -109,7 +110,7 @@ public sealed class TerminalSession : IDisposable
         }
         catch (Exception e) when (e is IOException or ObjectDisposedException)
         {
-            _ = e;
+            Trace.TraceWarning($"TerminalSession: scrittura sul pty fallita, sessione chiusa: {e.GetType().Name}: {e.Message}");
         }
     }
 

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+using System.Diagnostics;
 namespace Edex.Core.Pty;
 
 public sealed record PtyOptions
@@ -74,7 +75,7 @@ internal static class PtyStreams
         }
         catch (IOException e)
         {
-            _ = e;
+            Trace.TraceWarning($"Pty: chiusura dello stream fallita: {e.Message}");
         }
     }
 }

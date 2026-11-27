@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Windows.Threading;
@@ -106,7 +107,7 @@ internal sealed class AppHost : IDisposable
         }
         catch (Exception e) when (e is InvalidOperationException or NotSupportedException)
         {
-            _ = e;
+            Trace.TraceWarning($"AppHost: campionamento di sistema non disponibile: {e.GetType().Name}: {e.Message}");
         }
     }
 
@@ -154,7 +155,7 @@ internal sealed class AppHost : IDisposable
         }
         catch (Exception e) when (e is HttpRequestException or IOException or InvalidOperationException)
         {
-            _ = e;
+            Trace.TraceWarning($"AppHost: campionamento di rete fallito: {e.GetType().Name}: {e.Message}");
         }
     }
 }
